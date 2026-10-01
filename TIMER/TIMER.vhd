@@ -82,7 +82,22 @@ architecture RTL of TIMER is
     signal counter : std_logic_vector(DATA_WIDTH-1 downto 0); -- Counter value
     signal next_counter : std_logic_vector(DATA_WIDTH-1 downto 0); -- Next counter value
 
+    -- Port-map actuals as signals: GHDL (VHDL-93/2008) requires a name or a
+    -- globally static expression there, and these were expressions of signals.
+    signal counter_clear  : std_logic;
+    signal counter_enable : std_logic;
+    signal ovf_clear      : std_logic;
+    signal irq_disabled   : std_logic_vector(0 downto 0);
+    signal irq_enabled    : std_logic_vector(0 downto 0);
+    signal pwm_inverted   : std_logic;
 begin
+    counter_clear  <= clear or wr_en(2) or (overflow and not mode_signal);
+    counter_enable <= wr_en(1) or (start_signal and tick and not (overflow and mode_signal));
+    ovf_clear      <= clear or wr_en(5);
+    irq_disabled   <= (0 => '0');
+    irq_enabled    <= (0 => overflow_status);
+    pwm_inverted   <= not pwm_alu;
+
     -------------------------------------------------------------------------------
     -- TIMER_OPERATION_DECODER  
     -------------------------------------------------------------------------------
@@ -195,8 +210,8 @@ begin
         )
         port map (
             clock       => clock,
-            clear       => clear or wr_en(2) or (overflow and not(mode_signal)), -- Clear signal for the register
-            enable       => wr_en(1) or (start_signal and tick and not(overflow and mode_signal)), -- Enable signal for the register
+            clear       => counter_clear, -- Clear signal for the register
+            enable       => counter_enable, -- Enable signal for the register
             source     => mux_cnt, -- Data input to the register (mux output)
             destination    => counter -- Data output from the register (current counter value)
         );
@@ -268,7 +283,7 @@ begin
     U_IRQ_STATUS_REG : entity WORK.FlipFlop
         port map (
             clock       => clock,
-            clear       => clear or wr_en(5), -- Clear signal for the register
+            clear       => ovf_clear, -- Clear signal for the register
             enable       => overflow_pulse, -- Enable signal for the register (overflow signal)
             source     => '1', 
             destination    => overflow_status -- Data output from the register (overflow status)
@@ -287,8 +302,8 @@ begin
         )
         port map (
             selector    => irq_mask, -- convert std_logic to std_logic_vector(0 downto 0)
-            source_1    => (0 => '0'),  -- if not enabled no IRQ. 
-            source_2    => (0 => overflow_status), -- if enabled, IRQ is asserted when overflow occurs.
+            source_1    => irq_disabled,  -- if not enabled no IRQ.
+            source_2    => irq_enabled, -- if enabled, IRQ is asserted when overflow occurs.
             destination => irq_vec
         );
     irq <= irq_vec(0); -- Assign the IRQ signal to the output
@@ -334,7 +349,7 @@ begin
     ---------------------------------------------------------------------------
     U_PWM_TRISTATE : entity WORK.TRISTATE_BUFFER_1BIT
         port map (
-            data_in  => not(pwm_alu), -- Data input to the buffer (PWM ALU output)
+            data_in  => pwm_inverted, -- Data input to the buffer (PWM ALU output)
             enable   => pwm_en, -- Enable signal for the buffer (PWM enable signal)
             data_out => pwm_out -- Data output from the buffer (PWM output signal)
         );

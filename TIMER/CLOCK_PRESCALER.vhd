@@ -28,8 +28,13 @@ architecture RTL of CLOCK_PRESCALER is
   signal next_counter  : std_logic_vector(DATA_WIDTH-1 downto 0); -- Incremented counter
   signal comp_result   : std_logic;                               -- Comparison result (counter >= prescaler)
   signal tick_out      : std_logic;                               -- 1-cycle pulse
+  -- Port-map actual as a signal: GHDL requires a name or a globally static
+  -- expression there.
+  signal counter_clear : std_logic;
 
 begin
+
+  counter_clear <= clear or comp_result;
 
   ---------------------------------------------------------------------------
   -- Compare counter >= prescaler_in
@@ -63,7 +68,7 @@ begin
     generic map (DATA_WIDTH => DATA_WIDTH)
     port map (
       clock       => clock,
-      clear       => clear or comp_result, -- Reset when tick is fired
+      clear       => counter_clear, -- Reset when tick is fired
       enable      => '1',               -- Controlled by start_signal
       source      => next_counter,
       destination => counter

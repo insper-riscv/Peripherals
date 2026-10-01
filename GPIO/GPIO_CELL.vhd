@@ -56,7 +56,21 @@ architecture RTL of GPIO_CELL is
   signal prev_pin_input : std_logic; -- Previous value of GPIO pin (for edge detection)
   signal interrupt_logic : std_logic; -- Interrupt logic (for edge detection)
   signal mux_write_vector : std_logic_vector(0 downto 0); -- Intermediate vector for mux output
+  -- Port-map actuals as signals: GHDL (VHDL-93/2008) requires a name or a
+  -- globally static expression there, and these were expressions of signals.
+  signal load_vector   : std_logic_vector(0 downto 0);
+  signal toggle_vector : std_logic_vector(0 downto 0);
+  signal out_enable    : std_logic;
+  signal irq_clear     : std_logic;
+  signal irq_set       : std_logic;
+  constant SET_VECTOR   : std_logic_vector(0 downto 0) := "1";
+  constant CLEAR_VECTOR : std_logic_vector(0 downto 0) := "0";
 begin
+  load_vector   <= (0 => data_in);
+  toggle_vector <= (0 => not out_reg);
+  out_enable    <= wr_signals(1) or (wr_signals(2) and data_in);
+  irq_clear     <= clear or wr_signals(6);
+  irq_set       <= interrupt_logic and irq_mask;
 
   -----------------------------------------------------------------------------
   -- Direction Register: Controls GPIO pin direction (input/output).
@@ -81,10 +95,10 @@ begin
     )
     port map (
       selector    => wr_op,
-      source_1 => (0 => data_in),     -- Load
-      source_2    => std_logic_vector'("1"),         -- Set
-      source_3    => std_logic_vector'("0"),         -- Clear
-      source_4 => (0 => not out_reg), -- Toggle
+      source_1    => load_vector,    -- Load
+      source_2    => SET_VECTOR,     -- Set
+      source_3    => CLEAR_VECTOR,   -- Clear
+      source_4    => toggle_vector,  -- Toggle
       destination => mux_write_vector                -- intermediate 1-bit vector
     );
 
@@ -100,7 +114,7 @@ begin
     port map (
         clock       => clock,
         clear       => clear,
-        enable      => wr_signals(1) OR (wr_signals(2) AND data_in), -- Load or Set/Clear/Toggle
+        enable      => out_enable, -- Load or Set/Clear/Toggle
         source      => mux_write, -- Data to be written to output register
         destination => out_reg -- Data to be sent to GPIO pin
     );
@@ -199,8 +213,8 @@ begin
   U_IRQ_STATUS : entity WORK.FlipFlop
     port map (
         clock       => clock,
-        clear       => clear or (wr_signals(6)), -- Clear on Read
-        enable      => interrupt_logic AND irq_mask, -- Set interrupt status if interrupt logic is high and mask is enabled
+        clear       => irq_clear, -- Clear on Read
+        enable      => irq_set, -- Set interrupt status if interrupt logic is high and mask is enabled
         source      => '1', -- Set interrupt status to '1' on edge detection
         destination => irq_status -- Interrupt status register
     );

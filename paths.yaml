@@ -1,0 +1,6 @@
+# Every file path this repository's configuration references, checked by
+#   uv run riscv-tools --root . check-paths --manifest paths.yaml
+# (needs Core cloned next to this repository: ../Core).
+references:
+  - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
+  - {name: entry points, paths: [tests/python/runner.py, common, GPIO, TIMER, tests/vhdl/gpio_tb.vhd, ../Core/common/FlipFlop.vhd]}
