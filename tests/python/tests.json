@@ -1,1 +1,74 @@
-{}
+{
+    "MUX4": {
+        "toplevel": "generic_mux_4x1",
+        "sources": [
+            "common/GENERIC_MUX_4X1.vhd"
+        ],
+        "test_module": "tests.python.unittests.common.mux4"
+    },
+    "MUX8": {
+        "toplevel": "generic_mux_8x1",
+        "sources": [
+            "common/GENERIC_MUX_8X1.vhd"
+        ],
+        "test_module": "tests.python.unittests.common.mux8"
+    },
+    "TristateBuffer": {
+        "toplevel": "tristate_buffer_1bit",
+        "sources": [
+            "common/TRISTATE_BUFFER_1BIT.vhd"
+        ],
+        "test_module": "tests.python.unittests.common.tristate"
+    },
+    "GpioOperationDecoder": {
+        "toplevel": "gpio_operation_decoder",
+        "sources": [
+            "GPIO/GPIO_OPERATION_DECODER.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_operation_decoder"
+    },
+    "GPIO": {
+        "toplevel": "gpio_tb",
+        "sources": [
+            "../Core/common/FlipFlop.vhd",
+            "common/GENERICS.vhd",
+            "common/GENERIC_FLIP_FLOP.vhd",
+            "common/GENERIC_MUX_4X1.vhd",
+            "common/GENERIC_MUX_8X1.vhd",
+            "common/TRISTATE_BUFFER_1BIT.vhd",
+            "GPIO/GENERIC_SYNCHRONIZER_1BIT.vhd",
+            "GPIO/GPIO_OPERATION_DECODER.vhd",
+            "GPIO/GPIO_CELL.vhd",
+            "GPIO/GPIO.vhd",
+            "tests/vhdl/gpio_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio"
+    },
+    "TimerOperationDecoder": {
+        "toplevel": "timer_operation_decoder",
+        "sources": [
+            "TIMER/TIMER_OPERATION_DECODER.vhd"
+        ],
+        "test_module": "tests.python.unittests.TIMER.timer_operation_decoder"
+    },
+    "TIMER": {
+        "toplevel": "timer",
+        "sources": [
+            "../Core/common/FlipFlop.vhd",
+            "common/GENERICS.vhd",
+            "common/GENERIC_FLIP_FLOP.vhd",
+            "common/GENERIC_MUX_8X1.vhd",
+            "common/TRISTATE_BUFFER_1BIT.vhd",
+            "TIMER/GENERIC_REGISTER.vhd",
+            "TIMER/GENERIC_MUX_2X1.vhd",
+            "TIMER/GENERIC_ADDER.vhd",
+            "TIMER/GENERIC_CARRY_LOOKAHEAD.vhd",
+            "TIMER/ALU_GE_UNSIGNED.vhd",
+            "TIMER/COUNTER_OVERFLOW.vhd",
+            "TIMER/CLOCK_PRESCALER.vhd",
+            "TIMER/TIMER_OPERATION_DECODER.vhd",
+            "TIMER/TIMER.vhd"
+        ],
+        "test_module": "tests.python.unittests.TIMER.timer"
+    }
+}

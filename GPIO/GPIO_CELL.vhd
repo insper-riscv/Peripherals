@@ -210,7 +210,7 @@ begin
   -- The status is cleared when the processor writes a '1' to the register (W1C).
   -- The interrupt status is set if the interrupt logic is high and the mask is enabled.
   ----------------------------------------------------------------------------
-  U_IRQ_STATUS : entity WORK.FlipFlop
+  U_IRQ_STATUS : entity WORK.GENERIC_FLIP_FLOP
     port map (
         clock       => clock,
         clear       => irq_clear, -- Clear on Read

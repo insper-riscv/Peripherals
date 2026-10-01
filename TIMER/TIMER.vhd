@@ -280,7 +280,7 @@ begin
     -- This register holds the overflow status of the timer.
     -- It is cleared on read or when the overflow signal is high.
     ---------------------------------------------------------------------------
-    U_IRQ_STATUS_REG : entity WORK.FlipFlop
+    U_IRQ_STATUS_REG : entity WORK.GENERIC_FLIP_FLOP
         port map (
             clock       => clock,
             clear       => ovf_clear, -- Clear signal for the register
@@ -363,7 +363,7 @@ begin
     ---------------------------------------------------------------------------
     configs_readback <= (31 downto 4 => '0') & (irq_mask & pwm_en & mode_signal & start_signal); -- Concatenate the registers for the multiplexer
     pwm_readback <= (31 downto 1 => '0') & pwm_out; -- Concatenate the PWM output for the multiplexer
-    overflow_readback <= (31 downto 1 => '0') & overflow; -- Concatenate the overflow status for the multiplexer
+    overflow_readback <= (31 downto 1 => '0') & overflow_status; -- Concatenate the overflow status for the multiplexer
     U_MUX_OUT_SEL : entity WORK.GENERIC_MUX_8X1
         generic map (
             DATA_WIDTH => DATA_WIDTH

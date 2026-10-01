@@ -137,10 +137,10 @@ begin
             source_1    => dir_reg,
             source_2    => out_reg,
             source_3    => pins_input,
-            source_4    => irq_mask,
-            source_5    => irq_rise_mask,
-            source_6    => irq_fall_mask,
-            source_7    => irq_status,
+            source_4    => irq_status,
+            source_5    => irq_mask,
+            source_6    => irq_rise_mask,
+            source_7    => irq_fall_mask,
             source_8    => ZERO_VECTOR,
             destination => selected_read
         );
