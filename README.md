@@ -70,8 +70,8 @@ tag `archive/gpio-rom-simulation` of RV32. The pre-move state is the tag
 
 The peripherals were never part of a working SoC top; the first time their
 sources were simulated, GHDL rejected port-map expressions the Quartus compiler
-accepts, and the tests found three bugs (see the commit "Fix the read-to-clear
-statuses and the GPIO read map").
+accepts, and the tests found three bugs, documented with their fixes in
+[docs/bugs/](docs/bugs/README.md).
 
 ## License
 
