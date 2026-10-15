@@ -11,11 +11,10 @@ repositories of [insper-riscv](https://github.com/insper-riscv).
 | :--- | :--- |
 | `GPIO/` | general-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, per-pin rising/falling edge interrupts |
 | `TIMER/` | timer/PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status and interrupt |
+| `UART/` | memory-mapped 8N1 UART: RX/TX byte register, status/error flags and optional RX interrupt; physical layer vendored from OpenCores `uart2bus` |
 | `common/` | blocks both use, one copy each (`GENERICS`, `GENERIC_FLIP_FLOP`, `GENERIC_MUX_4X1`, `GENERIC_MUX_8X1`, `TRISTATE_BUFFER_1BIT`) |
-| `tests/python/` | per-entity cocotb tests and the catalog (`tests.json`) that drives them; `unittests/{common,GPIO,TIMER}` |
+| `tests/python/` | per-entity cocotb tests and the catalog (`tests.json`) that drives them; `unittests/{common,GPIO,TIMER,UART}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the GPIO's inout pins |
-
-UART will join when the bus has `ready` and the interrupt path exists.
 
 ## The interface
 
@@ -42,6 +41,17 @@ Every peripheral shares one shape (the bus design of
 | 5 | overflow status (a read returns it and clears it) |
 | 6 | PWM output |
 | 7 | prescaler (the counter advances every `prescaler + 1` cycles) |
+
+The UART does not require bus backpressure: software polls `TX_READY` and
+`RX_VALID`, while every memory-mapped access still completes in one cycle.
+Its initial hardware configuration is 115200 baud, 8N1 at a 50 MHz clock.
+
+| UART address | Register |
+| :--- | :--- |
+| 0 | `DATA`: write the low byte to start TX; read the received byte and clear `RX_VALID` |
+| 1 | `STATUS`: bit 0 `RX_VALID`, 1 `TX_READY`, 2 `RX_OVERRUN`, 3 `TX_DROPPED`; write 1 to bits 2/3 to clear them |
+| 2 | `CONTROL`: bit 0 enables the RX interrupt request |
+| 3 | reserved (reads zero, writes have no effect) |
 
 ## Use
 
@@ -75,4 +85,6 @@ accepts, and the tests found three bugs, documented with their fixes in
 
 ## License
 
-Apache License 2.0, see [LICENSE](LICENSE).
+Apache License 2.0, see [LICENSE](LICENSE). The physical UART sources under
+`UART/vendor/opencores_uart2bus` retain their original permissive license and
+copyright notice in that directory.

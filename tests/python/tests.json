@@ -70,5 +70,34 @@
             "TIMER/TIMER.vhd"
         ],
         "test_module": "tests.python.unittests.TIMER.timer"
+    },
+    "UART": {
+        "toplevel": "uart",
+        "sources": [
+            "UART/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "UART/vendor/opencores_uart2bus/baudGen.vhd",
+            "UART/vendor/opencores_uart2bus/uartRx.vhd",
+            "UART/vendor/opencores_uart2bus/uartTx.vhd",
+            "UART/vendor/opencores_uart2bus/uartTop.vhd",
+            "UART/UART.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.uart",
+        "parameters": {
+            "DATA_WIDTH": "32",
+            "BAUD_FREQ": "1",
+            "BAUD_LIMIT": "0"
+        }
+    },
+    "UARTDefaultBaud": {
+        "toplevel": "uart",
+        "sources": [
+            "UART/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "UART/vendor/opencores_uart2bus/baudGen.vhd",
+            "UART/vendor/opencores_uart2bus/uartRx.vhd",
+            "UART/vendor/opencores_uart2bus/uartTx.vhd",
+            "UART/vendor/opencores_uart2bus/uartTop.vhd",
+            "UART/UART.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.uart_default_baud"
     }
 }
