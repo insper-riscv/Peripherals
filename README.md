@@ -1,78 +1,68 @@
 # Peripherals
 
-The memory-mapped peripherals of the RV32 SoC. One job: the blocks the core
-talks to over the bus, outside the core and the memories. The core, the
-memories, the top levels that wire them and the test programs live in other
-repositories of [insper-riscv](https://github.com/insper-riscv).
+🌐 [Português](README.md) · [English](README.en.md)
 
-## Layout
+Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcleo conversa pelo barramento, fora do núcleo e das memórias. O núcleo, as memórias, os topos que os conectam e os programas de teste ficam em outros repositórios da organização [insper-riscv](https://github.com/insper-riscv).
 
-| Path | What |
+## 1. Documentação
+
+- [AUTHORS.md](AUTHORS.md): autores com commits no repositório, com nome e conta do GitHub.
+- [CONTRIBUTING.md](CONTRIBUTING.md): regras obrigatórias de contribuição, norma VHDL-2008, nomenclatura, cabeçalhos, normas Python e verificação antes de abrir Pull Request.
+- [CITATION.cff](CITATION.cff): metadados para citação do software.
+- [docs/bugs/](docs/bugs/README.md): bugs encontrados na primeira simulação dos periféricos, com as correções.
+- [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/pt-br/contracts/02-barramento-e-memoria.md): protocolo de barramento adotado pelos periféricos.
+
+## 2. Estrutura do Repositório
+
+| Caminho | Conteúdo |
 | :--- | :--- |
-| `GPIO/` | general-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, per-pin rising/falling edge interrupts |
-| `TIMER/` | timer/PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status and interrupt |
-| `common/` | blocks both use, one copy each (`GENERICS`, `GENERIC_FLIP_FLOP`, `GENERIC_MUX_4X1`, `GENERIC_MUX_8X1`, `TRISTATE_BUFFER_1BIT`) |
-| `tests/python/` | per-entity cocotb tests and the catalog (`tests.json`) that drives them; `unittests/{common,GPIO,TIMER}` |
-| `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the GPIO's inout pins |
+| `GPIO/` | Entrada e saída de uso geral: direção, saída (carga, set, clear, toggle), leitura sincronizada dos pinos e interrupções por borda de subida e descida em cada pino |
+| `TIMER/` | Temporizador e PWM: contador com `TOP`, prescaler, comparador de duty cycle, status de overflow e interrupção |
+| `common/` | Blocos usados por ambos, uma cópia de cada (`GENERICS`, `GENERIC_FLIP_FLOP`, `GENERIC_MUX_4X1`, `GENERIC_MUX_8X1`, `TRISTATE_BUFFER_1BIT`) |
+| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{common,GPIO,TIMER}` |
+| `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO |
 
-UART will join when the bus has `ready` and the interrupt path exists.
+## 3. Interface
 
-## The interface
+Todo periférico compartilha o mesmo conjunto de portas, conforme o barramento do contrato do Core: `clock`, `clear`, `data_in`, `address` (deslocamento em palavras dentro do periférico), `write`, `read`, `data_out` e `irq`. Os mapas de registradores estão nas entidades `*_OPERATION_DECODER` e em `tests/python/unittests/*/*_operation_decoder.py`.
 
-Every peripheral shares one shape (the bus design of
-[Core's `docs/contracts/02-barramento-e-memoria.md`](https://github.com/insper-riscv/Core/blob/main/docs/contracts/02-barramento-e-memoria.md)):
-`clock`, `clear`, `data_in`, `address` (the word offset inside the peripheral),
-`write`, `read`, `data_out`, `irq`. The register maps are in the
-`*_OPERATION_DECODER` entities, and in `tests/python/unittests/*/*_operation_decoder.py`.
+### 3.1. Registradores da GPIO
 
-| GPIO address | Register |
+| Endereço | Registrador |
 | :--- | :--- |
-| 0 | direction (1 = output) |
-| 1, 2, 3, 4 | output: load, set, clear, toggle (a read returns the output register) |
-| 5, 6, 7 | interrupt mask, rising-edge mask, falling-edge mask |
-| 8 | interrupt status (a read returns it and clears it) |
-| 9 | the pins, after a two-stage synchronizer |
+| 0 | Direção (1 = saída) |
+| 1, 2, 3, 4 | Saída: carga, set, clear e toggle (a leitura devolve o registrador de saída) |
+| 5, 6, 7 | Máscara de interrupção, máscara de borda de subida e máscara de borda de descida |
+| 8 | Status de interrupção (a leitura devolve o valor e o limpa) |
+| 9 | Pinos, após um sincronizador de dois estágios |
 
-| TIMER address | Register |
+### 3.2. Registradores do TIMER
+
+| Endereço | Registrador |
 | :--- | :--- |
-| 0 | config: bit 0 start, 1 saturate at `TOP` (else wrap), 2 PWM enable, 3 interrupt enable |
-| 1 | counter (a write loads it) |
-| 2 | counter reset (a write clears it) |
-| 3, 4 | `TOP` (resets to all ones), duty cycle |
-| 5 | overflow status (a read returns it and clears it) |
-| 6 | PWM output |
-| 7 | prescaler (the counter advances every `prescaler + 1` cycles) |
+| 0 | Configuração: bit 0 inicia, bit 1 satura em `TOP` (senão dá a volta), bit 2 habilita PWM, bit 3 habilita interrupção |
+| 1 | Contador (a escrita o carrega) |
+| 2 | Reset do contador (a escrita o zera) |
+| 3, 4 | `TOP` (reinicia com todos os bits em 1) e duty cycle |
+| 5 | Status de overflow (a leitura devolve o valor e o limpa) |
+| 6 | Saída PWM |
+| 7 | Prescaler (o contador avança a cada `prescaler + 1` ciclos) |
 
-## Use
+## 4. Verificação e Execução
 
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Peripherals.git
-git clone https://github.com/insper-riscv/Core.git   # next to it: FlipFlop
+git clone https://github.com/insper-riscv/Core.git   # ao lado: FlipFlop
 cd Peripherals
 uv sync
-make check   # GHDL syntax check of every source, in dependency order
-make test    # per-entity cocotb tests (TEST=GPIO for one)
-make paths   # every path the configuration lists exists
+
+make check   # Verificação de sintaxe VHDL de todos os fontes em ordem de dependência (GHDL)
+make test    # Testes por entidade em cocotb (make test TEST=GPIO para um alvo)
+make paths   # Existência de todos os caminhos listados na configuração
 ```
 
-The tools (GHDL, uv) come from the `infra-toolchain` image of
-[Infra](https://github.com/insper-riscv/Infra); CI runs there.
+As ferramentas (GHDL e uv) vêm da imagem `infra-toolchain` do repositório [Infra](https://github.com/insper-riscv/Infra), onde a integração contínua executa.
 
-## Where this came from
+---
 
-`GPIO/`, `TIMER/` and `common/` moved from `insper-riscv/RV32` (`src/GPIO`,
-`src/TIMER`), with their history and authorship (`git filter-repo`). The five
-blocks that both directories carried (three identical, two with the same ports and
-different bodies, unified to the TIMER's version) are now one copy each in `common/`. The old
-`src/GPIO/ROM_simulation.vhd` (a stale copy of the ROM model) was archived as the
-tag `archive/gpio-rom-simulation` of RV32. The pre-move state is the tag
-`pre-refactor`.
-
-The peripherals were never part of a working SoC top; the first time their
-sources were simulated, GHDL rejected port-map expressions the Quartus compiler
-accepts, and the tests found three bugs, documented with their fixes in
-[docs/bugs/](docs/bugs/README.md).
-
-## License
-
-Apache License 2.0, see [LICENSE](LICENSE).
+Copyright 2026 Insper. Licenciado sob a [Apache License, Version 2.0](LICENSE).
