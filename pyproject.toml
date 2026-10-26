@@ -1,7 +1,7 @@
 [project]
 name = "riscv-peripherals"
 version = "0.1.0"
-description = "Memory-mapped peripherals of the RV32 SoC (GPIO, TIMER; UART later) with per-entity cocotb tests."
+description = "Memory-mapped peripherals of the RV32 SoC (GPIO, TIMER and UART) with per-entity cocotb tests."
 license = "Apache-2.0"
 # Same range as riscv-tools (tools/Tools/pyproject.toml): one venv serves both.
 requires-python = ">=3.14,<3.15"
