@@ -6,7 +6,7 @@ from cocotb.triggers import FallingEdge, RisingEdge, Timer, with_timeout
 from cocotb.utils import get_sim_time
 
 
-DATA = 0
+TX_DATA = 0
 CLOCK_PERIOD_NS = 20
 BAUD_RATE = 115_200
 
@@ -32,7 +32,7 @@ async def test_default_generics_generate_115200_baud_at_50_mhz(dut):
     await reset_50_mhz(dut)
 
     start_edge = cocotb.start_soon(with_timeout(FallingEdge(dut.uart_tx), 20, "us"))
-    dut.address.value = DATA
+    dut.address.value = TX_DATA
     dut.data_in.value = 0x00
     dut.write.value = 1
     await RisingEdge(dut.clock)

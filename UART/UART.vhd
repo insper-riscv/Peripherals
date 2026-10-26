@@ -6,11 +6,11 @@
 --   software running on the RV32 processor controls this peripheral directly.
 --
 -- Register map (word addresses):
---   0 DATA    R/W   [7:0] received/transmitted byte; reading consumes RX_VALID
---   1 STATUS  R/W1C bit 0 RX_VALID, bit 1 TX_READY,
+--   0 TX_DATA W     [7:0] byte to transmit; reads return zero
+--   1 RX_DATA R     [7:0] received byte; reading consumes RX_VALID
+--   2 STATUS  R/W1C bit 0 RX_VALID, bit 1 TX_READY,
 --                    bit 2 RX_OVERRUN, bit 3 TX_DROPPED
---   2 CONTROL R/W   bit 0 RX_IRQ_ENABLE
---   3 reserved      reads zero; writes have no effect
+--   3 CONTROL R/W   bit 0 RX_IRQ_ENABLE
 -- =============================================================================
 
 library ieee;
@@ -38,9 +38,10 @@ entity UART is
 end entity UART;
 
 architecture RTL of UART is
-  constant DATA_ADDRESS    : std_logic_vector(1 downto 0) := "00";
-  constant STATUS_ADDRESS  : std_logic_vector(1 downto 0) := "01";
-  constant CONTROL_ADDRESS : std_logic_vector(1 downto 0) := "10";
+  constant TX_DATA_ADDRESS : std_logic_vector(1 downto 0) := "00";
+  constant RX_DATA_ADDRESS : std_logic_vector(1 downto 0) := "01";
+  constant STATUS_ADDRESS  : std_logic_vector(1 downto 0) := "10";
+  constant CONTROL_ADDRESS : std_logic_vector(1 downto 0) := "11";
 
   constant BAUD_FREQ_VALUE : std_logic_vector(11 downto 0) :=
     std_logic_vector(to_unsigned(BAUD_FREQ, 12));
@@ -73,7 +74,7 @@ begin
 
   phy_tx_data <= data_in(7 downto 0);
   phy_new_tx_data <= '1'
-    when write = '1' and address = DATA_ADDRESS and phy_tx_busy = '0'
+    when write = '1' and address = TX_DATA_ADDRESS and phy_tx_busy = '0'
     else '0';
 
   irq <= rx_valid and rx_irq_enable;
@@ -120,7 +121,7 @@ begin
       end if;
 
       -- A write while the transmitter is busy is intentionally discarded.
-      if write = '1' and address = DATA_ADDRESS and phy_tx_busy = '1' then
+      if write = '1' and address = TX_DATA_ADDRESS and phy_tx_busy = '1' then
         tx_dropped <= '1';
       end if;
 
@@ -129,12 +130,12 @@ begin
       -- and the new byte remains pending.
       if phy_new_rx_data = '1' then
         if rx_valid = '1' and
-           not (read = '1' and address = DATA_ADDRESS) then
+           not (read = '1' and address = RX_DATA_ADDRESS) then
           rx_overrun <= '1';
         end if;
         rx_data_reg <= phy_rx_data;
         rx_valid    <= '1';
-      elsif read = '1' and address = DATA_ADDRESS then
+      elsif read = '1' and address = RX_DATA_ADDRESS then
         rx_valid <= '0';
       end if;
     end if;
@@ -154,7 +155,10 @@ begin
     value := (others => '0');
 
     case address is
-      when DATA_ADDRESS =>
+      when TX_DATA_ADDRESS =>
+        null;
+
+      when RX_DATA_ADDRESS =>
         value(7 downto 0) := rx_data_reg;
 
       when STATUS_ADDRESS =>

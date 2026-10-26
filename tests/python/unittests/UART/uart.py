@@ -11,7 +11,7 @@ from cocotb.triggers import FallingEdge, RisingEdge, Timer, with_timeout
 from tests.python.utils import bus
 
 
-DATA, STATUS, CONTROL, RESERVED = range(4)
+TX_DATA, RX_DATA, STATUS, CONTROL = range(4)
 RX_VALID = 1 << 0
 TX_READY = 1 << 1
 RX_OVERRUN = 1 << 2
@@ -67,10 +67,10 @@ async def wait_tx_ready(dut, limit=32):
 async def test_reset_state_and_register_map(dut):
     await setup(dut)
 
-    assert await bus.read(dut, DATA) == 0
+    assert await bus.read(dut, TX_DATA) == 0
+    assert await bus.read(dut, RX_DATA) == 0
     assert await bus.read(dut, STATUS) == TX_READY
     assert await bus.read(dut, CONTROL) == 0
-    assert await bus.read(dut, RESERVED) == 0
     assert int(dut.irq.value) == 0
     assert int(dut.uart_tx.value) == 1, "an idle UART line is high"
 
@@ -80,7 +80,7 @@ async def test_transmit_complete_8n1_frame(dut):
     await setup(dut)
 
     receiver = cocotb.start_soon(receive_serial_byte(dut))
-    await bus.write(dut, DATA, 0xA5)
+    await bus.write(dut, TX_DATA, 0xA5)
 
     assert await receiver == 0xA5
     await wait_tx_ready(dut)
@@ -91,10 +91,10 @@ async def test_write_while_tx_busy_is_dropped_and_reported(dut):
     await setup(dut)
 
     receiver = cocotb.start_soon(receive_serial_byte(dut))
-    await bus.write(dut, DATA, 0x3C)
+    await bus.write(dut, TX_DATA, 0x3C)
     assert await bus.read(dut, STATUS) & TX_READY == 0
 
-    await bus.write(dut, DATA, 0xE7)
+    await bus.write(dut, TX_DATA, 0xE7)
     assert await bus.read(dut, STATUS) & TX_DROPPED
     assert await receiver == 0x3C, "the in-flight byte must not be corrupted"
 
@@ -106,13 +106,13 @@ async def test_write_while_tx_busy_is_dropped_and_reported(dut):
 
 
 @cocotb.test()
-async def test_receive_byte_and_read_consumes_rx_valid(dut):
+async def test_receive_byte_and_rx_data_read_consumes_rx_valid(dut):
     await setup(dut)
 
     await send_serial_byte(dut, 0x5A)
     status = await bus.read(dut, STATUS)
     assert status & (RX_VALID | TX_READY) == RX_VALID | TX_READY
-    assert await bus.read(dut, DATA) == 0x5A
+    assert await bus.read(dut, RX_DATA) == 0x5A
     assert await bus.read(dut, STATUS) & RX_VALID == 0
 
 
@@ -126,15 +126,15 @@ async def test_rx_overrun_keeps_latest_byte_and_is_w1c(dut):
     status = await bus.read(dut, STATUS)
     assert status & RX_VALID
     assert status & RX_OVERRUN
-    assert await bus.read(dut, DATA) == 0x34, "overrun policy keeps the newest byte"
-    assert await bus.read(dut, STATUS) & RX_OVERRUN, "reading DATA does not clear errors"
+    assert await bus.read(dut, RX_DATA) == 0x34, "overrun policy keeps the newest byte"
+    assert await bus.read(dut, STATUS) & RX_OVERRUN, "reading RX_DATA does not clear errors"
 
     await bus.write(dut, STATUS, RX_OVERRUN)
     assert await bus.read(dut, STATUS) & RX_OVERRUN == 0
 
 
 @cocotb.test()
-async def test_simultaneous_data_read_and_arrival_preserves_new_byte(dut):
+async def test_simultaneous_rx_data_read_and_arrival_preserves_new_byte(dut):
     await setup(dut)
     await send_serial_byte(dut, 0x11)
 
@@ -143,7 +143,7 @@ async def test_simultaneous_data_read_and_arrival_preserves_new_byte(dut):
 
     # uartRx raises newRxData just after a clock edge. Assert read before the
     # following edge, when UART.vhd observes the pulse and captures the byte.
-    dut.address.value = DATA
+    dut.address.value = RX_DATA
     dut.read.value = 1
     await Timer(1, unit="ns")
     assert int(dut.data_out.value) == 0x11, "the read returns the previous byte"
@@ -155,11 +155,11 @@ async def test_simultaneous_data_read_and_arrival_preserves_new_byte(dut):
     status = await bus.read(dut, STATUS)
     assert status & RX_VALID, "the coincident new byte remains pending"
     assert status & RX_OVERRUN == 0, "consuming the old byte avoids an overrun"
-    assert await bus.read(dut, DATA) == 0x22
+    assert await bus.read(dut, RX_DATA) == 0x22
 
 
 @cocotb.test()
-async def test_rx_interrupt_enable_and_clear_by_data_read(dut):
+async def test_rx_interrupt_enable_and_clear_by_rx_data_read(dut):
     await setup(dut)
 
     await bus.write(dut, CONTROL, RX_IRQ_ENABLE)
@@ -167,8 +167,28 @@ async def test_rx_interrupt_enable_and_clear_by_data_read(dut):
     await send_serial_byte(dut, 0xC3)
     assert int(dut.irq.value) == 1
 
-    assert await bus.read(dut, DATA) == 0xC3
+    assert await bus.read(dut, RX_DATA) == 0xC3
     assert int(dut.irq.value) == 0
 
     await bus.write(dut, CONTROL, 0)
     assert await bus.read(dut, CONTROL) == 0
+
+
+@cocotb.test()
+async def test_tx_read_and_rx_write_are_side_effect_free(dut):
+    await setup(dut)
+    await send_serial_byte(dut, 0x6D)
+
+    # TX_DATA is write-only: reading it neither exposes nor consumes RX data.
+    assert await bus.read(dut, TX_DATA) == 0
+    assert await bus.read(dut, STATUS) & RX_VALID
+
+    # RX_DATA is read-only: writing it neither launches TX nor changes RX data.
+    await bus.write(dut, RX_DATA, 0xA5)
+    status = await bus.read(dut, STATUS)
+    assert status & (RX_VALID | TX_READY) == RX_VALID | TX_READY
+    await bus.cycles(dut, BIT_CYCLES * 2)
+    assert int(dut.uart_tx.value) == 1
+
+    assert await bus.read(dut, RX_DATA) == 0x6D
+    assert await bus.read(dut, STATUS) & RX_VALID == 0
