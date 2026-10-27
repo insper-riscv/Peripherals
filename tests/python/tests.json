@@ -1,22 +1,8 @@
 {
-    "MUX4": {
-        "toplevel": "generic_mux_4x1",
-        "sources": [
-            "common/GENERIC_MUX_4X1.vhd"
-        ],
-        "test_module": "tests.python.unittests.common.mux4"
-    },
-    "MUX8": {
-        "toplevel": "generic_mux_8x1",
-        "sources": [
-            "common/GENERIC_MUX_8X1.vhd"
-        ],
-        "test_module": "tests.python.unittests.common.mux8"
-    },
     "TristateBuffer": {
         "toplevel": "tristate_buffer_1bit",
         "sources": [
-            "common/TRISTATE_BUFFER_1BIT.vhd"
+            "../Common-Components/tristate_buffer_1bit.vhd"
         ],
         "test_module": "tests.python.unittests.common.tristate"
     },
@@ -30,12 +16,13 @@
     "GPIO": {
         "toplevel": "gpio_tb",
         "sources": [
-            "../Core/common/flip_flop.vhd",
-            "common/GENERICS.vhd",
-            "common/GENERIC_FLIP_FLOP.vhd",
-            "common/GENERIC_MUX_4X1.vhd",
-            "common/GENERIC_MUX_8X1.vhd",
-            "common/TRISTATE_BUFFER_1BIT.vhd",
+            "../Common-Components/flip_flop.vhd",
+            "../Common-Components/generic_register.vhd",
+            "../Common-Components/clearable_register.vhd",
+            "../Common-Components/mux_4x1.vhd",
+            "../Common-Components/utils_pkg.vhd",
+            "../Common-Components/mux_tree.vhd",
+            "../Common-Components/tristate_buffer_1bit.vhd",
             "GPIO/GENERIC_SYNCHRONIZER_1BIT.vhd",
             "GPIO/GPIO_OPERATION_DECODER.vhd",
             "GPIO/GPIO_CELL.vhd",
@@ -54,15 +41,14 @@
     "TIMER": {
         "toplevel": "timer",
         "sources": [
-            "../Core/common/flip_flop.vhd",
-            "common/GENERICS.vhd",
-            "common/GENERIC_FLIP_FLOP.vhd",
-            "common/GENERIC_MUX_8X1.vhd",
-            "common/TRISTATE_BUFFER_1BIT.vhd",
-            "TIMER/CLEARABLE_REGISTER.vhd",
-            "TIMER/GENERIC_MUX_2X1.vhd",
-            "TIMER/GENERIC_ADDER.vhd",
-            "TIMER/GENERIC_CARRY_LOOKAHEAD.vhd",
+            "../Common-Components/flip_flop.vhd",
+            "../Common-Components/generic_register.vhd",
+            "../Common-Components/clearable_register.vhd",
+            "../Common-Components/mux_2x1.vhd",
+            "../Common-Components/utils_pkg.vhd",
+            "../Common-Components/mux_tree.vhd",
+            "../Common-Components/adder.vhd",
+            "../Common-Components/tristate_buffer_1bit.vhd",
             "TIMER/ALU_GE_UNSIGNED.vhd",
             "TIMER/COUNTER_OVERFLOW.vhd",
             "TIMER/CLOCK_PRESCALER.vhd",

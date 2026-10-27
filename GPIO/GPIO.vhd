@@ -12,6 +12,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 library WORK;
+use work.utils_pkg.all;
 
 -- -----------------------------------------------------------------------------
 -- Entity Declaration
@@ -85,6 +86,9 @@ architecture RTL of GPIO is
     -----------------------------------------------------------------------------
     signal selected_read : std_logic_vector(DATA_WIDTH-1 downto 0); -- Readback data
     constant ZERO_VECTOR : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0'); -- Zero vector for unused readback
+  -- Entradas do multiplexador READ_MUX agrupadas em um vetor de palavras.
+  signal read_mux_inputs : word_array_t(7 downto 0)(DATA_WIDTH - 1 downto 0);
+
 begin
 
     -----------------------------------------------------------------------------
@@ -128,22 +132,18 @@ begin
     -----------------------------------------------------------------------------
     -- Readback Multiplexer
     -----------------------------------------------------------------------------
-    READ_MUX : entity work.GENERIC_MUX_8X1
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map (
-            selector    => rd_sel,
-            source_1    => dir_reg,
-            source_2    => out_reg,
-            source_3    => pins_input,
-            source_4    => irq_status,
-            source_5    => irq_mask,
-            source_6    => irq_rise_mask,
-            source_7    => irq_fall_mask,
-            source_8    => ZERO_VECTOR,
-            destination => selected_read
-        );
+    read_mux_inputs <= (0 => dir_reg, 1 => out_reg, 2 => pins_input, 3 => irq_status, 4 => irq_mask, 5 => irq_rise_mask, 6 => irq_fall_mask, 7 => ZERO_VECTOR);
+
+    READ_MUX : entity work.mux_tree
+      generic map (
+        data_width     => DATA_WIDTH,
+        selector_width => 3
+      )
+      port map (
+        i_array => read_mux_inputs,
+        i_sel   => rd_sel,
+        o_d     => selected_read
+      );
     data_out <= selected_read;
     -----------------------------------------------------------------------------
     -- Interrupt Generation Logic. 

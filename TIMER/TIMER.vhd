@@ -5,8 +5,10 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 library WORK;
+use work.utils_pkg.all;
 
 entity TIMER is
     generic (
@@ -90,6 +92,15 @@ architecture RTL of TIMER is
     signal irq_disabled   : std_logic_vector(0 downto 0);
     signal irq_enabled    : std_logic_vector(0 downto 0);
     signal pwm_inverted   : std_logic;
+  -- Constante 1 usada como segundo operando do somador U_CONSTANT_ADDER.
+  constant U_CONSTANT_ADDER_ONE : std_logic_vector(DATA_WIDTH - 1 downto 0) := std_logic_vector(to_unsigned(1, DATA_WIDTH));
+  -- Saída de 1 bit do registrador U_IRQ_STATUS_REG, no formato de vetor do clearable_register.
+  signal u_irq_status_reg_q : std_logic_vector(0 downto 0);
+  -- Entradas do multiplexador U_MUX_OUT_SEL agrupadas em um vetor de palavras.
+  signal u_mux_out_sel_inputs : word_array_t(7 downto 0)(DATA_WIDTH - 1 downto 0);
+  -- Dado de 1 bit com valor '1', usado como entrada do registrador de status.
+  constant ONE_BIT : std_logic_vector(0 downto 0) := "1";
+
 begin
     counter_clear  <= clear or wr_en(2) or (overflow and not mode_signal);
     counter_enable <= wr_en(1) or (start_signal and tick and not (overflow and mode_signal));
@@ -119,17 +130,17 @@ begin
     -- The prescaler register is 32 bits wide.
     -- It is cleared on system reset or when the prescaler register is written to.
     -------------------------------------------------------------------------------
-    U_PRESCALER_REG : entity WORK.CLEARABLE_REGISTER
-        generic map (
-            DATA_WIDTH => 32
-        )
-        port map (
-            clock       => clock,
-            clear       => clear,
-            enable      => wr_en(6),
-            source      => data_in,
-            destination => prescaler_reg
-        );
+    U_PRESCALER_REG : entity work.clearable_register
+      generic map (
+        data_width => 32
+      )
+      port map (
+        i_clk    => clock,
+        i_clear  => clear,
+        i_enable => wr_en(6),
+        i_d      => data_in,
+        o_d      => prescaler_reg
+      );
     -------------------------------------------------------------------------------
     -- Clock Prescaler
     -- This component generates a tick signal based on the prescaler value.
@@ -163,17 +174,17 @@ begin
     --   2: pwm_en
     --   3: irq_mask
     -------------------------------------------------------------------------------
-    U_CONFIG_REG : entity WORK.CLEARABLE_REGISTER
-        generic map (
-            DATA_WIDTH => 4
-        )
-        port map (
-            clock       => clock,
-            clear       => clear,
-            enable      => wr_en(0),
-            source      => data_in(3 downto 0),
-            destination => config_reg
-        );
+    U_CONFIG_REG : entity work.clearable_register
+      generic map (
+        data_width => 4
+      )
+      port map (
+        i_clk    => clock,
+        i_clear  => clear,
+        i_enable => wr_en(0),
+        i_d      => data_in(3 downto 0),
+        o_d      => config_reg
+      );
 
     -- Unpack the config bits
     start_signal <= config_reg(0);
@@ -186,16 +197,16 @@ begin
     -- If cnt_sel is '1', the counter is loaded with the data_in value.
     -- If cnt_sel is '0', the counter is incremented by 1.
     ---------------------------------------------------------------------------
-    U_MUX_CNT_SEL : entity WORK.GENERIC_MUX_2X1
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map (
-            selector    => cnt_sel, -- Counter selector signal
-            source_1    => next_counter, -- Source 0 for the multiplexer (next counter value)
-            source_2    => data_in, -- Source 1 for the multiplexer (data input)
-            destination => mux_cnt -- Mux output for the counter selector
-        );
+    U_MUX_CNT_SEL : entity work.mux_2x1
+      generic map (
+        data_width => DATA_WIDTH
+      )
+      port map (
+        i_d0  => next_counter,
+        i_d1  => data_in,
+        i_sel => cnt_sel,
+        o_d   => mux_cnt
+      );
 
     ---------------------------------------------------------------------------
     -- Counter Register
@@ -204,49 +215,49 @@ begin
     -- when the overflow signal is high and the mode signal is auto-reset.
     -- Counter enabled on load or when the start signal is high and there is no overflow in hold mode. 
     ------------------------------------------------------------------------------
-    U_COUNTER_REG : entity WORK.CLEARABLE_REGISTER
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map (
-            clock       => clock,
-            clear       => counter_clear, -- Clear signal for the register
-            enable       => counter_enable, -- Enable signal for the register
-            source     => mux_cnt, -- Data input to the register (mux output)
-            destination    => counter -- Data output from the register (current counter value)
-        );
+    U_COUNTER_REG : entity work.clearable_register
+      generic map (
+        data_width => DATA_WIDTH
+      )
+      port map (
+        i_clk    => clock,
+        i_clear  => counter_clear,
+        i_enable => counter_enable,
+        i_d      => mux_cnt,
+        o_d      => counter
+      );
 
     ----------------------------------------------------------------------------
     -- Constant Adder
     -- This adder is used to increment the counter by 1.
     ------------------------------------------------------------------------------
-    U_CONSTANT_ADDER : entity WORK.GENERIC_ADDER
-        generic map (
-            DATA_WIDTH => DATA_WIDTH,
-            DEFAULT_SOURCE_2 => 1 -- Constant value to add (1)
-        )
-        port map (
-            source_1    => counter, -- Current counter value
-            destination => next_counter -- Next counter value (incremented by 1)
-        );
+    U_CONSTANT_ADDER : entity work.adder
+      generic map (
+        data_width => DATA_WIDTH
+      )
+      port map (
+        i_a => counter,
+        i_b => U_CONSTANT_ADDER_ONE,
+        o_d => next_counter
+      );
 
     --------------------------------------------------------------------------
     -- Top Register
     -- It is used to set the maximum count value for the timer. As default, it is set to 0xFFFFFFFF and it clears to the same value.
     -- It is loaded with the data_in value when the wr_en(4) signal is high.
     --------------------------------------------------------------------------
-    U_TOP_REG : entity WORK.CLEARABLE_REGISTER
-        generic map (
-            DATA_WIDTH => DATA_WIDTH,
-            CLEAR_VALUE => '1' -- Clear value for the register (all bits set to 1)
-        )
-        port map (
-            clock       => clock,
-            clear       => clear,
-            enable       => wr_en(3), -- Enable signal for the register
-            source     => data_in, -- Data input to the register
-            destination    => top_reg -- Data output from the register
-        );
+    U_TOP_REG : entity work.clearable_register
+      generic map (
+        data_width  => DATA_WIDTH,
+        clear_value => '1'
+      )
+      port map (
+        i_clk    => clock,
+        i_clear  => clear,
+        i_enable => wr_en(3),
+        i_d      => data_in,
+        o_d      => top_reg
+      );
 
     ---------------------------------------------------------------------------
     -- Overflow Detection Unity
@@ -280,14 +291,18 @@ begin
     -- This register holds the overflow status of the timer.
     -- It is cleared on read or when the overflow signal is high.
     ---------------------------------------------------------------------------
-    U_IRQ_STATUS_REG : entity WORK.GENERIC_FLIP_FLOP
-        port map (
-            clock       => clock,
-            clear       => ovf_clear, -- Clear signal for the register
-            enable       => overflow_pulse, -- Enable signal for the register (overflow signal)
-            source     => '1', 
-            destination    => overflow_status -- Data output from the register (overflow status)
-        );
+    U_IRQ_STATUS_REG : entity work.clearable_register
+      generic map (
+        data_width => 1
+      )
+      port map (
+        i_clk    => clock,
+        i_clear  => ovf_clear,
+        i_enable => overflow_pulse,
+        i_d      => ONE_BIT,
+        o_d      => u_irq_status_reg_q
+      );
+    overflow_status <= u_irq_status_reg_q(0);
 
     ---------------------------------------------------------------------------
     -- MUX IRQ Selector
@@ -296,16 +311,16 @@ begin
     -- If the IRQ mask is '0', the IRQ signal is not asserted.
     -- This is used to enable or disable the overflow interrupt.
     -------------------------------------------------------------------------------
-    U_MUX_IRQ_SEL : entity WORK.GENERIC_MUX_2X1
-        generic map (
-            DATA_WIDTH => 1
-        )
-        port map (
-            selector    => irq_mask, -- convert std_logic to std_logic_vector(0 downto 0)
-            source_1    => irq_disabled,  -- if not enabled no IRQ.
-            source_2    => irq_enabled, -- if enabled, IRQ is asserted when overflow occurs.
-            destination => irq_vec
-        );
+    U_MUX_IRQ_SEL : entity work.mux_2x1
+      generic map (
+        data_width => 1
+      )
+      port map (
+        i_d0  => irq_disabled,
+        i_d1  => irq_enabled,
+        i_sel => irq_mask,
+        o_d   => irq_vec
+      );
     irq <= irq_vec(0); -- Assign the IRQ signal to the output
 
     ---------------------------------------------------------------------------
@@ -314,17 +329,17 @@ begin
     -- It is loaded with the data_in value when the wr_en(5) signal is high.
     -- The duty cycle value is used to control the width of the PWM pulse.
     ---------------------------------------------------------------------------
-    U_DUTY_REG : entity WORK.CLEARABLE_REGISTER
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map (
-            clock       => clock,
-            clear       => clear,
-            enable       => wr_en(4), -- Enable signal for the register
-            source     => data_in, -- Data input to the register
-            destination    => duty_reg -- Data output from the register
-        );
+    U_DUTY_REG : entity work.clearable_register
+      generic map (
+        data_width => DATA_WIDTH
+      )
+      port map (
+        i_clk    => clock,
+        i_clear  => clear,
+        i_enable => wr_en(4),
+        i_d      => data_in,
+        o_d      => duty_reg
+      );
 
   ---------------------------------------------------------------------------
     -- PWM ALU
@@ -347,12 +362,12 @@ begin
     -- This buffer is used to control the PWM output signal.
     -- When the PWM enable signal is '1', the PWM output is driven by the PWM ALU.
     ---------------------------------------------------------------------------
-    U_PWM_TRISTATE : entity WORK.TRISTATE_BUFFER_1BIT
-        port map (
-            data_in  => pwm_inverted, -- Data input to the buffer (PWM ALU output)
-            enable   => pwm_en, -- Enable signal for the buffer (PWM enable signal)
-            data_out => pwm_out -- Data output from the buffer (PWM output signal)
-        );
+    U_PWM_TRISTATE : entity work.tristate_buffer_1bit
+      port map (
+        i_d      => pwm_inverted,
+        i_enable => pwm_en,
+        o_d      => pwm_out
+      );
     pwm <= pwm_out; -- Assign the PWM output signal to the output
 
     ---------------------------------------------------------------------------
@@ -364,21 +379,17 @@ begin
     configs_readback <= (31 downto 4 => '0') & (irq_mask & pwm_en & mode_signal & start_signal); -- Concatenate the registers for the multiplexer
     pwm_readback <= (31 downto 1 => '0') & pwm_out; -- Concatenate the PWM output for the multiplexer
     overflow_readback <= (31 downto 1 => '0') & overflow_status; -- Concatenate the overflow status for the multiplexer
-    U_MUX_OUT_SEL : entity WORK.GENERIC_MUX_8X1
-        generic map (
-            DATA_WIDTH => DATA_WIDTH
-        )
-        port map (
-            selector    => rd_sel, -- Read selector signal
-            source_1    => counter, -- Source 0 for the multiplexer (current counter value)
-            source_2    => top_reg, -- Source 1 for the multiplexer (top register value)
-            source_3    => duty_reg, -- Source 2 for the multiplexer (duty cycle value)
-            source_4    =>  configs_readback, -- Source 3 for the multiplexer (config register value)
-            source_5    => pwm_readback , -- Source 4 for the multiplexer (not used)
-            source_6    => overflow_readback, -- Source 5 for the multiplexer (not used)
-            source_7    => prescaler_reg, -- Source 6 for the multiplexer (prescaler register value)
-            source_8    => (others => '0'), -- Source 7 for the multiplexer (not used)
-            destination => data_out -- Mux output for the data_out signal
-        );
+    u_mux_out_sel_inputs <= (0 => counter, 1 => top_reg, 2 => duty_reg, 3 => configs_readback, 4 => pwm_readback, 5 => overflow_readback, 6 => prescaler_reg, 7 => (others => '0'));
+
+    U_MUX_OUT_SEL : entity work.mux_tree
+      generic map (
+        data_width     => DATA_WIDTH,
+        selector_width => 3
+      )
+      port map (
+        i_array => u_mux_out_sel_inputs,
+        i_sel   => rd_sel,
+        o_d     => data_out
+      );
 
 end architecture;

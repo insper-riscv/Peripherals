@@ -19,7 +19,6 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `GPIO/` | Entrada e saída de uso geral: direção, saída (carga, set, clear, toggle), leitura sincronizada dos pinos e interrupções por borda de subida e descida em cada pino |
 | `TIMER/` | Temporizador e PWM: contador com `TOP`, prescaler, comparador de duty cycle, status de overflow e interrupção |
 | `UART/` | UART 8N1 mapeada em memória: registradores separados de byte de RX e TX, flags de status e de erro e interrupção de RX opcional; a camada física é a `uart2bus` do OpenCores, trazida para o repositório |
-| `common/` | Blocos usados por ambos, uma cópia de cada (`GENERICS`, `GENERIC_FLIP_FLOP`, `GENERIC_MUX_4X1`, `GENERIC_MUX_8X1`, `TRISTATE_BUFFER_1BIT`) |
 | `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{common,GPIO,TIMER,UART}` |
 | `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO |
 
@@ -64,7 +63,7 @@ A UART não exige espera do barramento: o software consulta `TX_READY` e `RX_VAL
 
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Peripherals.git
-git clone https://github.com/insper-riscv/Core.git   # ao lado: flip_flop
+git clone https://github.com/insper-riscv/Common-Components.git   # ao lado: flip_flop, multiplexadores, somador e registrador com clear
 cd Peripherals
 uv sync
 

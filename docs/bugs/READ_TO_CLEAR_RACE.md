@@ -36,18 +36,17 @@ saw the already-cleared value.
 
 ## Fix
 
-The status flip-flops use `GENERIC_FLIP_FLOP`, whose clear is **synchronous**
-(the one the two directories already carried, unused), so the read returns the
+The status flip-flops use `clearable_register`, whose clear is **synchronous**, so the read returns the
 status during the cycle and the clock edge that ends the read clears it:
 
 ```vhdl
 -- GPIO/GPIO_CELL.vhd
-U_IRQ_STATUS : entity WORK.GENERIC_FLIP_FLOP
+U_IRQ_STATUS : entity work.clearable_register
 -- TIMER/TIMER.vhd
-U_IRQ_STATUS_REG : entity WORK.GENERIC_FLIP_FLOP
+U_IRQ_STATUS_REG : entity work.clearable_register
 ```
 
-`GENERIC_FLIP_FLOP` lives in `common/`. Two consequences, both acceptable: the
+`clearable_register` lives in Common-Components. Two consequences, both acceptable: the
 global `clear` of these two flip-flops is now also synchronous (a reset needs a
 clock edge, and the testbenches hold it for three), and an event that arrives on
 the very edge a read clears the status is lost (the clear wins over the set).

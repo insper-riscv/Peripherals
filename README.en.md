@@ -19,7 +19,6 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `GPIO/` | General-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising/falling edge interrupts |
 | `TIMER/` | Timer and PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status, and an interrupt |
 | `UART/` | Memory-mapped 8N1 UART: separate RX and TX byte registers, status and error flags, and an optional RX interrupt; the physical layer is the OpenCores `uart2bus`, vendored in the repository |
-| `common/` | Blocks both use, one copy each (`GENERICS`, `GENERIC_FLIP_FLOP`, `GENERIC_MUX_4X1`, `GENERIC_MUX_8X1`, `TRISTATE_BUFFER_1BIT`) |
 | `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{common,GPIO,TIMER,UART}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the GPIO inout pins |
 
@@ -64,7 +63,7 @@ The UART does not require bus backpressure: software polls `TX_READY` and `RX_VA
 
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Peripherals.git
-git clone https://github.com/insper-riscv/Core.git   # next to it: flip_flop
+git clone https://github.com/insper-riscv/Common-Components.git   # next to it: flip_flop, multiplexers, adder, and the register with clear
 cd Peripherals
 uv sync
 

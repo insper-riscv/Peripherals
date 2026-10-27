@@ -32,6 +32,9 @@ architecture RTL of CLOCK_PRESCALER is
   -- expression there.
   signal counter_clear : std_logic;
 
+  -- Constante 1 usada como segundo operando do somador U_ADDER.
+  constant U_ADDER_ONE : std_logic_vector(DATA_WIDTH - 1 downto 0) := std_logic_vector(to_unsigned(1, DATA_WIDTH));
+
 begin
 
   counter_clear <= clear or comp_result;
@@ -50,28 +53,30 @@ begin
   ---------------------------------------------------------------------------
   -- next_counter = counter + 1
   ---------------------------------------------------------------------------
-  U_ADDER : entity WORK.GENERIC_ADDER
+  U_ADDER : entity work.adder
     generic map (
-      DATA_WIDTH => DATA_WIDTH,
-      DEFAULT_SOURCE_2 => 1
+      data_width => DATA_WIDTH
     )
     port map (
-      source_1    => counter,
-      destination => next_counter
+      i_a => counter,
+      i_b => U_ADDER_ONE,
+      o_d => next_counter
     );
 
   ---------------------------------------------------------------------------
   -- Counter Register
   -- Clears to 0 when tick fires
   ---------------------------------------------------------------------------
-  U_COUNTER : entity WORK.CLEARABLE_REGISTER
-    generic map (DATA_WIDTH => DATA_WIDTH)
+  U_COUNTER : entity work.clearable_register
+    generic map (
+      data_width => DATA_WIDTH
+    )
     port map (
-      clock       => clock,
-      clear       => counter_clear, -- Reset when tick is fired
-      enable      => '1',               -- Controlled by start_signal
-      source      => next_counter,
-      destination => counter
+      i_clk    => clock,
+      i_clear  => counter_clear,
+      i_enable => '1',
+      i_d      => next_counter,
+      o_d      => counter
     );
 
   ---------------------------------------------------------------------------

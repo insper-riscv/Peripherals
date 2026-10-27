@@ -59,7 +59,8 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: 
         hdl_toplevel=toplevel,
         always=True,
         build_dir=build_dir,
-        parameters=parameters or {}
+        parameters=parameters or {},
+        build_args=["--std=08"],
     )
 
     wave_file = build_dir / "waves.ghw"
@@ -71,6 +72,7 @@ def run_cocotb_test(toplevel: str, sources: list, test_module: str, parameters: 
         test_module=test_module,
         build_dir=build_dir,
         plusargs=plusargs,
+        test_args=["--std=08"],
     )
 
     print(f"Waves: {wave_file} (gerado)")

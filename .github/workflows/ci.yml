@@ -22,12 +22,12 @@ jobs:
         with:
           submodules: true
 
-      - name: Checkout Core (the peripherals use its flip_flop)
-        # Makefile, paths.yaml and tests.json name ../Core/common/flip_flop.vhd,
+      - name: Checkout Common-Components (the peripherals use its blocks)
+        # Makefile, paths.yaml and tests.json name ../Common-Components/*.vhd,
         # a sibling of this checkout.
         run: |
-          rm -rf ../Core
-          git clone --depth 1 https://github.com/insper-riscv/Core.git ../Core
+          rm -rf ../Common-Components
+          git clone --depth 1 https://github.com/insper-riscv/Common-Components.git ../Common-Components
 
       - name: Install Python dependencies (riscv-tools from tools/Tools, + its sim extra)
         run: uv sync

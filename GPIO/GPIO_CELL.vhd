@@ -65,6 +65,11 @@ architecture RTL of GPIO_CELL is
   signal irq_set       : std_logic;
   constant SET_VECTOR   : std_logic_vector(0 downto 0) := "1";
   constant CLEAR_VECTOR : std_logic_vector(0 downto 0) := "0";
+  -- Saída de 1 bit do registrador U_IRQ_STATUS, no formato de vetor do clearable_register.
+  signal u_irq_status_q : std_logic_vector(0 downto 0);
+  -- Dado de 1 bit com valor '1', usado como entrada do registrador de status.
+  constant ONE_BIT : std_logic_vector(0 downto 0) := "1";
+
 begin
   load_vector   <= (0 => data_in);
   toggle_vector <= (0 => not out_reg);
@@ -89,17 +94,17 @@ begin
   -- Multiplexer for Write Operations.
   -- When selector 00 = LOAD, 01 = SET, 10 = CLEAR, 11 = TOGGLE
   -----------------------------------------------------------------------------
-  U_MUX_WRITE : entity WORK.GENERIC_MUX_4X1
+  U_MUX_WRITE : entity work.mux_4x1
     generic map (
-      DATA_WIDTH => 1
+      data_width => 1
     )
     port map (
-      selector    => wr_op,
-      source_1    => load_vector,    -- Load
-      source_2    => SET_VECTOR,     -- Set
-      source_3    => CLEAR_VECTOR,   -- Clear
-      source_4    => toggle_vector,  -- Toggle
-      destination => mux_write_vector                -- intermediate 1-bit vector
+      i_d0  => load_vector,
+      i_d1  => SET_VECTOR,
+      i_d2  => CLEAR_VECTOR,
+      i_d3  => toggle_vector,
+      i_sel => wr_op,
+      o_d   => mux_write_vector
     );
 
   -- Unpack result from mux (mux_write is std_logic)
@@ -124,11 +129,11 @@ begin
   -- If dir_reg = '1', buffer is enabled and out_reg is sent to gpio_pin.
   -- If dir_reg = '0', buffer is disabled and gpio_pin is in high-impedance state.
   -----------------------------------------------------------------------------
-  U_GPIO_BUFFER : entity WORK.TRISTATE_BUFFER_1BIT
+  U_GPIO_BUFFER : entity work.tristate_buffer_1bit
     port map (
-          data_in  => out_reg, -- Output register value
-          enable   => dir_reg, -- Direction control (input/output). Enable buffer if dir_reg is '1' (output)
-          data_out => gpio_pin -- GPIO pin output
+      i_d      => out_reg,
+      i_enable => dir_reg,
+      o_d      => gpio_pin
     );
 
   -----------------------------------------------------------------------------
@@ -210,14 +215,18 @@ begin
   -- The status is cleared when the processor writes a '1' to the register (W1C).
   -- The interrupt status is set if the interrupt logic is high and the mask is enabled.
   ----------------------------------------------------------------------------
-  U_IRQ_STATUS : entity WORK.GENERIC_FLIP_FLOP
+  U_IRQ_STATUS : entity work.clearable_register
+    generic map (
+      data_width => 1
+    )
     port map (
-        clock       => clock,
-        clear       => irq_clear, -- Clear on Read
-        enable      => irq_set, -- Set interrupt status if interrupt logic is high and mask is enabled
-        source      => '1', -- Set interrupt status to '1' on edge detection
-        destination => irq_status -- Interrupt status register
+      i_clk    => clock,
+      i_clear  => irq_clear,
+      i_enable => irq_set,
+      i_d      => ONE_BIT,
+      o_d      => u_irq_status_q
     );
+  irq_status <= u_irq_status_q(0);
   
 
   data_out(0) <= dir_reg; -- Read direction register
