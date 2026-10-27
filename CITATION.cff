@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "Se você usar este software, cite-o com os metadados abaixo. / If you use this software, please cite it using the metadata below."
+type: software
+title: "Peripherals: periféricos mapeados em memória do SoC RISC-V RV32"
+abstract: >-
+  Periféricos mapeados em memória (GPIO e TIMER/PWM) do SoC RISC-V RV32 em
+  VHDL-2008, com testes por entidade em cocotb/GHDL. Desenvolvido no Capstone
+  do Insper, financiado pelo CTI Renato Archer.
+authors:
+  - family-names: Hix
+    given-names: Lucas
+    alias: Peng1104
+  - family-names: Oliveira
+    given-names: Breno Schneider Salles de
+    alias: brnoschsaloli
+  - family-names: Bomfim
+    given-names: Henrique Rocha
+    alias: HenriqueRBomfim
+  - family-names: Neto
+    given-names: Pedro Carvalho Ribeiro
+    alias: Ribs2004
+  - family-names: Durand
+    given-names: Luiz Felipe Borelli
+    alias: LuizDurand
+  - family-names: Figueiredo
+    given-names: Luka Siqueira Ferreira de
+    alias: lukafig
+  - family-names: Finger
+    given-names: Ilana Chaia
+    alias: ilacftemp
+  - family-names: Paloschi
+    given-names: Leonardo Merlin
+    alias: leonardopaloschi
+  - family-names: Lima
+    given-names: Lucas Fernando De Souza
+    alias: lucasouzamil
+  - family-names: Ventura
+    given-names: Pedro Pereira Cecilio
+    alias: pedropcventura
+repository-code: "https://github.com/insper-riscv/Peripherals"
+url: "https://github.com/insper-riscv/Peripherals"
+license: Apache-2.0
+keywords:
+  - RISC-V
+  - VHDL
+  - GPIO
+  - timer
+  - peripherals
