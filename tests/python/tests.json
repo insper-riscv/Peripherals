@@ -1,61 +1,76 @@
 {
-    "TristateBuffer": {
-        "toplevel": "tristate_buffer_1bit",
-        "sources": [
-            "../Common-Components/tristate_buffer_1bit.vhd"
-        ],
-        "test_module": "tests.python.unittests.common.tristate"
-    },
     "GpioOperationDecoder": {
         "toplevel": "gpio_operation_decoder",
         "sources": [
             "GPIO/GPIO_OPERATION_DECODER.vhd"
         ],
-        "test_module": "tests.python.unittests.GPIO.gpio_operation_decoder"
+        "test_module": "tests.python.unittests.GPIO.gpio_operation_decoder",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     },
     "GPIO": {
         "toplevel": "gpio_tb",
         "sources": [
-            "../Common-Components/flip_flop.vhd",
-            "../Common-Components/generic_register.vhd",
-            "../Common-Components/clearable_register.vhd",
-            "../Common-Components/mux_4x1.vhd",
-            "../Common-Components/utils_pkg.vhd",
-            "../Common-Components/mux_tree.vhd",
-            "../Common-Components/tristate_buffer_1bit.vhd",
+            "../Common-Components/src/flip_flop.vhd",
+            "../Common-Components/src/generic_register.vhd",
+            "../Common-Components/src/clearable_register.vhd",
+            "../Common-Components/src/mux_4x1.vhd",
+            "../Common-Components/src/mux_8x1.vhd",
+            "../Common-Components/src/tristate_buffer_1bit.vhd",
             "GPIO/GENERIC_SYNCHRONIZER_1BIT.vhd",
             "GPIO/GPIO_OPERATION_DECODER.vhd",
             "GPIO/GPIO_CELL.vhd",
             "GPIO/GPIO.vhd",
             "tests/vhdl/gpio_tb.vhd"
         ],
-        "test_module": "tests.python.unittests.GPIO.gpio"
+        "test_module": "tests.python.unittests.GPIO.gpio",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     },
     "TimerOperationDecoder": {
         "toplevel": "timer_operation_decoder",
         "sources": [
             "TIMER/TIMER_OPERATION_DECODER.vhd"
         ],
-        "test_module": "tests.python.unittests.TIMER.timer_operation_decoder"
+        "test_module": "tests.python.unittests.TIMER.timer_operation_decoder",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     },
     "TIMER": {
         "toplevel": "timer",
         "sources": [
-            "../Common-Components/flip_flop.vhd",
-            "../Common-Components/generic_register.vhd",
-            "../Common-Components/clearable_register.vhd",
-            "../Common-Components/mux_2x1.vhd",
-            "../Common-Components/utils_pkg.vhd",
-            "../Common-Components/mux_tree.vhd",
-            "../Common-Components/adder.vhd",
-            "../Common-Components/tristate_buffer_1bit.vhd",
+            "../Common-Components/src/flip_flop.vhd",
+            "../Common-Components/src/generic_register.vhd",
+            "../Common-Components/src/clearable_register.vhd",
+            "../Common-Components/src/mux_2x1.vhd",
+            "../Common-Components/src/mux_8x1.vhd",
+            "../Common-Components/src/adder.vhd",
+            "../Common-Components/src/tristate_buffer_1bit.vhd",
             "TIMER/ALU_GE_UNSIGNED.vhd",
             "TIMER/COUNTER_OVERFLOW.vhd",
             "TIMER/CLOCK_PRESCALER.vhd",
             "TIMER/TIMER_OPERATION_DECODER.vhd",
             "TIMER/TIMER.vhd"
         ],
-        "test_module": "tests.python.unittests.TIMER.timer"
+        "test_module": "tests.python.unittests.TIMER.timer",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     },
     "UART": {
         "toplevel": "uart",
@@ -72,7 +87,13 @@
             "DATA_WIDTH": "32",
             "BAUD_FREQ": "1",
             "BAUD_LIMIT": "0"
-        }
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     },
     "UARTDefaultBaud": {
         "toplevel": "uart",
@@ -84,6 +105,12 @@
             "UART/vendor/opencores_uart2bus/uartTop.vhd",
             "UART/UART.vhd"
         ],
-        "test_module": "tests.python.unittests.UART.uart_default_baud"
+        "test_module": "tests.python.unittests.UART.uart_default_baud",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }

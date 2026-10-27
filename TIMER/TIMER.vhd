@@ -8,7 +8,6 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 library WORK;
-use work.utils_pkg.all;
 
 entity TIMER is
     generic (
@@ -96,10 +95,11 @@ architecture RTL of TIMER is
   constant U_CONSTANT_ADDER_ONE : std_logic_vector(DATA_WIDTH - 1 downto 0) := std_logic_vector(to_unsigned(1, DATA_WIDTH));
   -- Saída de 1 bit do registrador U_IRQ_STATUS_REG, no formato de vetor do clearable_register.
   signal u_irq_status_reg_q : std_logic_vector(0 downto 0);
-  -- Entradas do multiplexador U_MUX_OUT_SEL agrupadas em um vetor de palavras.
-  signal u_mux_out_sel_inputs : word_array_t(7 downto 0)(DATA_WIDTH - 1 downto 0);
   -- Dado de 1 bit com valor '1', usado como entrada do registrador de status.
   constant ONE_BIT : std_logic_vector(0 downto 0) := "1";
+
+  -- Palavra de zeros, a oitava entrada do multiplexador de leitura (sem registrador associado).
+  constant ZERO_WORD : std_logic_vector(DATA_WIDTH - 1 downto 0) := (others => '0');
 
 begin
     counter_clear  <= clear or wr_en(2) or (overflow and not mode_signal);
@@ -379,17 +379,21 @@ begin
     configs_readback <= (31 downto 4 => '0') & (irq_mask & pwm_en & mode_signal & start_signal); -- Concatenate the registers for the multiplexer
     pwm_readback <= (31 downto 1 => '0') & pwm_out; -- Concatenate the PWM output for the multiplexer
     overflow_readback <= (31 downto 1 => '0') & overflow_status; -- Concatenate the overflow status for the multiplexer
-    u_mux_out_sel_inputs <= (0 => counter, 1 => top_reg, 2 => duty_reg, 3 => configs_readback, 4 => pwm_readback, 5 => overflow_readback, 6 => prescaler_reg, 7 => (others => '0'));
-
-    U_MUX_OUT_SEL : entity work.mux_tree
+    U_MUX_OUT_SEL : entity work.mux_8x1
       generic map (
-        data_width     => DATA_WIDTH,
-        selector_width => 3
+        data_width => DATA_WIDTH
       )
       port map (
-        i_array => u_mux_out_sel_inputs,
-        i_sel   => rd_sel,
-        o_d     => data_out
+        i_d0  => counter,
+        i_d1  => top_reg,
+        i_d2  => duty_reg,
+        i_d3  => configs_readback,
+        i_d4  => pwm_readback,
+        i_d5  => overflow_readback,
+        i_d6  => prescaler_reg,
+        i_d7  => ZERO_WORD,
+        i_sel => rd_sel,
+        o_d   => data_out
       );
 
 end architecture;

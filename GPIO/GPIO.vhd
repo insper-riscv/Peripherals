@@ -12,7 +12,6 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 library WORK;
-use work.utils_pkg.all;
 
 -- -----------------------------------------------------------------------------
 -- Entity Declaration
@@ -86,8 +85,6 @@ architecture RTL of GPIO is
     -----------------------------------------------------------------------------
     signal selected_read : std_logic_vector(DATA_WIDTH-1 downto 0); -- Readback data
     constant ZERO_VECTOR : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0'); -- Zero vector for unused readback
-  -- Entradas do multiplexador READ_MUX agrupadas em um vetor de palavras.
-  signal read_mux_inputs : word_array_t(7 downto 0)(DATA_WIDTH - 1 downto 0);
 
 begin
 
@@ -132,17 +129,21 @@ begin
     -----------------------------------------------------------------------------
     -- Readback Multiplexer
     -----------------------------------------------------------------------------
-    read_mux_inputs <= (0 => dir_reg, 1 => out_reg, 2 => pins_input, 3 => irq_status, 4 => irq_mask, 5 => irq_rise_mask, 6 => irq_fall_mask, 7 => ZERO_VECTOR);
-
-    READ_MUX : entity work.mux_tree
+    READ_MUX : entity work.mux_8x1
       generic map (
-        data_width     => DATA_WIDTH,
-        selector_width => 3
+        data_width => DATA_WIDTH
       )
       port map (
-        i_array => read_mux_inputs,
-        i_sel   => rd_sel,
-        o_d     => selected_read
+        i_d0  => dir_reg,
+        i_d1  => out_reg,
+        i_d2  => pins_input,
+        i_d3  => irq_status,
+        i_d4  => irq_mask,
+        i_d5  => irq_rise_mask,
+        i_d6  => irq_fall_mask,
+        i_d7  => ZERO_VECTOR,
+        i_sel => rd_sel,
+        o_d   => selected_read
       );
     data_out <= selected_read;
     -----------------------------------------------------------------------------
