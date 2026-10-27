@@ -22,8 +22,8 @@ jobs:
         with:
           submodules: true
 
-      - name: Checkout Core (the peripherals use its FlipFlop)
-        # Makefile, paths.yaml and tests.json name ../Core/common/FlipFlop.vhd,
+      - name: Checkout Core (the peripherals use its flip_flop)
+        # Makefile, paths.yaml and tests.json name ../Core/common/flip_flop.vhd,
         # a sibling of this checkout.
         run: |
           rm -rf ../Core

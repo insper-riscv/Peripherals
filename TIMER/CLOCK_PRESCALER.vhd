@@ -64,7 +64,7 @@ begin
   -- Counter Register
   -- Clears to 0 when tick fires
   ---------------------------------------------------------------------------
-  U_COUNTER : entity WORK.GENERIC_REGISTER
+  U_COUNTER : entity WORK.CLEARABLE_REGISTER
     generic map (DATA_WIDTH => DATA_WIDTH)
     port map (
       clock       => clock,
@@ -77,13 +77,13 @@ begin
   ---------------------------------------------------------------------------
   -- Tick Flip-Flop (1-cycle pulse)
   ---------------------------------------------------------------------------
-  U_TICK_FF : entity WORK.FlipFlop
+  U_TICK_FF : entity WORK.flip_flop
     port map (
-      clock       => clock,
-      clear       => clear,
-      enable      => '1',         -- Same gating
-      source      => comp_result,
-      destination => tick_out
+      i_clk    => clock,
+      i_rst    => clear,
+      i_enable => '1',         -- Same gating
+      i_d      => comp_result,
+      o_d      => tick_out
     );
 
   tick <= tick_out; -- Output pulse

@@ -37,13 +37,13 @@ begin
     -- Stages 1 .. N : instantiate a flip‑flop for each stage
     ---------------------------------------------------------------------------
     GEN_STAGE : for i in 1 to N generate
-        ff : entity work.FlipFlop
+        ff : entity work.flip_flop
             port map (
-                clock       => clock,
-                clear       => '0',            -- no reset
-                enable      => '1',            -- always enabled
-                source      => sync_stages(i-1),
-                destination => sync_stages(i)
+                i_clk    => clock,
+                i_rst    => '0',            -- no reset
+                i_enable => '1',            -- always enabled
+                i_d      => sync_stages(i-1),
+                o_d      => sync_stages(i)
             );
     end generate GEN_STAGE;
 

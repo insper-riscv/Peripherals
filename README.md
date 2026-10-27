@@ -64,7 +64,7 @@ A UART não exige espera do barramento: o software consulta `TX_READY` e `RX_VAL
 
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Peripherals.git
-git clone https://github.com/insper-riscv/Core.git   # ao lado: FlipFlop
+git clone https://github.com/insper-riscv/Core.git   # ao lado: flip_flop
 cd Peripherals
 uv sync
 

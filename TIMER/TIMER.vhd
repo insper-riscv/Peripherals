@@ -119,7 +119,7 @@ begin
     -- The prescaler register is 32 bits wide.
     -- It is cleared on system reset or when the prescaler register is written to.
     -------------------------------------------------------------------------------
-    U_PRESCALER_REG : entity WORK.GENERIC_REGISTER
+    U_PRESCALER_REG : entity WORK.CLEARABLE_REGISTER
         generic map (
             DATA_WIDTH => 32
         )
@@ -163,7 +163,7 @@ begin
     --   2: pwm_en
     --   3: irq_mask
     -------------------------------------------------------------------------------
-    U_CONFIG_REG : entity WORK.GENERIC_REGISTER
+    U_CONFIG_REG : entity WORK.CLEARABLE_REGISTER
         generic map (
             DATA_WIDTH => 4
         )
@@ -204,7 +204,7 @@ begin
     -- when the overflow signal is high and the mode signal is auto-reset.
     -- Counter enabled on load or when the start signal is high and there is no overflow in hold mode. 
     ------------------------------------------------------------------------------
-    U_COUNTER_REG : entity WORK.GENERIC_REGISTER
+    U_COUNTER_REG : entity WORK.CLEARABLE_REGISTER
         generic map (
             DATA_WIDTH => DATA_WIDTH
         )
@@ -235,7 +235,7 @@ begin
     -- It is used to set the maximum count value for the timer. As default, it is set to 0xFFFFFFFF and it clears to the same value.
     -- It is loaded with the data_in value when the wr_en(4) signal is high.
     --------------------------------------------------------------------------
-    U_TOP_REG : entity WORK.GENERIC_REGISTER
+    U_TOP_REG : entity WORK.CLEARABLE_REGISTER
         generic map (
             DATA_WIDTH => DATA_WIDTH,
             CLEAR_VALUE => '1' -- Clear value for the register (all bits set to 1)
@@ -266,13 +266,13 @@ begin
     -- ============================================================================
     -- REGISTER THE PREVIOUS OVERFLOW
     -- ============================================================================
-    U_OVF_PREV : entity WORK.FlipFlop
+    U_OVF_PREV : entity WORK.flip_flop
         port map (
-        clock       => clock,
-        clear       => clear,
-        enable      => '1',          -- always capture
-        source      => overflow,     -- current overflow level
-        destination => overflow_prev -- previous cycle value
+        i_clk    => clock,
+        i_rst    => clear,
+        i_enable => '1',          -- always capture
+        i_d      => overflow,     -- current overflow level
+        o_d      => overflow_prev -- previous cycle value
     );
     overflow_pulse <= overflow and not overflow_prev;
     ---------------------------------------------------------------------------
@@ -314,7 +314,7 @@ begin
     -- It is loaded with the data_in value when the wr_en(5) signal is high.
     -- The duty cycle value is used to control the width of the PWM pulse.
     ---------------------------------------------------------------------------
-    U_DUTY_REG : entity WORK.GENERIC_REGISTER
+    U_DUTY_REG : entity WORK.CLEARABLE_REGISTER
         generic map (
             DATA_WIDTH => DATA_WIDTH
         )

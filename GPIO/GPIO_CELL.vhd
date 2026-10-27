@@ -76,13 +76,13 @@ begin
   -- Direction Register: Controls GPIO pin direction (input/output).
   -- 0 = input, 1 = output
   -----------------------------------------------------------------------------
-  U_REG_DIR : entity WORK.FlipFlop
+  U_REG_DIR : entity WORK.flip_flop
     port map (
-        clock       => clock,
-        clear       => clear,
-        enable      => wr_signals(0), -- Enable write to direction register
-        source      => data_in, -- Data to be written to direction register
-        destination => dir_reg  -- Direction of GPIO pin (input/output)
+        i_clk    => clock,
+        i_rst    => clear,
+        i_enable => wr_signals(0), -- Enable write to direction register
+        i_d      => data_in, -- Data to be written to direction register
+        o_d      => dir_reg  -- Direction of GPIO pin (input/output)
     );
 
   -----------------------------------------------------------------------------
@@ -110,13 +110,13 @@ begin
   -- Output Register: Holds the value to be sent to the GPIO pin.
   -- Enabled on load operations and when the bit is selected (data in = 1) for SET/CLEAR/TOGGLE.
   -----------------------------------------------------------------------------
-  U_REG_OUT : entity WORK.FlipFlop
+  U_REG_OUT : entity WORK.flip_flop
     port map (
-        clock       => clock,
-        clear       => clear,
-        enable      => out_enable, -- Load or Set/Clear/Toggle
-        source      => mux_write, -- Data to be written to output register
-        destination => out_reg -- Data to be sent to GPIO pin
+        i_clk    => clock,
+        i_rst    => clear,
+        i_enable => out_enable, -- Load or Set/Clear/Toggle
+        i_d      => mux_write, -- Data to be written to output register
+        o_d      => out_reg -- Data to be sent to GPIO pin
     );
 
   -----------------------------------------------------------------------------
@@ -147,52 +147,52 @@ begin
   -- Previous Pin Input Register: Holds the previous value of the GPIO pin.
   -- This is used for edge detection in the interrupt logic.
   -----------------------------------------------------------------------------
-  U_REG_PREV : entity WORK.FlipFlop
+  U_REG_PREV : entity WORK.flip_flop
     port map (
-        clock       => clock,
-        clear       => '0', -- No reset
-        enable      => '1', -- Always enabled
-        source      => pin_input, -- Synchronized input from GPIO pin
-        destination => prev_pin_input -- Previous pin value
+        i_clk    => clock,
+        i_rst    => '0', -- No reset
+        i_enable => '1', -- Always enabled
+        i_d      => pin_input, -- Synchronized input from GPIO pin
+        o_d      => prev_pin_input -- Previous pin value
     );
 
   -----------------------------------------------------------------------------
   -- Interrupt Mask Register: Controls wether interrupts are enabled or disabled for this GPIO cell.
   -- If irq_mask = '1', interrupts are enabled. If irq_mask = '0', interrupts are disabled.
   -----------------------------------------------------------------------------
-  U_IRQ_MASK : entity WORK.FlipFlop
+  U_IRQ_MASK : entity WORK.flip_flop
     port map (
-        clock       => clock,
-        clear       => clear,
-        enable      => wr_signals(3), -- Enable write to interrupt mask register
-        source      => data_in, -- Data to be written to interrupt mask register
-        destination => irq_mask -- Interrupt mask register
+        i_clk    => clock,
+        i_rst    => clear,
+        i_enable => wr_signals(3), -- Enable write to interrupt mask register
+        i_d      => data_in, -- Data to be written to interrupt mask register
+        o_d      => irq_mask -- Interrupt mask register
     );
   
   -----------------------------------------------------------------------------
   -- Interrupt Rising Edge Mask Register: Controls rising edge interrupt detection.
   -- If irq_rise_mask = '1', rising edge interrupts are enabled. If irq_rise_mask = '0', they are disabled.
   -----------------------------------------------------------------------------
-  U_IRQ_RISE : entity WORK.FlipFlop
+  U_IRQ_RISE : entity WORK.flip_flop
     port map (
-        clock       => clock,
-        clear       => clear,
-        enable      => wr_signals(4), -- Enable write to rising edge mask register
-        source      => data_in, -- Data to be written to rising edge mask register
-        destination => irq_rise_mask -- Rising edge interrupt mask register
+        i_clk    => clock,
+        i_rst    => clear,
+        i_enable => wr_signals(4), -- Enable write to rising edge mask register
+        i_d      => data_in, -- Data to be written to rising edge mask register
+        o_d      => irq_rise_mask -- Rising edge interrupt mask register
     );
   
   --------------------------------------------------------------------------
   -- Interrupt Falling Edge Mask Register: Controls falling edge interrupt detection.
   -- If irq_fall_mask = '1', falling edge interrupts are enabled. If irq_fall_mask = '0', they are disabled.
   --------------------------------------------------------------------------
-  U_IRQ_FALL : entity WORK.FlipFlop
+  U_IRQ_FALL : entity WORK.flip_flop
     port map (
-        clock       => clock,
-        clear       => clear,
-        enable      => wr_signals(5), -- Enable write to falling edge mask register
-        source      => data_in, -- Data to be written to falling edge mask register
-        destination => irq_fall_mask -- Falling edge interrupt mask register
+        i_clk    => clock,
+        i_rst    => clear,
+        i_enable => wr_signals(5), -- Enable write to falling edge mask register
+        i_d      => data_in, -- Data to be written to falling edge mask register
+        o_d      => irq_fall_mask -- Falling edge interrupt mask register
     );
   
   -----------------------------------------------------------------------------

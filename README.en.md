@@ -64,7 +64,7 @@ The UART does not require bus backpressure: software polls `TX_READY` and `RX_VA
 
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Peripherals.git
-git clone https://github.com/insper-riscv/Core.git   # next to it: FlipFlop
+git clone https://github.com/insper-riscv/Core.git   # next to it: flip_flop
 cd Peripherals
 uv sync
 

@@ -30,7 +30,7 @@
     "GPIO": {
         "toplevel": "gpio_tb",
         "sources": [
-            "../Core/common/FlipFlop.vhd",
+            "../Core/common/flip_flop.vhd",
             "common/GENERICS.vhd",
             "common/GENERIC_FLIP_FLOP.vhd",
             "common/GENERIC_MUX_4X1.vhd",
@@ -54,12 +54,12 @@
     "TIMER": {
         "toplevel": "timer",
         "sources": [
-            "../Core/common/FlipFlop.vhd",
+            "../Core/common/flip_flop.vhd",
             "common/GENERICS.vhd",
             "common/GENERIC_FLIP_FLOP.vhd",
             "common/GENERIC_MUX_8X1.vhd",
             "common/TRISTATE_BUFFER_1BIT.vhd",
-            "TIMER/GENERIC_REGISTER.vhd",
+            "TIMER/CLEARABLE_REGISTER.vhd",
             "TIMER/GENERIC_MUX_2X1.vhd",
             "TIMER/GENERIC_ADDER.vhd",
             "TIMER/GENERIC_CARRY_LOOKAHEAD.vhd",

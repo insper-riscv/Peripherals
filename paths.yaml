@@ -3,4 +3,4 @@
 # (needs Core cloned next to this repository: ../Core).
 references:
   - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
-  - {name: entry points, paths: [tests/python/runner.py, common, GPIO, TIMER, UART, tests/vhdl/gpio_tb.vhd, ../Core/common/FlipFlop.vhd]}
+  - {name: entry points, paths: [tests/python/runner.py, common, GPIO, TIMER, UART, tests/vhdl/gpio_tb.vhd, ../Core/common/flip_flop.vhd]}

@@ -1,5 +1,5 @@
 -- =============================================================================
--- Entity: GENERIC_REGISTER
+-- Entity: CLEARABLE_REGISTER
 -- Description:
 --   Parameterizable D-type register with synchronous clear and enable inputs.
 --   - On rising edge of the clock:
@@ -17,7 +17,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 -- -----------------------------------------------------------------------------
 -- Entity Declaration
 -- -----------------------------------------------------------------------------
-entity GENERIC_REGISTER is
+entity CLEARABLE_REGISTER is
   generic (
     DATA_WIDTH  : natural := 32;        --! Width of the register
     CLEAR_VALUE : std_logic := '0'      --! Bit value to assign on clear
@@ -29,12 +29,12 @@ entity GENERIC_REGISTER is
     source      : in  std_logic_vector(DATA_WIDTH-1 downto 0); --! Input data
     destination : out std_logic_vector(DATA_WIDTH-1 downto 0) --! Output data
   );
-end entity GENERIC_REGISTER;
+end entity CLEARABLE_REGISTER;
 
 -- -----------------------------------------------------------------------------
 -- Architecture Definition
 -- -----------------------------------------------------------------------------
-architecture RTL of GENERIC_REGISTER is
+architecture RTL of CLEARABLE_REGISTER is
   signal state : std_logic_vector(DATA_WIDTH-1 downto 0); -- Internal register state
 begin
 
