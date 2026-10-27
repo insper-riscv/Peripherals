@@ -72,7 +72,7 @@ make test    # Per-entity cocotb tests (make test TEST=GPIO for one target)
 make paths   # Existence of every path listed in the configuration
 ```
 
-The tools (GHDL and uv) come from the `infra-toolchain` image of the [Infra](https://github.com/insper-riscv/Infra) repository, where continuous integration runs.
+The tools (GHDL and uv) come from the `ci-vhdl` image of the [Infra](https://github.com/insper-riscv/Infra) repository, where continuous integration runs.
 
 ---
 

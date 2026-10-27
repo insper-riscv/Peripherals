@@ -72,7 +72,7 @@ make test    # Testes por entidade em cocotb (make test TEST=GPIO para um alvo)
 make paths   # Existência de todos os caminhos listados na configuração
 ```
 
-As ferramentas (GHDL e uv) vêm da imagem `infra-toolchain` do repositório [Infra](https://github.com/insper-riscv/Infra), onde a integração contínua executa.
+As ferramentas (GHDL e uv) vêm da imagem `ci-vhdl` do repositório [Infra](https://github.com/insper-riscv/Infra), onde a integração contínua executa.
 
 ---
 
