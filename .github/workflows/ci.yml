@@ -22,13 +22,6 @@ jobs:
         with:
           submodules: true
 
-      - name: Checkout Common-Components (the peripherals use its blocks)
-        # Makefile, paths.yaml and tests.json name ../Common-Components/src/*.vhd,
-        # a sibling of this checkout.
-        run: |
-          rm -rf ../Common-Components
-          git clone --depth 1 https://github.com/insper-riscv/Common-Components.git ../Common-Components
-
       - name: Install Python dependencies (riscv-tools from tools/Tools, + its sim extra)
         run: uv sync
 
