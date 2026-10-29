@@ -147,12 +147,12 @@ begin
   -- Sincronizador: leva a entrada assíncrona do pino ao domínio do clock.
   -- Evita metaestabilidade na leitura do pino.
   -----------------------------------------------------------------------------      
-  u_sync : entity work.generic_synchronizer_1bit
-    generic map (n => 2) -- Número de estágios do sincronizador
+  u_sync : entity work.synchronizer
+    generic map (stages => 2, data_width => 1)
     port map (
-        i_clk       => i_clk,
-        i_async_in  => io_gpio_pin, -- Entrada assíncrona vinda do pino
-        o_sync_out  => pin_input -- Saída sincronizada para o processador
+        i_clk  => i_clk,
+        i_d(0) => io_gpio_pin, -- Entrada assíncrona vinda do pino
+        o_d(0) => pin_input    -- Saída sincronizada para o processador
     );
 
   -----------------------------------------------------------------------------

@@ -21,7 +21,7 @@
             "Common-Components/src/mux_4x1.vhd",
             "Common-Components/src/mux_8x1.vhd",
             "Common-Components/src/tristate_buffer_1bit.vhd",
-            "GPIO/generic_synchronizer_1bit.vhd",
+            "Common-Components/src/synchronizer.vhd",
             "GPIO/gpio_operation_decoder.vhd",
             "GPIO/gpio_cell.vhd",
             "GPIO/gpio.vhd",
