@@ -2,7 +2,7 @@
     "GpioOperationDecoder": {
         "toplevel": "gpio_operation_decoder",
         "sources": [
-            "GPIO/GPIO_OPERATION_DECODER.vhd"
+            "GPIO/gpio_operation_decoder.vhd"
         ],
         "test_module": "tests.python.unittests.GPIO.gpio_operation_decoder",
         "build_args": [
@@ -21,10 +21,10 @@
             "Common-Components/src/mux_4x1.vhd",
             "Common-Components/src/mux_8x1.vhd",
             "Common-Components/src/tristate_buffer_1bit.vhd",
-            "GPIO/GENERIC_SYNCHRONIZER_1BIT.vhd",
-            "GPIO/GPIO_OPERATION_DECODER.vhd",
-            "GPIO/GPIO_CELL.vhd",
-            "GPIO/GPIO.vhd",
+            "GPIO/generic_synchronizer_1bit.vhd",
+            "GPIO/gpio_operation_decoder.vhd",
+            "GPIO/gpio_cell.vhd",
+            "GPIO/gpio.vhd",
             "tests/vhdl/gpio_tb.vhd"
         ],
         "test_module": "tests.python.unittests.GPIO.gpio",
@@ -38,7 +38,7 @@
     "TimerOperationDecoder": {
         "toplevel": "timer_operation_decoder",
         "sources": [
-            "TIMER/TIMER_OPERATION_DECODER.vhd"
+            "TIMER/timer_operation_decoder.vhd"
         ],
         "test_module": "tests.python.unittests.TIMER.timer_operation_decoder",
         "build_args": [
@@ -58,11 +58,11 @@
             "Common-Components/src/mux_8x1.vhd",
             "Common-Components/src/adder.vhd",
             "Common-Components/src/tristate_buffer_1bit.vhd",
-            "TIMER/ALU_GE_UNSIGNED.vhd",
-            "TIMER/COUNTER_OVERFLOW.vhd",
-            "TIMER/CLOCK_PRESCALER.vhd",
-            "TIMER/TIMER_OPERATION_DECODER.vhd",
-            "TIMER/TIMER.vhd"
+            "TIMER/alu_ge_unsigned.vhd",
+            "TIMER/counter_overflow.vhd",
+            "TIMER/clock_prescaler.vhd",
+            "TIMER/timer_operation_decoder.vhd",
+            "TIMER/timer.vhd"
         ],
         "test_module": "tests.python.unittests.TIMER.timer",
         "build_args": [
@@ -80,7 +80,7 @@
             "UART/vendor/opencores_uart2bus/uartRx.vhd",
             "UART/vendor/opencores_uart2bus/uartTx.vhd",
             "UART/vendor/opencores_uart2bus/uartTop.vhd",
-            "UART/UART.vhd"
+            "UART/uart.vhd"
         ],
         "test_module": "tests.python.unittests.UART.uart",
         "parameters": {
@@ -103,7 +103,7 @@
             "UART/vendor/opencores_uart2bus/uartRx.vhd",
             "UART/vendor/opencores_uart2bus/uartTx.vhd",
             "UART/vendor/opencores_uart2bus/uartTop.vhd",
-            "UART/UART.vhd"
+            "UART/uart.vhd"
         ],
         "test_module": "tests.python.unittests.UART.uart_default_baud",
         "build_args": [

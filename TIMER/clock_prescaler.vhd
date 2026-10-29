@@ -5,27 +5,27 @@
 --   prescaler value. The counter resets after each tick. Fully modular structure.
 -- =============================================================================
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
-library WORK;
+library work;
 
-entity CLOCK_PRESCALER is
+entity clock_prescaler is
   generic (
-    DATA_WIDTH : integer := 32 -- Width of the counter
+    data_width : integer := 32 -- Width of the counter
   );
   port (
-    clock        : in  std_logic;                                -- System clock
-    clear        : in  std_logic;                                -- Asynchronous clear
-    prescaler_in : in  std_logic_vector(DATA_WIDTH-1 downto 0);  -- Prescaler value (from register)
-    tick         : out std_logic                                 -- One-cycle tick when counter matches prescaler
+    i_clk        : in  std_logic;                                -- System clock
+    i_rst        : in  std_logic;                                -- Asynchronous clear
+    i_prescaler_in : in  std_logic_vector(data_width-1 downto 0);  -- Prescaler value (from register)
+    o_tick         : out std_logic                                 -- One-cycle tick when counter matches prescaler
   );
 end entity;
 
-architecture RTL of CLOCK_PRESCALER is
-  signal counter       : std_logic_vector(DATA_WIDTH-1 downto 0); -- Prescaler counter
-  signal next_counter  : std_logic_vector(DATA_WIDTH-1 downto 0); -- Incremented counter
+architecture rtl of clock_prescaler is
+  signal counter       : std_logic_vector(data_width-1 downto 0); -- Prescaler counter
+  signal next_counter  : std_logic_vector(data_width-1 downto 0); -- Incremented counter
   signal comp_result   : std_logic;                               -- Comparison result (counter >= prescaler)
   signal tick_out      : std_logic;                               -- 1-cycle pulse
   -- Port-map actual as a signal: GHDL requires a name or a globally static
@@ -33,29 +33,29 @@ architecture RTL of CLOCK_PRESCALER is
   signal counter_clear : std_logic;
 
   -- Constante 1 usada como segundo operando do somador U_ADDER.
-  constant U_ADDER_ONE : std_logic_vector(DATA_WIDTH - 1 downto 0) := std_logic_vector(to_unsigned(1, DATA_WIDTH));
+  constant U_ADDER_ONE : std_logic_vector(data_width - 1 downto 0) := std_logic_vector(to_unsigned(1, data_width));
 
 begin
 
-  counter_clear <= clear or comp_result;
+  counter_clear <= i_rst or comp_result;
 
   ---------------------------------------------------------------------------
   -- Compare counter >= prescaler_in
   ---------------------------------------------------------------------------
-  U_GE : entity WORK.ALU_GE_UNSIGNED
-    generic map (DATA_WIDTH => DATA_WIDTH)
+  u_ge : entity work.alu_ge_unsigned
+    generic map (data_width => data_width)
     port map (
-      source_1 => counter,
-      source_2 => prescaler_in,
-      ge       => comp_result
+      i_source_1 => counter,
+      i_source_2 => i_prescaler_in,
+      o_ge       => comp_result
     );
 
   ---------------------------------------------------------------------------
   -- next_counter = counter + 1
   ---------------------------------------------------------------------------
-  U_ADDER : entity work.adder
+  u_adder : entity work.adder
     generic map (
-      data_width => DATA_WIDTH
+      data_width => data_width
     )
     port map (
       i_a => counter,
@@ -67,12 +67,12 @@ begin
   -- Counter Register
   -- Clears to 0 when tick fires
   ---------------------------------------------------------------------------
-  U_COUNTER : entity work.clearable_register
+  u_counter : entity work.clearable_register
     generic map (
-      data_width => DATA_WIDTH
+      data_width => data_width
     )
     port map (
-      i_clk    => clock,
+      i_clk    => i_clk,
       i_clear  => counter_clear,
       i_enable => '1',
       i_d      => next_counter,
@@ -82,16 +82,16 @@ begin
   ---------------------------------------------------------------------------
   -- Tick Flip-Flop (1-cycle pulse)
   ---------------------------------------------------------------------------
-  U_TICK_FF : entity WORK.flip_flop
+  u_tick_ff : entity work.flip_flop
     port map (
-      i_clk    => clock,
-      i_rst    => clear,
+      i_clk    => i_clk,
+      i_rst    => i_rst,
       i_enable => '1',         -- Same gating
       i_d      => comp_result,
       o_d      => tick_out
     );
 
-  tick <= tick_out; -- Output pulse
+  o_tick <= tick_out; -- Output pulse
 
 end architecture;
 

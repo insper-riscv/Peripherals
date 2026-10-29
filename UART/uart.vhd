@@ -17,36 +17,36 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity UART is
+entity uart is
   generic (
-    DATA_WIDTH : natural := 32;
-    BAUD_FREQ  : natural := 16#240#;
-    BAUD_LIMIT : natural := 16#3AC9#
+    data_width : natural := 32;
+    baud_freq  : natural := 16#240#;
+    baud_limit : natural := 16#3AC9#
   );
   port (
-    clock    : in  std_logic;
-    clear    : in  std_logic;
-    data_in  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
-    address  : in  std_logic_vector(1 downto 0);
-    write    : in  std_logic;
-    read     : in  std_logic;
-    data_out : out std_logic_vector(DATA_WIDTH - 1 downto 0);
-    irq      : out std_logic;
-    uart_rx  : in  std_logic;
-    uart_tx  : out std_logic
+    i_clk    : in  std_logic;
+    i_rst    : in  std_logic;
+    i_data_in  : in  std_logic_vector(data_width - 1 downto 0);
+    i_address  : in  std_logic_vector(1 downto 0);
+    i_write    : in  std_logic;
+    i_read     : in  std_logic;
+    o_data_out : out std_logic_vector(data_width - 1 downto 0);
+    o_irq      : out std_logic;
+    i_uart_rx  : in  std_logic;
+    o_uart_tx  : out std_logic
   );
-end entity UART;
+end entity uart;
 
-architecture RTL of UART is
+architecture rtl of uart is
   constant TX_DATA_ADDRESS : std_logic_vector(1 downto 0) := "00";
   constant RX_DATA_ADDRESS : std_logic_vector(1 downto 0) := "01";
   constant STATUS_ADDRESS  : std_logic_vector(1 downto 0) := "10";
   constant CONTROL_ADDRESS : std_logic_vector(1 downto 0) := "11";
 
   constant BAUD_FREQ_VALUE : std_logic_vector(11 downto 0) :=
-    std_logic_vector(to_unsigned(BAUD_FREQ, 12));
+    std_logic_vector(to_unsigned(baud_freq, 12));
   constant BAUD_LIMIT_VALUE : std_logic_vector(15 downto 0) :=
-    std_logic_vector(to_unsigned(BAUD_LIMIT, 16));
+    std_logic_vector(to_unsigned(baud_limit, 16));
 
   signal phy_tx_data     : std_logic_vector(7 downto 0);
   signal phy_new_tx_data : std_logic;
@@ -60,31 +60,31 @@ architecture RTL of UART is
   signal tx_dropped   : std_logic;
   signal rx_irq_enable : std_logic;
 begin
-  assert DATA_WIDTH >= 8
+  assert data_width >= 8
     report "UART DATA_WIDTH must be at least 8"
     severity failure;
 
-  assert BAUD_FREQ <= 16#FFF#
+  assert baud_freq <= 16#fff#
     report "UART BAUD_FREQ does not fit in 12 bits"
     severity failure;
 
-  assert BAUD_LIMIT <= 16#FFFF#
+  assert baud_limit <= 16#ffff#
     report "UART BAUD_LIMIT does not fit in 16 bits"
     severity failure;
 
-  phy_tx_data <= data_in(7 downto 0);
+  phy_tx_data <= i_data_in(7 downto 0);
   phy_new_tx_data <= '1'
-    when write = '1' and address = TX_DATA_ADDRESS and phy_tx_busy = '0'
+    when i_write = '1' and i_address = TX_DATA_ADDRESS and phy_tx_busy = '0'
     else '0';
 
-  irq <= rx_valid and rx_irq_enable;
+  o_irq <= rx_valid and rx_irq_enable;
 
-  UART_PHY : entity work.uartTop
+  uart_phy : entity work.uartTop
     port map (
-      clr       => clear,
-      clk       => clock,
-      serIn     => uart_rx,
-      serOut    => uart_tx,
+      clr       => i_rst,
+      clk       => i_clk,
+      serIn     => i_uart_rx,
+      serOut    => o_uart_tx,
       txData    => phy_tx_data,
       newTxData => phy_new_tx_data,
       txBusy    => phy_tx_busy,
@@ -95,33 +95,33 @@ begin
       baudClk   => open
     );
 
-  REGISTERS : process (clear, clock)
+  registers : process (i_rst, i_clk)
   begin
-    if clear = '1' then
+    if i_rst = '1' then
       rx_data_reg   <= (others => '0');
       rx_valid      <= '0';
       rx_overrun    <= '0';
       tx_dropped    <= '0';
       rx_irq_enable <= '0';
-    elsif rising_edge(clock) then
+    elsif rising_edge(i_clk) then
       -- CONTROL is an ordinary read/write register.
-      if write = '1' and address = CONTROL_ADDRESS then
-        rx_irq_enable <= data_in(0);
+      if i_write = '1' and i_address = CONTROL_ADDRESS then
+        rx_irq_enable <= i_data_in(0);
       end if;
 
       -- STATUS error bits use write-one-to-clear semantics. A new event later
       -- in this clock cycle wins over a simultaneous software clear.
-      if write = '1' and address = STATUS_ADDRESS then
-        if data_in(2) = '1' then
+      if i_write = '1' and i_address = STATUS_ADDRESS then
+        if i_data_in(2) = '1' then
           rx_overrun <= '0';
         end if;
-        if data_in(3) = '1' then
+        if i_data_in(3) = '1' then
           tx_dropped <= '0';
         end if;
       end if;
 
       -- A write while the transmitter is busy is intentionally discarded.
-      if write = '1' and address = TX_DATA_ADDRESS and phy_tx_busy = '1' then
+      if i_write = '1' and i_address = TX_DATA_ADDRESS and phy_tx_busy = '1' then
         tx_dropped <= '1';
       end if;
 
@@ -130,19 +130,19 @@ begin
       -- and the new byte remains pending.
       if phy_new_rx_data = '1' then
         if rx_valid = '1' and
-           not (read = '1' and address = RX_DATA_ADDRESS) then
+           not (i_read = '1' and i_address = RX_DATA_ADDRESS) then
           rx_overrun <= '1';
         end if;
         rx_data_reg <= phy_rx_data;
         rx_valid    <= '1';
-      elsif read = '1' and address = RX_DATA_ADDRESS then
+      elsif i_read = '1' and i_address = RX_DATA_ADDRESS then
         rx_valid <= '0';
       end if;
     end if;
-  end process REGISTERS;
+  end process registers;
 
-  READBACK : process (
-    address,
+  readback : process (
+    i_address,
     rx_data_reg,
     rx_valid,
     phy_tx_busy,
@@ -150,11 +150,11 @@ begin
     tx_dropped,
     rx_irq_enable
   )
-    variable value : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    variable value : std_logic_vector(data_width - 1 downto 0);
   begin
     value := (others => '0');
 
-    case address is
+    case i_address is
       when TX_DATA_ADDRESS =>
         null;
 
@@ -174,6 +174,6 @@ begin
         null;
     end case;
 
-    data_out <= value;
-  end process READBACK;
-end architecture RTL;
+    o_data_out <= value;
+  end process readback;
+end architecture rtl;

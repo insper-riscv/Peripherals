@@ -6,34 +6,34 @@
 --   read-multiplexer selector.
 -- =============================================================================
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
 
 -- -----------------------------------------------------------------------------
 -- Entity Declaration
 -- -----------------------------------------------------------------------------
-entity TIMER_OPERATION_DECODER is
+entity timer_operation_decoder is
   port (
     -- Bus interface 
-    address : in  std_logic_vector(2 downto 0);  -- 3-bit address from CPU
-    write   : in  std_logic;                     -- Active-high write strobe
-    read    : in  std_logic;                     -- Active-high read  strobe
+    i_address : in  std_logic_vector(2 downto 0);  -- 3-bit address from CPU
+    i_write   : in  std_logic;                     -- Active-high write strobe
+    i_read    : in  std_logic;                     -- Active-high read  strobe
 
     -- Vector of write enables (see bit-map below) 
-    wr_en   : out std_logic_vector(6 downto 0);
+    o_wr_en   : out std_logic_vector(6 downto 0);
 
     -- Counter input selector (cnt_sel)
-    cnt_sel : out std_logic;
+    o_cnt_sel : out std_logic;
 
     -- Read selector for the peripheral read-back multiplexer
-    rd_sel  : out std_logic_vector(2 downto 0)
+    o_rd_sel  : out std_logic_vector(2 downto 0)
   );
-end entity TIMER_OPERATION_DECODER;
+end entity timer_operation_decoder;
 
 -- -----------------------------------------------------------------------------
 -- Architecture Definition
 -- -----------------------------------------------------------------------------
-architecture RTL of TIMER_OPERATION_DECODER is
+architecture rtl of timer_operation_decoder is
 
   -- ===========================================================================
   -- WRITE-ENABLE VECTOR BIT MAP  (wr_en)
@@ -92,28 +92,28 @@ begin
   -- -----------------------------------------------------------------------------
   -- WRITE DECODING : generate one-cycle write-enable strobes
   -- -----------------------------------------------------------------------------
-  wr_en(WR_CONFIG_I)     <= write when address = ADDR_CONFIG      else '0';
-  wr_en(WR_LOAD_TIMER_I) <= write when address = ADDR_TIMER_LOAD  else '0';
-  wr_en(WR_RESET_I)      <= write when address = ADDR_TIMER_RESET else '0';
-  wr_en(WR_LOAD_TOP_I)   <= write when address = ADDR_TOP         else '0';
-  wr_en(WR_LOAD_DUTY_I)  <= write when address = ADDR_DUTY_CYCLE  else '0';
-  wr_en(WR_PRESCALER)    <= write when address = ADDR_PRESCALER   else '0';
+  o_wr_en(WR_CONFIG_I)     <= i_write when i_address = ADDR_CONFIG      else '0';
+  o_wr_en(WR_LOAD_TIMER_I) <= i_write when i_address = ADDR_TIMER_LOAD  else '0';
+  o_wr_en(WR_RESET_I)      <= i_write when i_address = ADDR_TIMER_RESET else '0';
+  o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_TOP         else '0';
+  o_wr_en(WR_LOAD_DUTY_I)  <= i_write when i_address = ADDR_DUTY_CYCLE  else '0';
+  o_wr_en(WR_PRESCALER)    <= i_write when i_address = ADDR_PRESCALER   else '0';
 
   -- Read-to-clear overflow flag (pulse aligned with the READ)
-  wr_en(WR_OVF_CLR_I)    <= read  when address = ADDR_OVF_STATUS  else '0';
+  o_wr_en(WR_OVF_CLR_I)    <= i_read  when i_address = ADDR_OVF_STATUS  else '0';
 
   -- -----------------------------------------------------------------------------
   -- COUNTER INPUT SELECTOR (cnt_sel)
   --   0 = use “counter + 1”
   --   1 = load external value (WR_LOAD_TIMER)
   -- -----------------------------------------------------------------------------
-  cnt_sel <= '1' when (address = ADDR_TIMER_LOAD and write = '1') else '0';
+  o_cnt_sel <= '1' when (i_address = ADDR_TIMER_LOAD and i_write = '1') else '0';
 
   -- -----------------------------------------------------------------------------
   -- READ-BACK OPERATION: multiplexer selector (rd_sel)
   -- -----------------------------------------------------------------------------
-  with address select
-    rd_sel <= "000" when ADDR_TIMER_LOAD,     -- 000 = Current counter
+  with i_address select
+    o_rd_sel <= "000" when ADDR_TIMER_LOAD,     -- 000 = Current counter
               "000" when ADDR_TIMER_RESET,    -- 000 = Current counter
               "001" when ADDR_TOP,            -- 001 = TOP register
               "010" when ADDR_DUTY_CYCLE,     -- 010 = DUTY-CYCLE register

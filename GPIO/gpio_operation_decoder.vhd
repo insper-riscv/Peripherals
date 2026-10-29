@@ -4,34 +4,34 @@
 --   Decodes read/write operations for a memory‑mapped GPIO peripheral.
 -- =============================================================================
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
 
 -- -----------------------------------------------------------------------------
 -- Entity Declaration
 -- -----------------------------------------------------------------------------
-entity GPIO_OPERATION_DECODER is
+entity gpio_operation_decoder is
   port (
     -- Bus interface
-    address : in  std_logic_vector(3 downto 0);
-    write   : in  std_logic;
-    read    : in  std_logic;
+    i_address : in  std_logic_vector(3 downto 0);
+    i_write   : in  std_logic;
+    i_read    : in  std_logic;
 
     -- Vector of write enables (see bit map below)
-    wr_en   : out std_logic_vector(6 downto 0);
+    o_wr_en   : out std_logic_vector(6 downto 0);
 
     -- GPIO OUTPUT operation selector (LOAD / SET / CLEAR / TOGGLE)
-    wr_op   : out std_logic_vector(1 downto 0);
+    o_wr_op   : out std_logic_vector(1 downto 0);
 
     -- Read selector for multiplexer
-    rd_sel  : out std_logic_vector(2 downto 0)
+    o_rd_sel  : out std_logic_vector(2 downto 0)
   );
-end entity GPIO_OPERATION_DECODER;
+end entity gpio_operation_decoder;
 
 -- -----------------------------------------------------------------------------
 -- Architecture Definition
 -- -----------------------------------------------------------------------------
-architecture RTL of GPIO_OPERATION_DECODER is
+architecture rtl of gpio_operation_decoder is
 
   -- ===========================================================================
   -- WRITE‑ENABLE VECTOR BIT MAP  (wr_en)
@@ -91,24 +91,24 @@ begin
   -- -----------------------------------------------------------------------------
   -- WRITE DECODING :
   -- -----------------------------------------------------------------------------
-  wr_en(WR_DIR_I)       <= write when address = ADDR_DIR       else '0';
+  o_wr_en(WR_DIR_I)       <= i_write when i_address = ADDR_DIR       else '0';
 
-  wr_en(WR_LOAD_OUT_I)  <= write when address = ADDR_OUT_LOAD  else '0';
+  o_wr_en(WR_LOAD_OUT_I)  <= i_write when i_address = ADDR_OUT_LOAD  else '0';
 
-  wr_en(WR_BIT_OUT_I)   <= write when address = ADDR_OUT_SET or
-                                      address = ADDR_OUT_CLR or
-                                      address = ADDR_OUT_TGL  else '0';
+  o_wr_en(WR_BIT_OUT_I)   <= i_write when i_address = ADDR_OUT_SET or
+                                      i_address = ADDR_OUT_CLR or
+                                      i_address = ADDR_OUT_TGL  else '0';
 
-  wr_en(WR_IRQ_MASK_I)  <= write when address = ADDR_IRQ_MASK  else '0';
-  wr_en(WR_RISE_MASK_I) <= write when address = ADDR_RISE_MASK else '0';
-  wr_en(WR_FALL_MASK_I) <= write when address = ADDR_FALL_MASK else '0';
-  wr_en(IRQ_CLR_I)   <= read when address = ADDR_IRQ_STAT   else '0';
+  o_wr_en(WR_IRQ_MASK_I)  <= i_write when i_address = ADDR_IRQ_MASK  else '0';
+  o_wr_en(WR_RISE_MASK_I) <= i_write when i_address = ADDR_RISE_MASK else '0';
+  o_wr_en(WR_FALL_MASK_I) <= i_write when i_address = ADDR_FALL_MASK else '0';
+  o_wr_en(IRQ_CLR_I)   <= i_read when i_address = ADDR_IRQ_STAT   else '0';
 
   -- -----------------------------------------------------------------------------
   -- GPIO OUTPUT OPERATION: multiplexer selector (wr_op)
   -- -----------------------------------------------------------------------------
-  with address select
-    wr_op <= "00" when ADDR_OUT_LOAD,  -- LOAD
+  with i_address select
+    o_wr_op <= "00" when ADDR_OUT_LOAD,  -- LOAD
              "01" when ADDR_OUT_SET,   -- SET
              "10" when ADDR_OUT_CLR,   -- CLEAR
              "11" when ADDR_OUT_TGL,   -- TOGGLE
@@ -117,8 +117,8 @@ begin
   -- -----------------------------------------------------------------------------
   -- GPIO READ OPERATION: multiplexer selector (rd_sel)
   -- -----------------------------------------------------------------------------
-  with address select
-    rd_sel <= "000" when ADDR_DIR,
+  with i_address select
+    o_rd_sel <= "000" when ADDR_DIR,
               "001" when ADDR_OUT_LOAD,
               "001" when ADDR_OUT_SET,
               "001" when ADDR_OUT_CLR,
@@ -130,4 +130,4 @@ begin
               "110" when ADDR_FALL_MASK,
               "111" when others;
 
-end architecture RTL;
+end architecture rtl;

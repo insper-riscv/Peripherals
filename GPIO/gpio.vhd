@@ -8,53 +8,53 @@
 --   Internal logic is based on DATA_WIDTH.
 -- =============================================================================
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
 
-library WORK;
+library work;
 
 -- -----------------------------------------------------------------------------
 -- Entity Declaration
 -- -----------------------------------------------------------------------------
-entity GPIO is
+entity gpio is
     generic (
         --! Data width of processor bus
-        DATA_WIDTH : natural := 32
+        data_width : natural := 32
     );
     port (
         --! Clock Signal
-        clock       : in  std_logic;
+        i_clk       : in  std_logic;
 
         --! Global Reset
-        clear       : in  std_logic; 
+        i_rst       : in  std_logic; 
 
         --! Data input from processor
-        data_in     : in  STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
+        i_data_in     : in  std_logic_vector(data_width-1 downto 0);
 
         --! Address accessed by the processor
-        address     : in  STD_LOGIC_VECTOR(3 downto 0);
+        i_address     : in  std_logic_vector(3 downto 0);
 
         --! Write enable signal
-        write       : in  std_logic; 
+        i_write       : in  std_logic; 
 
         --! Read enable signal
-        read        : in  std_logic; 
+        i_read        : in  std_logic; 
 
         --! Data output to processor (adjusted to DATA_WIDTH)
-        data_out    : out STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
+        o_data_out    : out std_logic_vector(data_width-1 downto 0);
 
         --! Interrupt request signal (active high)
-        irq         : out std_logic;
+        o_irq         : out std_logic;
 
         --! Bidirectional GPIO pins
-        gpio_pins   : inout std_logic_vector(DATA_WIDTH-1 downto 0)
+        io_gpio_pins   : inout std_logic_vector(data_width-1 downto 0)
     );
-end GPIO;
+end gpio;
 
 -- -----------------------------------------------------------------------------
 -- Architecture Definition
 -- -----------------------------------------------------------------------------
-architecture RTL of GPIO is
+architecture rtl of gpio is
 
     -----------------------------------------------------------------------------
     -- Internal Control Signals
@@ -66,55 +66,55 @@ architecture RTL of GPIO is
     -----------------------------------------------------------------------------
     -- Internal Register Banks (based on DATA_WIDTH)
     -----------------------------------------------------------------------------
-    signal dir_reg         : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal out_reg         : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal pins_input      : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal irq_mask        : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal irq_rise_mask   : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal irq_fall_mask   : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal irq_status      : std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal dir_reg         : std_logic_vector(data_width-1 downto 0);
+    signal out_reg         : std_logic_vector(data_width-1 downto 0);
+    signal pins_input      : std_logic_vector(data_width-1 downto 0);
+    signal irq_mask        : std_logic_vector(data_width-1 downto 0);
+    signal irq_rise_mask   : std_logic_vector(data_width-1 downto 0);
+    signal irq_fall_mask   : std_logic_vector(data_width-1 downto 0);
+    signal irq_status      : std_logic_vector(data_width-1 downto 0);
 
     -----------------------------------------------------------------------------
     -- Internal Signal for GPIO_CELL Data Output
     -----------------------------------------------------------------------------
-    type dout_array_t is array (0 to DATA_WIDTH - 1) of std_logic_vector(6 downto 0);
+    type dout_array_t is array (0 to data_width - 1) of std_logic_vector(6 downto 0);
     signal dout_array : dout_array_t;
 
     -----------------------------------------------------------------------------
     -- Internal Signal for Readback Multiplexer
     -----------------------------------------------------------------------------
-    signal selected_read : std_logic_vector(DATA_WIDTH-1 downto 0); -- Readback data
-    constant ZERO_VECTOR : std_logic_vector(DATA_WIDTH-1 downto 0) := (others => '0'); -- Zero vector for unused readback
+    signal selected_read : std_logic_vector(data_width-1 downto 0); -- Readback data
+    constant ZERO_VECTOR : std_logic_vector(data_width-1 downto 0) := (others => '0'); -- Zero vector for unused readback
 
 begin
 
     -----------------------------------------------------------------------------
     -- GPIO Operation Decoder
     -----------------------------------------------------------------------------
-    U_GPIO_OPERATION_DECODER : entity work.GPIO_OPERATION_DECODER
+    u_gpio_operation_decoder : entity work.gpio_operation_decoder
         port map (
-            address => address,
-            write   => write,
-            read    => read,
-            wr_en   => wr_en,
-            wr_op   => wr_op,
-            rd_sel  => rd_sel
+            i_address => i_address,
+            i_write   => i_write,
+            i_read    => i_read,
+            o_wr_en   => wr_en,
+            o_wr_op   => wr_op,
+            o_rd_sel  => rd_sel
         );
 
     -----------------------------------------------------------------------------
     -- GPIO_CELL Array Instantiation
     -----------------------------------------------------------------------------
-    GEN_CELLS : for i in 0 to DATA_WIDTH - 1 generate
+    gen_cells : for i in 0 to data_width - 1 generate
     begin
-        GPIO_CELL_I : entity work.GPIO_CELL
+        gpio_cell_i : entity work.gpio_cell
             port map (
-                clock      => clock,
-                clear      => clear,
-                data_in    => data_in(i),
-                data_out   => dout_array(i),
-                wr_signals => wr_en,
-                wr_op      => wr_op,
-                gpio_pin   => gpio_pins(i)
+                i_clk      => i_clk,
+                i_rst      => i_rst,
+                i_data_in    => i_data_in(i),
+                o_data_out   => dout_array(i),
+                i_wr_signals => wr_en,
+                i_wr_op      => wr_op,
+                io_gpio_pin   => io_gpio_pins(i)
             );
 
         dir_reg(i)        <= dout_array(i)(0);
@@ -129,9 +129,9 @@ begin
     -----------------------------------------------------------------------------
     -- Readback Multiplexer
     -----------------------------------------------------------------------------
-    READ_MUX : entity work.mux_8x1
+    read_mux : entity work.mux_8x1
       generic map (
-        data_width => DATA_WIDTH
+        data_width => data_width
       )
       port map (
         i_d0  => dir_reg,
@@ -145,11 +145,11 @@ begin
         i_sel => rd_sel,
         o_d   => selected_read
       );
-    data_out <= selected_read;
+    o_data_out <= selected_read;
     -----------------------------------------------------------------------------
     -- Interrupt Generation Logic. 
     -- IRQ is asserted if any of the interrupt status bits are set (Reduce Or Operation).
     -----------------------------------------------------------------------------
-    irq <= '1' when irq_status /= ZERO_VECTOR else '0';
+    o_irq <= '1' when irq_status /= ZERO_VECTOR else '0';
 
 end architecture;

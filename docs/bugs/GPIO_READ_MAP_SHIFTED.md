@@ -46,7 +46,7 @@ wrong.
 
 ## Fix
 
-`GPIO/GPIO.vhd`: the mux sources follow the decoder.
+`GPIO/gpio.vhd`: the mux sources follow the decoder.
 
 ```vhdl
 source_4 => irq_status,

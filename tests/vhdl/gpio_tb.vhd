@@ -5,42 +5,42 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity gpio_tb is
-  generic (DATA_WIDTH : natural := 8);
+  generic (data_width : natural := 8);
   port (
-    clock        : in  std_logic;
-    clear        : in  std_logic;
-    data_in      : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
-    address      : in  std_logic_vector(3 downto 0);
-    write        : in  std_logic;
-    read         : in  std_logic;
-    data_out     : out std_logic_vector(DATA_WIDTH - 1 downto 0);
-    irq          : out std_logic;
-    pin_drive    : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
-    pin_drive_en : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
-    pins         : out std_logic_vector(DATA_WIDTH - 1 downto 0)
+    i_clk        : in  std_logic;
+    i_rst        : in  std_logic;
+    i_data_in      : in  std_logic_vector(data_width - 1 downto 0);
+    i_address      : in  std_logic_vector(3 downto 0);
+    i_write        : in  std_logic;
+    i_read         : in  std_logic;
+    o_data_out     : out std_logic_vector(data_width - 1 downto 0);
+    o_irq          : out std_logic;
+    i_pin_drive    : in  std_logic_vector(data_width - 1 downto 0);
+    i_pin_drive_en : in  std_logic_vector(data_width - 1 downto 0);
+    o_pins         : out std_logic_vector(data_width - 1 downto 0)
   );
 end entity gpio_tb;
 
 architecture tb of gpio_tb is
-  signal gpio_pins : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal gpio_pins : std_logic_vector(data_width - 1 downto 0);
 begin
-  drivers : for i in 0 to DATA_WIDTH - 1 generate
-    gpio_pins(i) <= pin_drive(i) when pin_drive_en(i) = '1' else 'Z';
+  drivers : for i in 0 to data_width - 1 generate
+    gpio_pins(i) <= i_pin_drive(i) when i_pin_drive_en(i) = '1' else 'Z';
   end generate;
 
-  pins <= gpio_pins;
+  o_pins <= gpio_pins;
 
-  dut : entity work.GPIO
-    generic map (DATA_WIDTH => DATA_WIDTH)
+  dut : entity work.gpio
+    generic map (data_width => data_width)
     port map (
-      clock     => clock,
-      clear     => clear,
-      data_in   => data_in,
-      address   => address,
-      write     => write,
-      read      => read,
-      data_out  => data_out,
-      irq       => irq,
-      gpio_pins => gpio_pins
+      i_clk     => i_clk,
+      i_rst     => i_rst,
+      i_data_in   => i_data_in,
+      i_address   => i_address,
+      i_write     => i_write,
+      i_read      => i_read,
+      o_data_out  => o_data_out,
+      o_irq       => o_irq,
+      io_gpio_pins => gpio_pins
     );
 end architecture tb;
