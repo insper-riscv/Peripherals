@@ -3,9 +3,8 @@ GHDL  := ghdl
 STD   := --std=08
 WDIR  := build/ghdl
 
-# The peripherals use Core's FlipFlop: Core is cloned next to this repository.
-CORE_DEPS := ../Core/common/FlipFlop.vhd
-VHDL      := $(shell find common GPIO TIMER UART tests/vhdl -name '*.vhd' | sort) $(CORE_DEPS)
+# The peripherals use the blocks of Common-Components, included as a submodule.
+VHDL      := $(shell find GPIO TIMER UART tests/vhdl -name '*.vhd' | sort) $(sort $(wildcard Common-Components/src/*.vhd))
 
 .PHONY: check test paths clean
 
