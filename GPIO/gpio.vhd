@@ -1,11 +1,11 @@
 -- =============================================================================
--- Entity: GPIO
--- Description:
---   Top-level General-Purpose I/O module interfacing the processor with a 
---   set of bidirectional I/O pins. It integrates multiple GPIO_CELL instances,
---   a decoder for memory-mapped operations, and a multiplexer for data readback.
---   Supports direction control, output operations, and interrupt configuration.
---   Internal logic is based on DATA_WIDTH.
+-- Módulo de E/S de uso geral
+--
+-- Liga o processador a um conjunto de pinos bidirecionais. Integra várias
+-- instâncias de gpio_cell, um decodificador das operações mapeadas em memória e
+-- um multiplexador para a leitura de volta. Suporta controle de direção,
+-- operações de saída e configuração de interrupção. A lógica interna depende de
+-- data_width.
 -- =============================================================================
 
 library ieee;
@@ -13,83 +13,79 @@ use ieee.std_logic_1164.all;
 
 library work;
 
--- -----------------------------------------------------------------------------
--- Entity Declaration
--- -----------------------------------------------------------------------------
 entity gpio is
     generic (
-        --! Data width of processor bus
+        -- Largura do barramento de dados em bits.
         data_width : natural := 32
     );
     port (
-        --! Clock Signal
+        -- Clock do módulo.
         i_clk       : in  std_logic;
 
-        --! Global Reset
+        -- Reset, ativo em '1'.
         i_rst       : in  std_logic; 
 
-        --! Data input from processor
+        -- Dado de escrita vindo do processador.
         i_data_in     : in  std_logic_vector(data_width-1 downto 0);
 
-        --! Address accessed by the processor
+        -- Endereço de palavra acessado pelo processador.
         i_address     : in  std_logic_vector(3 downto 0);
 
-        --! Write enable signal
+        -- Pulso de escrita do processador ('1' = escreve).
         i_write       : in  std_logic; 
 
-        --! Read enable signal
+        -- Pulso de leitura do processador ('1' = lê).
         i_read        : in  std_logic; 
 
-        --! Data output to processor (adjusted to DATA_WIDTH)
+        -- Dado de leitura para o processador.
         o_data_out    : out std_logic_vector(data_width-1 downto 0);
 
-        --! Interrupt request signal (active high)
+        -- Requisição de interrupção, ativa em '1'.
         o_irq         : out std_logic;
 
-        --! Bidirectional GPIO pins
+        -- Pinos de E/S físicos (bidirecionais).
         io_gpio_pins   : inout std_logic_vector(data_width-1 downto 0)
     );
 end gpio;
 
--- -----------------------------------------------------------------------------
--- Architecture Definition
--- -----------------------------------------------------------------------------
 architecture rtl of gpio is
 
-    -----------------------------------------------------------------------------
-    -- Internal Control Signals
-    -----------------------------------------------------------------------------
-    signal wr_en   : std_logic_vector(6 downto 0); -- Write enable signals
-    signal wr_op   : std_logic_vector(1 downto 0); -- Write operation
-    signal rd_sel  : std_logic_vector(2 downto 0); -- Readback selector
+    -- Habilitações de escrita dos registradores.
+    signal wr_en   : std_logic_vector(6 downto 0);
+    -- Operação do registrador de saída.
+    signal wr_op   : std_logic_vector(1 downto 0);
+    -- Seletor do multiplexador de leitura.
+    signal rd_sel  : std_logic_vector(2 downto 0);
 
-    -----------------------------------------------------------------------------
-    -- Internal Register Banks (based on DATA_WIDTH)
-    -----------------------------------------------------------------------------
+    -- Registrador de direção de todas as células.
     signal dir_reg         : std_logic_vector(data_width-1 downto 0);
+    -- Registrador de saída de todas as células.
     signal out_reg         : std_logic_vector(data_width-1 downto 0);
+    -- Entradas dos pinos sincronizadas.
     signal pins_input      : std_logic_vector(data_width-1 downto 0);
+    -- Máscaras globais de interrupção de todas as células.
     signal irq_mask        : std_logic_vector(data_width-1 downto 0);
+    -- Máscaras de borda de subida de todas as células.
     signal irq_rise_mask   : std_logic_vector(data_width-1 downto 0);
+    -- Máscaras de borda de descida de todas as células.
     signal irq_fall_mask   : std_logic_vector(data_width-1 downto 0);
+    -- Status de interrupção de todas as células.
     signal irq_status      : std_logic_vector(data_width-1 downto 0);
 
-    -----------------------------------------------------------------------------
-    -- Internal Signal for GPIO_CELL Data Output
-    -----------------------------------------------------------------------------
+    -- Estado interno de cada célula, sete bits por célula.
     type dout_array_t is array (0 to data_width - 1) of std_logic_vector(6 downto 0);
+    -- Estado interno lido de cada célula.
     signal dout_array : dout_array_t;
 
-    -----------------------------------------------------------------------------
-    -- Internal Signal for Readback Multiplexer
-    -----------------------------------------------------------------------------
-    signal selected_read : std_logic_vector(data_width-1 downto 0); -- Readback data
-    constant ZERO_VECTOR : std_logic_vector(data_width-1 downto 0) := (others => '0'); -- Zero vector for unused readback
+    -- Dado de leitura escolhido pelo seletor.
+    signal selected_read : std_logic_vector(data_width-1 downto 0);
+    -- Vetor de zeros para as leituras não usadas.
+    constant ZERO_VECTOR : std_logic_vector(data_width-1 downto 0) := (others => '0');
 
 begin
 
     -----------------------------------------------------------------------------
-    -- GPIO Operation Decoder
+    -- Decodificador de operações do GPIO
     -----------------------------------------------------------------------------
     u_gpio_operation_decoder : entity work.gpio_operation_decoder
         port map (
@@ -102,11 +98,11 @@ begin
         );
 
     -----------------------------------------------------------------------------
-    -- GPIO_CELL Array Instantiation
+    -- Instâncias de gpio_cell, uma por pino
     -----------------------------------------------------------------------------
     gen_cells : for i in 0 to data_width - 1 generate
     begin
-        gpio_cell_i : entity work.gpio_cell
+        u_gpio_cell : entity work.gpio_cell
             port map (
                 i_clk      => i_clk,
                 i_rst      => i_rst,
@@ -127,9 +123,9 @@ begin
     end generate;
 
     -----------------------------------------------------------------------------
-    -- Readback Multiplexer
+    -- Multiplexador de leitura
     -----------------------------------------------------------------------------
-    read_mux : entity work.mux_8x1
+    u_read_mux : entity work.mux_8x1
       generic map (
         data_width => data_width
       )
@@ -147,8 +143,8 @@ begin
       );
     o_data_out <= selected_read;
     -----------------------------------------------------------------------------
-    -- Interrupt Generation Logic. 
-    -- IRQ is asserted if any of the interrupt status bits are set (Reduce Or Operation).
+    -- Lógica de geração da interrupção.
+    -- A interrupção sobe se qualquer bit de status de interrupção estiver ligado (OU de redução).
     -----------------------------------------------------------------------------
     o_irq <= '1' when irq_status /= ZERO_VECTOR else '0';
 

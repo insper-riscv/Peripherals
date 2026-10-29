@@ -1,10 +1,10 @@
 -- =============================================================================
--- Entity: GPIO_CELL
--- Description:
---   Single-bit General-Purpose I/O cell. Interfaces a processor with a
---   bidirectional I/O pin, supporting direction control, output operations,
---   and interrupt configuration (masking, edge detection, and W1C clearing).
---   Provides a readback multiplexer for processor access to internal state.
+-- Célula de E/S de uso geral de um bit
+--
+-- Liga o processador a um pino bidirecional, com controle de direção, operações
+-- de saída (carregar, ligar, limpar e inverter) e configuração de interrupção
+-- (máscaras, detecção de borda e limpeza escrevendo 1). Oferece ao processador um
+-- multiplexador de leitura do estado interno.
 -- =============================================================================
 
 library ieee;
@@ -12,62 +12,69 @@ use ieee.std_logic_1164.all;
 
 library work;
 
--- -----------------------------------------------------------------------------
--- Entity Declaration
--- -----------------------------------------------------------------------------
 entity gpio_cell is
   port (
-    -- System interface
-    i_clk : in  std_logic; -- System clock
-    i_rst : in  std_logic; -- Global clear (asynchronous or synchronous)
+    -- Clock do módulo.
+    i_clk : in  std_logic;
+    -- Reset, ativo em '1'.
+    i_rst : in  std_logic;
 
-    -- Data bus
-    i_data_in  : in  std_logic; -- Data from processor (1-bit)
-    o_data_out : out std_logic_vector (6 downto 0); -- Data to processor (1-bit)
+    -- Dado de 1 bit vindo do processador.
+    i_data_in  : in  std_logic;
+    -- Estado interno lido pelo processador, um bit por registrador.
+    o_data_out : out std_logic_vector (6 downto 0);
 
-    -- Control signals
-    i_wr_signals : in std_logic_vector(6 downto 0); -- Write enable signals
-    i_wr_op  : in std_logic_vector(1 downto 0); -- Output mode: LOAD, SET, CLEAR, TOGGLE
+    -- Habilitações de escrita dos registradores, na ordem do mapa de bits do decodificador.
+    i_wr_signals : in std_logic_vector(6 downto 0);
+    -- Operação de saída: 00 carrega, 01 liga, 10 limpa, 11 inverte.
+    i_wr_op  : in std_logic_vector(1 downto 0);
 
-    -- Physical GPIO pin (bidirectional)
+    -- Pino de E/S físico (bidirecional).
     io_gpio_pin : inout std_logic
   );
 end entity;
 
--- -----------------------------------------------------------------------------
--- Architecture Definition
--- -----------------------------------------------------------------------------
 architecture rtl of gpio_cell is
   
-  -- -----------------------------------------------------------------------------
-  -- Internal Registers
-  -- -----------------------------------------------------------------------------
-  signal dir_reg : std_logic; -- Direction register (input/output)
-  signal out_reg : std_logic; -- Output register (data to GPIO pin)
-  signal pin_input : std_logic; -- Synchronized input from GPIO pin
-  signal mux_write : std_logic; -- Mux output for write operations
-  signal irq_mask : std_logic; -- Interrupt mask register (global interrupt enable)
-  signal irq_rise_mask : std_logic; -- Rising edge interrupt mask register
-  signal irq_fall_mask : std_logic; -- Falling edge interrupt mask register
-  signal irq_status : std_logic; -- Interrupt status register 
-  -----------------------------------------------------------------------------
-  -- Helper Signals
-  -----------------------------------------------------------------------------
-  signal prev_pin_input : std_logic; -- Previous value of GPIO pin (for edge detection)
-  signal interrupt_logic : std_logic; -- Interrupt logic (for edge detection)
-  signal mux_write_vector : std_logic_vector(0 downto 0); -- Intermediate vector for mux output
-  -- Port-map actuals as signals: GHDL (VHDL-93/2008) requires a name or a
-  -- globally static expression there, and these were expressions of signals.
+  -- Registrador de direção (0 = entrada, 1 = saída).
+  signal dir_reg : std_logic;
+  -- Registrador de saída, o valor enviado ao pino.
+  signal out_reg : std_logic;
+  -- Entrada do pino sincronizada com o clock.
+  signal pin_input : std_logic;
+  -- Resultado do multiplexador das operações de escrita.
+  signal mux_write : std_logic;
+  -- Máscara global de interrupção da célula.
+  signal irq_mask : std_logic;
+  -- Máscara de interrupção por borda de subida.
+  signal irq_rise_mask : std_logic;
+  -- Máscara de interrupção por borda de descida.
+  signal irq_fall_mask : std_logic;
+  -- Registrador de status de interrupção.
+  signal irq_status : std_logic;
+  -- Valor anterior do pino, para detectar bordas.
+  signal prev_pin_input : std_logic;
+  -- Uma borda habilitada foi detectada neste ciclo.
+  signal interrupt_logic : std_logic;
+  -- Resultado do multiplexador de escrita em formato de vetor de 1 bit.
+  signal mux_write_vector : std_logic_vector(0 downto 0);
+  -- Dado de carga em formato de vetor de 1 bit.
   signal load_vector   : std_logic_vector(0 downto 0);
+  -- Valor invertido da saída em formato de vetor de 1 bit.
   signal toggle_vector : std_logic_vector(0 downto 0);
+  -- Habilita a escrita do registrador de saída.
   signal out_enable    : std_logic;
+  -- Limpa o status de interrupção (reset ou escrita de 1).
   signal irq_clear     : std_logic;
+  -- Liga o status de interrupção (borda detectada com a máscara ligada).
   signal irq_set       : std_logic;
+  -- Operando que liga o bit, em formato de vetor de 1 bit.
   constant SET_VECTOR   : std_logic_vector(0 downto 0) := "1";
+  -- Operando que limpa o bit, em formato de vetor de 1 bit.
   constant CLEAR_VECTOR : std_logic_vector(0 downto 0) := "0";
-  -- Saída de 1 bit do registrador U_IRQ_STATUS, no formato de vetor do clearable_register.
-  signal u_irq_status_q : std_logic_vector(0 downto 0);
-  -- Dado de 1 bit com valor '1', usado como entrada do registrador de status.
+  -- Saída de 1 bit do registrador de status, em formato de vetor.
+  signal irq_status_q : std_logic_vector(0 downto 0);
+  -- Dado de 1 bit com valor '1', entrada do registrador de status.
   constant ONE_BIT : std_logic_vector(0 downto 0) := "1";
 
 begin
@@ -78,21 +85,21 @@ begin
   irq_set       <= interrupt_logic and irq_mask;
 
   -----------------------------------------------------------------------------
-  -- Direction Register: Controls GPIO pin direction (input/output).
-  -- 0 = input, 1 = output
+  -- Registrador de direção: controla se o pino é entrada ou saída.
+  -- 0 = entrada, 1 = saída
   -----------------------------------------------------------------------------
   u_reg_dir : entity work.flip_flop
     port map (
         i_clk    => i_clk,
         i_rst    => i_rst,
-        i_enable => i_wr_signals(0), -- Enable write to direction register
-        i_d      => i_data_in, -- Data to be written to direction register
-        o_d      => dir_reg  -- Direction of GPIO pin (input/output)
+        i_enable => i_wr_signals(0), -- Habilita a escrita do registrador de direção
+        i_d      => i_data_in, -- Dado a escrever no registrador de direção
+        o_d      => dir_reg  -- Direção do pino (entrada ou saída)
     );
 
   -----------------------------------------------------------------------------
-  -- Multiplexer for Write Operations.
-  -- When selector 00 = LOAD, 01 = SET, 10 = CLEAR, 11 = TOGGLE
+  -- Multiplexador das operações de escrita.
+  -- Seletor 00 = carrega, 01 = liga, 10 = limpa, 11 = inverte
   -----------------------------------------------------------------------------
   u_mux_write : entity work.mux_4x1
     generic map (
@@ -107,27 +114,27 @@ begin
       o_d   => mux_write_vector
     );
 
-  -- Unpack result from mux (mux_write is std_logic)
-  mux_write <= mux_write_vector(0); -- Unpack 1-bit vector to std_logic
+  -- Desempacota o resultado do multiplexador (mux_write é std_logic)
+  mux_write <= mux_write_vector(0); -- Converte o vetor de 1 bit em std_logic
 
   
   -----------------------------------------------------------------------------
-  -- Output Register: Holds the value to be sent to the GPIO pin.
-  -- Enabled on load operations and when the bit is selected (data in = 1) for SET/CLEAR/TOGGLE.
+  -- Registrador de saída: guarda o valor enviado ao pino.
+  -- Habilitado nas cargas e quando o bit é selecionado (dado de entrada = 1) em ligar, limpar e inverter.
   -----------------------------------------------------------------------------
   u_reg_out : entity work.flip_flop
     port map (
         i_clk    => i_clk,
         i_rst    => i_rst,
-        i_enable => out_enable, -- Load or Set/Clear/Toggle
-        i_d      => mux_write, -- Data to be written to output register
-        o_d      => out_reg -- Data to be sent to GPIO pin
+        i_enable => out_enable, -- Carga ou ligar, limpar e inverter
+        i_d      => mux_write, -- Dado a escrever no registrador de saída
+        o_d      => out_reg -- Dado enviado ao pino
     );
 
   -----------------------------------------------------------------------------
-  -- Tristate Buffer: Connects output register to GPIO pin based on direction.
-  -- If dir_reg = '1', buffer is enabled and out_reg is sent to gpio_pin.
-  -- If dir_reg = '0', buffer is disabled and gpio_pin is in high-impedance state.
+  -- Buffer tristate: liga o registrador de saída ao pino conforme a direção.
+  -- Com dir_reg = '1', o buffer está habilitado e out_reg vai ao pino.
+  -- Com dir_reg = '0', o buffer está desabilitado e o pino fica em alta impedância.
   -----------------------------------------------------------------------------
   u_gpio_buffer : entity work.tristate_buffer_1bit
     port map (
@@ -137,83 +144,83 @@ begin
     );
 
   -----------------------------------------------------------------------------
-  -- Synchronizer: Synchronizes the asynchronous GPIO pin input to the clock domain.
-  -- This is necessary to avoid metastability issues when reading the GPIO pin.
+  -- Sincronizador: leva a entrada assíncrona do pino ao domínio do clock.
+  -- Evita metaestabilidade na leitura do pino.
   -----------------------------------------------------------------------------      
   u_sync : entity work.generic_synchronizer_1bit
-    generic map (n => 2) -- Number of stages in the synchronizer
+    generic map (n => 2) -- Número de estágios do sincronizador
     port map (
         i_clk       => i_clk,
-        i_async_in  => io_gpio_pin, -- Asynchronous input from GPIO pin
-        o_sync_out  => pin_input -- Synchronized output to processor
+        i_async_in  => io_gpio_pin, -- Entrada assíncrona vinda do pino
+        o_sync_out  => pin_input -- Saída sincronizada para o processador
     );
 
   -----------------------------------------------------------------------------
-  -- Previous Pin Input Register: Holds the previous value of the GPIO pin.
-  -- This is used for edge detection in the interrupt logic.
+  -- Registrador do valor anterior do pino.
+  -- Usado na detecção de bordas da lógica de interrupção.
   -----------------------------------------------------------------------------
   u_reg_prev : entity work.flip_flop
     port map (
         i_clk    => i_clk,
-        i_rst    => '0', -- No reset
-        i_enable => '1', -- Always enabled
-        i_d      => pin_input, -- Synchronized input from GPIO pin
-        o_d      => prev_pin_input -- Previous pin value
+        i_rst    => '0', -- Sem reset
+        i_enable => '1', -- Sempre habilitado
+        i_d      => pin_input, -- Entrada sincronizada do pino
+        o_d      => prev_pin_input -- Valor anterior do pino
     );
 
   -----------------------------------------------------------------------------
-  -- Interrupt Mask Register: Controls wether interrupts are enabled or disabled for this GPIO cell.
-  -- If irq_mask = '1', interrupts are enabled. If irq_mask = '0', interrupts are disabled.
+  -- Registrador de máscara de interrupção: habilita ou desabilita as interrupções desta célula.
+  -- Com irq_mask = '1' as interrupções estão habilitadas; com '0', desabilitadas.
   -----------------------------------------------------------------------------
   u_irq_mask : entity work.flip_flop
     port map (
         i_clk    => i_clk,
         i_rst    => i_rst,
-        i_enable => i_wr_signals(3), -- Enable write to interrupt mask register
-        i_d      => i_data_in, -- Data to be written to interrupt mask register
-        o_d      => irq_mask -- Interrupt mask register
+        i_enable => i_wr_signals(3), -- Habilita a escrita da máscara de interrupção
+        i_d      => i_data_in, -- Dado a escrever na máscara de interrupção
+        o_d      => irq_mask -- Registrador de máscara de interrupção
     );
   
   -----------------------------------------------------------------------------
-  -- Interrupt Rising Edge Mask Register: Controls rising edge interrupt detection.
-  -- If irq_rise_mask = '1', rising edge interrupts are enabled. If irq_rise_mask = '0', they are disabled.
+  -- Registrador de máscara de borda de subida: controla a detecção de interrupção por borda de subida.
+  -- Com irq_rise_mask = '1' as interrupções por borda de subida estão habilitadas; com '0', desabilitadas.
   -----------------------------------------------------------------------------
   u_irq_rise : entity work.flip_flop
     port map (
         i_clk    => i_clk,
         i_rst    => i_rst,
-        i_enable => i_wr_signals(4), -- Enable write to rising edge mask register
-        i_d      => i_data_in, -- Data to be written to rising edge mask register
-        o_d      => irq_rise_mask -- Rising edge interrupt mask register
+        i_enable => i_wr_signals(4), -- Habilita a escrita da máscara de borda de subida
+        i_d      => i_data_in, -- Dado a escrever na máscara de borda de subida
+        o_d      => irq_rise_mask -- Registrador de máscara de borda de subida
     );
   
   --------------------------------------------------------------------------
-  -- Interrupt Falling Edge Mask Register: Controls falling edge interrupt detection.
-  -- If irq_fall_mask = '1', falling edge interrupts are enabled. If irq_fall_mask = '0', they are disabled.
+  -- Registrador de máscara de borda de descida: controla a detecção de interrupção por borda de descida.
+  -- Com irq_fall_mask = '1' as interrupções por borda de descida estão habilitadas; com '0', desabilitadas.
   --------------------------------------------------------------------------
   u_irq_fall : entity work.flip_flop
     port map (
         i_clk    => i_clk,
         i_rst    => i_rst,
-        i_enable => i_wr_signals(5), -- Enable write to falling edge mask register
-        i_d      => i_data_in, -- Data to be written to falling edge mask register
-        o_d      => irq_fall_mask -- Falling edge interrupt mask register
+        i_enable => i_wr_signals(5), -- Habilita a escrita da máscara de borda de descida
+        i_d      => i_data_in, -- Dado a escrever na máscara de borda de descida
+        o_d      => irq_fall_mask -- Registrador de máscara de borda de descida
     );
   
   -----------------------------------------------------------------------------
-  -- Interrupt Logic: Detects rising and falling edges on the GPIO pin.
-  -- Generates an interrupt signal if the corresponding mask is set.
-  -- Rising edge: pin_input goes from 0 to 1 (prev_pin_input = 0, pin_input = 1)
-  -- Falling edge: pin_input goes from 1 to 0 (prev_pin_input = 1, pin_input = 0)
+  -- Lógica de interrupção: detecta bordas de subida e de descida no pino.
+  -- Gera o sinal de interrupção se a máscara correspondente estiver ligada.
+  -- Borda de subida: pin_input passa de 0 a 1 (prev_pin_input = 0, pin_input = 1)
+  -- Borda de descida: pin_input passa de 1 a 0 (prev_pin_input = 1, pin_input = 0)
   -----------------------------------------------------------------------------
   interrupt_logic <= (irq_rise_mask and (pin_input and not prev_pin_input)) or
-                     (irq_fall_mask and (not pin_input and prev_pin_input)); -- Edge detection logic
+                     (irq_fall_mask and (not pin_input and prev_pin_input)); -- Detecção de borda
 
   ----------------------------------------------------------------------------
-  -- Interrupt Status Register: Holds the interrupt status for this GPIO cell.
-  -- If irq_status = '1', an interrupt has occurred. If irq_status = '0', no interrupt.
-  -- The status is cleared when the processor writes a '1' to the register (W1C).
-  -- The interrupt status is set if the interrupt logic is high and the mask is enabled.
+  -- Registrador de status de interrupção desta célula.
+  -- Com irq_status = '1' houve uma interrupção; com '0', nenhuma.
+  -- O status é limpo quando o processador escreve '1' no registrador (W1C).
+  -- O status liga quando a lógica de interrupção está em '1' e a máscara está habilitada.
   ----------------------------------------------------------------------------
   u_irq_status : entity work.clearable_register
     generic map (
@@ -224,16 +231,16 @@ begin
       i_clear  => irq_clear,
       i_enable => irq_set,
       i_d      => ONE_BIT,
-      o_d      => u_irq_status_q
+      o_d      => irq_status_q
     );
-  irq_status <= u_irq_status_q(0);
+  irq_status <= irq_status_q(0);
   
 
-  o_data_out(0) <= dir_reg; -- Read direction register
-  o_data_out(1) <= out_reg; -- Read output register
-  o_data_out(2) <= pin_input; -- Read GPIO pin input
-  o_data_out(3) <= irq_mask; -- Read interrupt mask register
-  o_data_out(4) <= irq_rise_mask; -- Read rising edge mask register
-  o_data_out(5) <= irq_fall_mask; -- Read falling edge mask register
-  o_data_out(6) <= irq_status; -- Read interrupt status register
+  o_data_out(0) <= dir_reg; -- Lê o registrador de direção
+  o_data_out(1) <= out_reg; -- Lê o registrador de saída
+  o_data_out(2) <= pin_input; -- Lê a entrada do pino
+  o_data_out(3) <= irq_mask; -- Lê a máscara de interrupção
+  o_data_out(4) <= irq_rise_mask; -- Lê a máscara de borda de subida
+  o_data_out(5) <= irq_fall_mask; -- Lê a máscara de borda de descida
+  o_data_out(6) <= irq_status; -- Lê o status de interrupção
 end architecture;

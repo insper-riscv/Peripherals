@@ -1,47 +1,37 @@
 -- =============================================================================
--- Entity: COUNTER_OVERFLOW
--- Description:
---   Pure-combinational “overflow unit” for an unsigned timer / counter.
---   Asserts overflow = '1' when the counter reaches or exceeds the top value.
---   The overflow flag is a combinational pulse that is cleared on the next read.
+-- Unidade de overflow de um contador sem sinal
+--
+-- Puramente combinacional: afirma o_overflow = '1' quando o contador alcança ou
+-- supera o valor de topo.
 -- =============================================================================
 
 library ieee;
 use ieee.std_logic_1164.all;
 
--- -----------------------------------------------------------------------------
--- Entity Declaration
--- -----------------------------------------------------------------------------
 entity counter_overflow is
   generic (
-    --! Data width of the counter (in bits)
+    -- Largura do contador em bits.
     data_width : natural := 32
   );
   port (
-    -- -------------------------------------------------------------------------
-    -- Counter interface
-    -- -------------------------------------------------------------------------
-    i_counter_value : in  std_logic_vector(data_width-1 downto 0); -- Present count
-    i_top_value     : in  std_logic_vector(data_width-1 downto 0); -- Terminal count
+    -- Contagem atual.
+    i_counter_value : in  std_logic_vector(data_width-1 downto 0);
+    -- Contagem final (topo).
+    i_top_value     : in  std_logic_vector(data_width-1 downto 0);
 
-    -- -------------------------------------------------------------------------
-    -- Overflow flag (combinational pulse)
-    -- -------------------------------------------------------------------------
-    o_overflow      : out std_logic -- overflow flag (active high)
+    -- Overflow ('1' quando a contagem alcança o topo).
+    o_overflow      : out std_logic
   );
 end entity counter_overflow;
 
--- -----------------------------------------------------------------------------
--- Architecture Definition
--- -----------------------------------------------------------------------------
 architecture rtl of counter_overflow is
 
-  -- Internal comparator signal
-  signal cnt_ge_top : std_logic; -- counter_value ≥ top_value
+  -- A contagem é maior ou igual ao topo.
+  signal cnt_ge_top : std_logic;
 
 begin
   -----------------------------------------------------------------------------
-  -- GREATER-OR-EQUAL COMPARATOR
+  -- Comparador maior ou igual
   -----------------------------------------------------------------------------
   u_ge_counter_top : entity work.alu_ge_unsigned
     generic map ( data_width => data_width )
@@ -52,7 +42,7 @@ begin
     );
 
   -----------------------------------------------------------------------------
-  -- OVERFLOW FLAG = counter ≥ top
+  -- Overflow = contador ≥ topo
   -----------------------------------------------------------------------------
   o_overflow <= cnt_ge_top;
 
