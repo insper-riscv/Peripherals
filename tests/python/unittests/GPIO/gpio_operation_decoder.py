@@ -3,6 +3,7 @@
 import cocotb
 from cocotb.triggers import Timer
 
+from tests.python.utils.check import check
 from tests.python.utils.dut import GpioDecoderDut
 
 # wr_en bits: 0 DIR, 1 LOAD_OUT, 2 BIT_OUT, 3 IRQ_MASK, 4 RISE_MASK,
@@ -76,11 +77,13 @@ async def test_writes_raise_one_enable(dut: GpioDecoderDut) -> None:
     for address in range(ADDRESSES):
         wr_en, wr_op, _ = await _apply(dut, address, 1, 0)
         want = 1 << WRITE_BIT[address] if address in WRITE_BIT else 0
-        assert wr_en == want, (
-            f"write {address}: wr_en={wr_en:07b}, expected {want:07b}"
+        check(
+            wr_en == want,
+            f"write {address}: wr_en={wr_en:07b}, expected {want:07b}",
         )
-        assert wr_op == WR_OP.get(address, 0), (
-            f"write {address}: wr_op={wr_op:02b}"
+        check(
+            wr_op == WR_OP.get(address, 0),
+            f"write {address}: wr_op={wr_op:02b}",
         )
 
 
@@ -89,7 +92,7 @@ async def test_no_write_no_enable(dut: GpioDecoderDut) -> None:
     """Without a write or a read, no enable is raised."""
     for address in range(ADDRESSES):
         wr_en, _, _ = await _apply(dut, address, 0, 0)
-        assert wr_en == 0, f"idle {address}: wr_en={wr_en:07b}"
+        check(wr_en == 0, f"idle {address}: wr_en={wr_en:07b}")
 
 
 @cocotb.test()
@@ -100,8 +103,9 @@ async def test_only_reading_the_status_clears_it(
     for address in range(ADDRESSES):
         wr_en, _, _ = await _apply(dut, address, 0, 1)
         want = 1 << IRQ_CLEAR_BIT if address == IRQ_STAT else 0
-        assert wr_en == want, (
-            f"read {address}: wr_en={wr_en:07b}, expected {want:07b}"
+        check(
+            wr_en == want,
+            f"read {address}: wr_en={wr_en:07b}, expected {want:07b}",
         )
 
 
@@ -111,4 +115,4 @@ async def test_read_select(dut: GpioDecoderDut) -> None:
     for address in range(ADDRESSES):
         _, _, rd_sel = await _apply(dut, address, 0, 1)
         want = RD_SEL.get(address, RD_SEL_UNMAPPED)
-        assert rd_sel == want, f"address {address}: rd_sel={rd_sel:03b}"
+        check(rd_sel == want, f"address {address}: rd_sel={rd_sel:03b}")

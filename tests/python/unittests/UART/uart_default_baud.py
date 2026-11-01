@@ -5,6 +5,7 @@ from cocotb.clock import Clock
 from cocotb.triggers import FallingEdge, RisingEdge, Timer, with_timeout
 from cocotb.utils import get_sim_time
 
+from tests.python.utils.check import check
 from tests.python.utils.dut import UartDut
 
 TX_DATA = 0
@@ -64,6 +65,7 @@ async def test_default_generics_generate_115200_baud_at_50_mhz(
     # nine bits.
     expected_ns = BITS_LOW * NS_PER_SECOND / BAUD_RATE
     measured_ns = stop_ns - start_ns
-    assert abs(measured_ns - expected_ns) <= 2 * CLOCK_PERIOD_NS, (
-        f"measured {measured_ns} ns for nine bits, expected {expected_ns} ns"
+    check(
+        abs(measured_ns - expected_ns) <= 2 * CLOCK_PERIOD_NS,
+        f"measured {measured_ns} ns for nine bits, expected {expected_ns} ns",
     )
