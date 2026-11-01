@@ -11,8 +11,20 @@ dependencies = [
     "cocotb==2.1.0",
 ]
 
+[dependency-groups]
+# Tools of the python-static-analysis job that run with `uv run`, in the environment of the project.
+dev = [
+    "deptry>=0.20",
+    "pylint>=4.1.3",
+    "pyright[nodejs]>=1.1",
+]
+
 [tool.uv]
 package = false
+
+# deptry skips `tests` by default, and the Python of this project is all under it.
+[tool.deptry]
+exclude = ["\\.venv", "build", "Common-Components", "sim_build"]
 
 # Static analysis of the Python (runner and tests), as run by the python-static-analysis job of the CI.
 [tool.ruff]
@@ -89,6 +101,20 @@ docstring-code-line-length = 72
 [tool.complexipy]
 paths = ["tests"]
 max-complexity-allowed = 10
+
+# Pylint reads the whole tree; the VHDL submodules and build output are not Python of this project.
+[tool.pylint.main]
+recursive = true
+ignore = [".venv", "build", "Common-Components", "sim_build"]
+
+[tool.pylint.basic]
+# The test packages carry the name of the peripheral they exercise (GPIO, TIMER, UART).
+module-rgx = "[A-Za-z_][A-Za-z0-9_]*$"
+
+[tool.pylint.design]
+# The protocols of tests/python/utils/dut.py only declare signals, and Config mirrors one record of tests.json.
+min-public-methods = 0
+max-attributes = 8
 
 # Type checking of the Python (runner and tests), strict in both checkers.
 [tool.pyright]

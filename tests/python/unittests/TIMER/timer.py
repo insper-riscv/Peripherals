@@ -2,20 +2,19 @@
 
 import cocotb
 
+from tests.python.unittests.TIMER.registers import (
+    CONFIG,
+    DUTY,
+    OVF_STATUS,
+    PRESCALER,
+    TIMER_LOAD,
+    TIMER_RESET,
+    TOP,
+)
 from tests.python.utils import bus
 from tests.python.utils.check import check
 from tests.python.utils.dut import TimerDut
 
-(
-    CONFIG,
-    TIMER_LOAD,
-    TIMER_RESET,
-    TOP,
-    DUTY,
-    OVF_STATUS,
-    _PWM,
-    PRESCALER,
-) = range(8)
 START, MODE_SATURATE, PWM_EN, IRQ_EN = 0b0001, 0b0010, 0b0100, 0b1000
 TOP_RESET = 0xFFFFFFFF
 TRACE_CYCLES = 14

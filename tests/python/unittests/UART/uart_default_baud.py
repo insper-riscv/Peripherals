@@ -1,10 +1,10 @@
 """Timing check for UART's production 50 MHz / 115200-baud defaults."""
 
 import cocotb
-from cocotb.clock import Clock
 from cocotb.triggers import FallingEdge, RisingEdge, Timer, with_timeout
 from cocotb.utils import get_sim_time
 
+from tests.python.utils import bus
 from tests.python.utils.check import check
 from tests.python.utils.dut import UartDut
 
@@ -15,35 +15,13 @@ NS_PER_SECOND = 1_000_000_000
 BITS_LOW = 9
 
 
-async def reset_50_mhz(dut: UartDut) -> None:
-    """Start the 50 MHz clock and release the reset.
-
-    Parameters
-    ----------
-    dut : UartDut
-        The design under test.
-    """
-    cocotb.start_soon(Clock(dut.i_clk, CLOCK_PERIOD_NS, unit="ns").start())
-    dut.i_rst.value = 1
-    dut.i_write.value = 0
-    dut.i_read.value = 0
-    dut.i_address.value = 0
-    dut.i_data_in.value = 0
-    dut.i_uart_rx.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_rst.value = 0
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-
-
 @cocotb.test()
 async def test_default_generics_generate_115200_baud_at_50_mhz(
     dut: UartDut,
 ) -> None:
     """The default generics send a bit every 1 / 115200 s at 50 MHz."""
-    await reset_50_mhz(dut)
+    dut.i_uart_rx.value = 1
+    await bus.reset(dut, period_ns=CLOCK_PERIOD_NS)
 
     start_edge = cocotb.start_soon(
         with_timeout(FallingEdge(dut.o_uart_tx), 20, "us")

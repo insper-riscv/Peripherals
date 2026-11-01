@@ -192,7 +192,7 @@ def _load_configs(json_path: Path) -> dict[str, Config]:
     """
     try:
         with json_path.open(encoding="utf-8") as file:
-            raw = cast("dict[str, dict[str, Any]]", json.load(file))
+            raw = cast(dict[str, dict[str, Any]], json.load(file))
         return {name: Config(**entry) for name, entry in raw.items()}
     except FileNotFoundError:
         print(f"Error: configuration file '{json_path}' not found.")

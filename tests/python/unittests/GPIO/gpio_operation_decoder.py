@@ -1,8 +1,8 @@
 """GPIO_OPERATION_DECODER: the register map of the GPIO."""
 
 import cocotb
-from cocotb.triggers import Timer
 
+from tests.python.utils import bus
 from tests.python.utils.check import check
 from tests.python.utils.dut import GpioDecoderDut
 
@@ -60,10 +60,7 @@ async def _apply(
     tuple[int, int, int]
         The wr_en, wr_op and rd_sel outputs.
     """
-    dut.i_address.value = address
-    dut.i_write.value = write
-    dut.i_read.value = read
-    await Timer(1, unit="ns")
+    await bus.drive(dut, address, write, read)
     return (
         int(dut.o_wr_en.value),
         int(dut.o_wr_op.value),
