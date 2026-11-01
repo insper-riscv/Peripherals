@@ -1,115 +1,168 @@
-"""GPIO (8 bits, through gpio_tb): direction, output, pins, interrupts."""
+"""GPIO (8 bits, through gpio_tb): direction, output, pins, IRQ."""
 
 import cocotb
 
 from tests.python.utils import bus
+from tests.python.utils.dut import GpioDut
 
 DIR, OUT_LOAD, OUT_SET, OUT_CLR, OUT_TGL = 0, 1, 2, 3, 4
 IRQ_MASK, RISE_MASK, FALL_MASK, IRQ_STAT, PINS = 5, 6, 7, 8, 9
+ALL_PINS = 0xFF
+SYNC_CYCLES = 3
+EDGE_CYCLES = 4
 
 
-async def setup(dut):
+async def setup(dut: GpioDut) -> None:
+    """Release the pins and reset the design.
+
+    Parameters
+    ----------
+    dut : GpioDut
+        The design under test.
+    """
     dut.i_pin_drive.value = 0
     dut.i_pin_drive_en.value = 0
     await bus.reset(dut)
 
 
 @cocotb.test()
-async def test_reset_state(dut):
+async def test_reset_state(dut: GpioDut) -> None:
+    """Every register is zero after the reset."""
     await setup(dut)
-    for address in (DIR, OUT_LOAD, IRQ_MASK, RISE_MASK, FALL_MASK, IRQ_STAT):
-        assert await bus.read(dut, address) == 0, f"register {address} after reset"
+    registers = (DIR, OUT_LOAD, IRQ_MASK, RISE_MASK, FALL_MASK, IRQ_STAT)
+    for address in registers:
+        value = await bus.read(dut, address)
+        assert value == 0, f"register {address} after reset"
     assert int(dut.o_irq.value) == 0
 
 
 @cocotb.test()
-async def test_registers_read_back_what_was_written(dut):
-    """Each register answers at its own address (direction, output, three masks)."""
+async def test_registers_read_back_what_was_written(dut: GpioDut) -> None:
+    """Each register answers at its own address."""
     await setup(dut)
-    values = {DIR: 0xF0, OUT_LOAD: 0xA5, IRQ_MASK: 0x0F, RISE_MASK: 0x33, FALL_MASK: 0x55}
+    values = {
+        DIR: 0xF0,
+        OUT_LOAD: 0xA5,
+        IRQ_MASK: 0x0F,
+        RISE_MASK: 0x33,
+        FALL_MASK: 0x55,
+    }
     for address, value in values.items():
         await bus.write(dut, address, value)
     for address, value in values.items():
-        assert await bus.read(dut, address) == value, f"register {address}"
+        read_back = await bus.read(dut, address)
+        assert read_back == value, f"register {address}"
 
 
 @cocotb.test()
-async def test_pins_follow_the_output_where_the_direction_says_output(dut):
+async def test_pins_follow_the_output_where_the_direction_says_output(
+    dut: GpioDut,
+) -> None:
+    """Output pins are driven and input pins are released."""
     await setup(dut)
     await bus.write(dut, OUT_LOAD, 0b10100101)
     await bus.write(dut, DIR, 0b00001111)
     pins = str(dut.o_pins.value)
-    assert pins == "ZZZZ0101", f"low nibble driven, high nibble released: {pins}"
-    await bus.write(dut, DIR, 0xFF)
+    assert pins == "ZZZZ0101", f"low nibble driven, high released: {pins}"
+    await bus.write(dut, DIR, ALL_PINS)
     assert str(dut.o_pins.value) == "10100101"
     await bus.write(dut, DIR, 0x00)
     assert str(dut.o_pins.value) == "Z" * 8
 
 
 @cocotb.test()
-async def test_set_clear_toggle_touch_only_the_bits_written_as_one(dut):
+async def test_set_clear_toggle_touch_only_the_bits_written_as_one(
+    dut: GpioDut,
+) -> None:
+    """Set, clear and toggle act only on the bits written as one."""
     await setup(dut)
     await bus.write(dut, OUT_LOAD, 0xA5)
     await bus.write(dut, OUT_SET, 0x0F)
     assert await bus.read(dut, OUT_LOAD) == 0xAF
     await bus.write(dut, OUT_CLR, 0x81)
     assert await bus.read(dut, OUT_LOAD) == 0x2E
-    await bus.write(dut, OUT_TGL, 0xFF)
+    await bus.write(dut, OUT_TGL, ALL_PINS)
     assert await bus.read(dut, OUT_LOAD) == 0xD1
     await bus.write(dut, OUT_TGL, 0x00)
     assert await bus.read(dut, OUT_LOAD) == 0xD1
 
 
 @cocotb.test()
-async def test_pins_read_is_the_synchronized_input(dut):
+async def test_pins_read_is_the_synchronized_input(dut: GpioDut) -> None:
+    """The pins register returns the synchronized input."""
     await setup(dut)
     dut.i_pin_drive.value = 0x3C
-    dut.i_pin_drive_en.value = 0xFF
-    await bus.cycles(dut, 3)
+    dut.i_pin_drive_en.value = ALL_PINS
+    await bus.cycles(dut, SYNC_CYCLES)
     assert await bus.read(dut, PINS) == 0x3C
     dut.i_pin_drive.value = 0xC3
-    await bus.cycles(dut, 3)
+    await bus.cycles(dut, SYNC_CYCLES)
     assert await bus.read(dut, PINS) == 0xC3
 
 
-async def _edge(dut, before, after, enable):
-    dut.i_pin_drive_en.value = 0xFF
+async def _edge(
+    dut: GpioDut, before: int, after: int, enable: dict[int, int]
+) -> None:
+    """Configure the interrupt registers and move the pins once.
+
+    Parameters
+    ----------
+    dut : GpioDut
+        The design under test.
+    before : int
+        Pin levels before the edge.
+    after : int
+        Pin levels after the edge.
+    enable : dict[int, int]
+        Registers to write, by address, before the pins move.
+    """
+    dut.i_pin_drive_en.value = ALL_PINS
     dut.i_pin_drive.value = before
-    await bus.cycles(dut, 4)
+    await bus.cycles(dut, EDGE_CYCLES)
     for address, value in enable.items():
         await bus.write(dut, address, value)
     dut.i_pin_drive.value = after
-    await bus.cycles(dut, 4)
+    await bus.cycles(dut, EDGE_CYCLES)
 
 
 @cocotb.test()
-async def test_rising_edge_interrupt_is_read_and_cleared_by_reading_the_status(dut):
+async def test_rising_edge_interrupt_is_cleared_by_reading_the_status(
+    dut: GpioDut,
+) -> None:
+    """A rising edge is pending until the status is read."""
     await setup(dut)
-    await _edge(dut, 0b000, 0b100, {IRQ_MASK: 0xFF, RISE_MASK: 0xFF})
+    await _edge(dut, 0b000, 0b100, {IRQ_MASK: ALL_PINS, RISE_MASK: ALL_PINS})
     assert int(dut.o_irq.value) == 1
-    assert await bus.read(dut, IRQ_STAT) == 0b100, "the read returns the pending bit"
+    pending = await bus.read(dut, IRQ_STAT)
+    assert pending == 0b100, "the read returns the pending bit"
     assert int(dut.o_irq.value) == 0, "and clears it"
     assert await bus.read(dut, IRQ_STAT) == 0
 
 
 @cocotb.test()
-async def test_falling_edge_interrupt(dut):
+async def test_falling_edge_interrupt(dut: GpioDut) -> None:
+    """A falling edge raises the interrupt when it is enabled."""
     await setup(dut)
-    await _edge(dut, 0b010, 0b000, {IRQ_MASK: 0xFF, FALL_MASK: 0xFF})
+    await _edge(dut, 0b010, 0b000, {IRQ_MASK: ALL_PINS, FALL_MASK: ALL_PINS})
     assert int(dut.o_irq.value) == 1
     assert await bus.read(dut, IRQ_STAT) == 0b010
 
 
 @cocotb.test()
-async def test_an_edge_that_is_not_enabled_raises_nothing(dut):
+async def test_an_edge_that_is_not_enabled_raises_nothing(
+    dut: GpioDut,
+) -> None:
+    """A rising edge with only the falling edge enabled is ignored."""
     await setup(dut)
-    await _edge(dut, 0b000, 0b100, {IRQ_MASK: 0xFF, FALL_MASK: 0xFF})  # rising, only falling enabled
+    await _edge(dut, 0b000, 0b100, {IRQ_MASK: ALL_PINS, FALL_MASK: ALL_PINS})
     assert int(dut.o_irq.value) == 0
     assert await bus.read(dut, IRQ_STAT) == 0
 
 
 @cocotb.test()
-async def test_masked_pin_raises_nothing(dut):
+async def test_masked_pin_raises_nothing(dut: GpioDut) -> None:
+    """Only the unmasked pin reports an edge."""
     await setup(dut)
-    await _edge(dut, 0b000, 0b110, {IRQ_MASK: 0b010, RISE_MASK: 0xFF})
-    assert await bus.read(dut, IRQ_STAT) == 0b010, "only the unmasked pin"
+    await _edge(dut, 0b000, 0b110, {IRQ_MASK: 0b010, RISE_MASK: ALL_PINS})
+    pending = await bus.read(dut, IRQ_STAT)
+    assert pending == 0b010, "only the unmasked pin"
