@@ -10,9 +10,9 @@ the tests that catch it.
 
 | Document | Where | Effect |
 | :--- | :--- | :--- |
-| [GPIO_READ_MAP_SHIFTED.md](GPIO_READ_MAP_SHIFTED.md) | `GPIO/GPIO.vhd` | reading the interrupt status, mask, rising mask or falling mask returned the register after it |
-| [READ_TO_CLEAR_RACE.md](READ_TO_CLEAR_RACE.md) | `GPIO/GPIO_CELL.vhd`, `TIMER/TIMER.vhd` | a status that clears on read vanished while being read |
-| [TIMER_OVERFLOW_READBACK_LEVEL.md](TIMER_OVERFLOW_READBACK_LEVEL.md) | `TIMER/TIMER.vhd` | the overflow register returned the instantaneous level, not the latched status |
+| [GPIO_READ_MAP_SHIFTED.md](GPIO_READ_MAP_SHIFTED.md) | `GPIO/gpio.vhd` | reading the interrupt status, mask, rising mask or falling mask returned the register after it |
+| [READ_TO_CLEAR_RACE.md](READ_TO_CLEAR_RACE.md) | `GPIO/gpio_cell.vhd`, `TIMER/timer.vhd` | a status that clears on read vanished while being read |
+| [TIMER_OVERFLOW_READBACK_LEVEL.md](TIMER_OVERFLOW_READBACK_LEVEL.md) | `TIMER/timer.vhd` | the overflow register returned the instantaneous level, not the latched status |
 
 All three fixes are in one commit (`a206414`, "Fix the read-to-clear statuses and
 the GPIO read map; add the entity tests"), apart from the GHDL compatibility

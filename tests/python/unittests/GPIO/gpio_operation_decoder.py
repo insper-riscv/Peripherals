@@ -16,11 +16,11 @@ RD_SEL = {
 
 
 async def _apply(dut, address, write, read):
-    dut.address.value = address
-    dut.write.value = write
-    dut.read.value = read
+    dut.i_address.value = address
+    dut.i_write.value = write
+    dut.i_read.value = read
     await Timer(1, unit="ns")
-    return int(dut.wr_en.value), int(dut.wr_op.value), int(dut.rd_sel.value)
+    return int(dut.o_wr_en.value), int(dut.o_wr_op.value), int(dut.o_rd_sel.value)
 
 
 @cocotb.test()

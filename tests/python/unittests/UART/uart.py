@@ -22,37 +22,37 @@ BIT_CYCLES = 16
 
 
 async def setup(dut):
-    dut.uart_rx.value = 1
+    dut.i_uart_rx.value = 1
     await bus.reset(dut)
 
 
 async def send_serial_byte(dut, value):
     """Drive one 8N1 byte into uart_rx, least-significant bit first."""
-    dut.uart_rx.value = 0
+    dut.i_uart_rx.value = 0
     await bus.cycles(dut, BIT_CYCLES)
 
     for bit in range(8):
-        dut.uart_rx.value = (value >> bit) & 1
+        dut.i_uart_rx.value = (value >> bit) & 1
         await bus.cycles(dut, BIT_CYCLES)
 
-    dut.uart_rx.value = 1
+    dut.i_uart_rx.value = 1
     await bus.cycles(dut, BIT_CYCLES + 4)
 
 
 async def receive_serial_byte(dut):
     """Decode one 8N1 byte emitted on uart_tx."""
-    await with_timeout(FallingEdge(dut.uart_tx), 5, "us")
+    await with_timeout(FallingEdge(dut.o_uart_tx), 5, "us")
 
     await bus.cycles(dut, BIT_CYCLES // 2)
-    assert int(dut.uart_tx.value) == 0, "start bit must still be low at its midpoint"
+    assert int(dut.o_uart_tx.value) == 0, "start bit must still be low at its midpoint"
 
     value = 0
     for bit in range(8):
         await bus.cycles(dut, BIT_CYCLES)
-        value |= int(dut.uart_tx.value) << bit
+        value |= int(dut.o_uart_tx.value) << bit
 
     await bus.cycles(dut, BIT_CYCLES)
-    assert int(dut.uart_tx.value) == 1, "stop bit must be high"
+    assert int(dut.o_uart_tx.value) == 1, "stop bit must be high"
     return value
 
 
@@ -71,8 +71,8 @@ async def test_reset_state_and_register_map(dut):
     assert await bus.read(dut, RX_DATA) == 0
     assert await bus.read(dut, STATUS) == TX_READY
     assert await bus.read(dut, CONTROL) == 0
-    assert int(dut.irq.value) == 0
-    assert int(dut.uart_tx.value) == 1, "an idle UART line is high"
+    assert int(dut.o_irq.value) == 0
+    assert int(dut.o_uart_tx.value) == 1, "an idle UART line is high"
 
 
 @cocotb.test()
@@ -102,7 +102,7 @@ async def test_write_while_tx_busy_is_dropped_and_reported(dut):
     assert await bus.read(dut, STATUS) & TX_DROPPED == 0
     await wait_tx_ready(dut)
     await bus.cycles(dut, BIT_CYCLES * 2)
-    assert int(dut.uart_tx.value) == 1, "the dropped byte must not start a second frame"
+    assert int(dut.o_uart_tx.value) == 1, "the dropped byte must not start a second frame"
 
 
 @cocotb.test()
@@ -143,13 +143,13 @@ async def test_simultaneous_rx_data_read_and_arrival_preserves_new_byte(dut):
 
     # uartRx raises newRxData just after a clock edge. Assert read before the
     # following edge, when UART.vhd observes the pulse and captures the byte.
-    dut.address.value = RX_DATA
-    dut.read.value = 1
+    dut.i_address.value = RX_DATA
+    dut.i_read.value = 1
     await Timer(1, unit="ns")
-    assert int(dut.data_out.value) == 0x11, "the read returns the previous byte"
-    await RisingEdge(dut.clock)
+    assert int(dut.o_data_out.value) == 0x11, "the read returns the previous byte"
+    await RisingEdge(dut.i_clk)
     await Timer(1, unit="ns")
-    dut.read.value = 0
+    dut.i_read.value = 0
 
     await sender
     status = await bus.read(dut, STATUS)
@@ -165,10 +165,10 @@ async def test_rx_interrupt_enable_and_clear_by_rx_data_read(dut):
     await bus.write(dut, CONTROL, RX_IRQ_ENABLE)
     assert await bus.read(dut, CONTROL) == RX_IRQ_ENABLE
     await send_serial_byte(dut, 0xC3)
-    assert int(dut.irq.value) == 1
+    assert int(dut.o_irq.value) == 1
 
     assert await bus.read(dut, RX_DATA) == 0xC3
-    assert int(dut.irq.value) == 0
+    assert int(dut.o_irq.value) == 0
 
     await bus.write(dut, CONTROL, 0)
     assert await bus.read(dut, CONTROL) == 0
@@ -188,7 +188,7 @@ async def test_tx_read_and_rx_write_are_side_effect_free(dut):
     status = await bus.read(dut, STATUS)
     assert status & (RX_VALID | TX_READY) == RX_VALID | TX_READY
     await bus.cycles(dut, BIT_CYCLES * 2)
-    assert int(dut.uart_tx.value) == 1
+    assert int(dut.o_uart_tx.value) == 1
 
     assert await bus.read(dut, RX_DATA) == 0x6D
     assert await bus.read(dut, STATUS) & RX_VALID == 0

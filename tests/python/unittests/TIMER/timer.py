@@ -21,7 +21,7 @@ async def test_reset_state(dut):
     assert await bus.read(dut, DUTY) == 0
     assert await bus.read(dut, PRESCALER) == 0
     assert await bus.read(dut, OVF_STATUS) == 0
-    assert int(dut.irq.value) == 0
+    assert int(dut.o_irq.value) == 0
 
 
 @cocotb.test()
@@ -95,7 +95,7 @@ async def test_pwm_is_high_while_the_counter_is_below_duty(dut):
     trace = []
     for _ in range(14):
         await bus.cycles(dut, 1)
-        trace.append((int(dut.counter.value), str(dut.pwm.value)))
+        trace.append((int(dut.counter.value), str(dut.o_pwm.value)))
     for counter, pwm in trace:
         assert pwm == ("1" if counter < 2 else "0"), f"counter={counter}: pwm={pwm}"
     assert {c for c, p in trace if p == "1"} == {0, 1}
@@ -107,7 +107,7 @@ async def test_pwm_pin_is_released_when_disabled(dut):
     await bus.write(dut, DUTY, 2)
     await bus.write(dut, CONFIG, START)
     await bus.cycles(dut, 3)
-    assert str(dut.pwm.value) == "Z"
+    assert str(dut.o_pwm.value) == "Z"
 
 
 @cocotb.test()
@@ -126,8 +126,8 @@ async def test_interrupt_needs_the_mask_and_is_cleared_by_reading_the_status(dut
     await bus.write(dut, TOP, 3)
     await bus.write(dut, CONFIG, START | MODE_SATURATE)
     await bus.cycles(dut, 8)
-    assert int(dut.irq.value) == 0, "overflowed, but the interrupt is masked"
+    assert int(dut.o_irq.value) == 0, "overflowed, but the interrupt is masked"
     await bus.write(dut, CONFIG, START | MODE_SATURATE | IRQ_EN)
-    assert int(dut.irq.value) == 1, "unmasking exposes the pending overflow"
+    assert int(dut.o_irq.value) == 1, "unmasking exposes the pending overflow"
     await bus.read(dut, OVF_STATUS)
-    assert int(dut.irq.value) == 0
+    assert int(dut.o_irq.value) == 0

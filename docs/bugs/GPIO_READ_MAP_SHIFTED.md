@@ -29,7 +29,7 @@ output (1 to 4) and pins (9) were not affected.
 "110" when ADDR_FALL_MASK,
 ```
 
-`GPIO` feeds those selector values to a `GENERIC_MUX_8X1`, whose `source_N` is
+`GPIO` feeds those selector values to a `mux_tree`, whose entry `N - 1` is
 chosen by `rd_sel = N - 1`. The sources were wired in this order:
 
 ```vhdl
@@ -46,7 +46,7 @@ wrong.
 
 ## Fix
 
-`GPIO/GPIO.vhd`: the mux sources follow the decoder.
+`GPIO/gpio.vhd`: the mux sources follow the decoder.
 
 ```vhdl
 source_4 => irq_status,

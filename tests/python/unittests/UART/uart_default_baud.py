@@ -12,18 +12,18 @@ BAUD_RATE = 115_200
 
 
 async def reset_50_mhz(dut):
-    cocotb.start_soon(Clock(dut.clock, CLOCK_PERIOD_NS, unit="ns").start())
-    dut.clear.value = 1
-    dut.write.value = 0
-    dut.read.value = 0
-    dut.address.value = 0
-    dut.data_in.value = 0
-    dut.uart_rx.value = 1
+    cocotb.start_soon(Clock(dut.i_clk, CLOCK_PERIOD_NS, unit="ns").start())
+    dut.i_rst.value = 1
+    dut.i_write.value = 0
+    dut.i_read.value = 0
+    dut.i_address.value = 0
+    dut.i_data_in.value = 0
+    dut.i_uart_rx.value = 1
     for _ in range(3):
-        await RisingEdge(dut.clock)
+        await RisingEdge(dut.i_clk)
     await Timer(1, unit="ns")
-    dut.clear.value = 0
-    await RisingEdge(dut.clock)
+    dut.i_rst.value = 0
+    await RisingEdge(dut.i_clk)
     await Timer(1, unit="ns")
 
 
@@ -31,17 +31,17 @@ async def reset_50_mhz(dut):
 async def test_default_generics_generate_115200_baud_at_50_mhz(dut):
     await reset_50_mhz(dut)
 
-    start_edge = cocotb.start_soon(with_timeout(FallingEdge(dut.uart_tx), 20, "us"))
-    dut.address.value = TX_DATA
-    dut.data_in.value = 0x00
-    dut.write.value = 1
-    await RisingEdge(dut.clock)
+    start_edge = cocotb.start_soon(with_timeout(FallingEdge(dut.o_uart_tx), 20, "us"))
+    dut.i_address.value = TX_DATA
+    dut.i_data_in.value = 0x00
+    dut.i_write.value = 1
+    await RisingEdge(dut.i_clk)
     await Timer(1, unit="ns")
-    dut.write.value = 0
+    dut.i_write.value = 0
 
     await start_edge
     start_ns = float(get_sim_time(unit="ns"))
-    await with_timeout(RisingEdge(dut.uart_tx), 100, "us")
+    await with_timeout(RisingEdge(dut.o_uart_tx), 100, "us")
     stop_ns = float(get_sim_time(unit="ns"))
 
     # For 0x00, the line remains low for the start bit plus eight zero data
