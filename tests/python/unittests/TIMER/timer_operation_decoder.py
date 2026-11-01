@@ -1,21 +1,21 @@
 """TIMER_OPERATION_DECODER: the register map of the timer."""
 
 import cocotb
-from cocotb.triggers import Timer
 
-from tests.python.utils.check import check
-from tests.python.utils.dut import TimerDecoderDut
-
-(
+from tests.python.unittests.TIMER.registers import (
     CONFIG,
+    DUTY,
+    OVF_STATUS,
+    PRESCALER,
+    PWM,
     TIMER_LOAD,
     TIMER_RESET,
     TOP,
-    DUTY,
-    OVF_STATUS,
-    PWM,
-    PRESCALER,
-) = range(8)
+)
+from tests.python.utils import bus
+from tests.python.utils.check import check
+from tests.python.utils.dut import TimerDecoderDut
+
 ADDRESSES = 8
 # wr_en bits: 0 CONFIG, 1 LOAD_TIMER, 2 RESET, 3 LOAD_TOP, 4 LOAD_DUTY,
 # 5 OVF_CLR (read), 6 PRESCALER
@@ -61,10 +61,7 @@ async def _apply(
     tuple[int, int, int]
         The wr_en, cnt_sel and rd_sel outputs.
     """
-    dut.i_address.value = address
-    dut.i_write.value = write
-    dut.i_read.value = read
-    await Timer(1, unit="ns")
+    await bus.drive(dut, address, write, read)
     return (
         int(dut.o_wr_en.value),
         int(dut.o_cnt_sel.value),
