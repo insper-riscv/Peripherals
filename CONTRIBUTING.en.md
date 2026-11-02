@@ -153,7 +153,7 @@ Any change to code, configuration, or documentation must pass all commands below
 ```bash
 make check  # Checks the VHDL-2008 syntax of every source in dependency order
 make test   # Runs the per-entity tests (cocotb + GHDL)
-make paths  # Verifies that every path listed in paths.yaml exists
+make paths  # Verifies the paths of paths.yaml and the repository tree (riscv-tools check-tree)
 make formal # Runs the formal proofs (SymbiYosys) with the engine of FORMAL_ENGINE (bitwuzla by default)
 ```
 
