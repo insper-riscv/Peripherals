@@ -154,9 +154,12 @@ Qualquer alteração em código, configuração ou documentação deve passar se
 make check  # Verifica a sintaxe VHDL-2008 de todos os fontes em ordem de dependência
 make test   # Executa os testes por entidade (cocotb + GHDL)
 make paths  # Confere que todos os caminhos listados em paths.yaml existem
+make formal # Executa as provas formais (SymbiYosys) com o engine de FORMAL_ENGINE (bitwuzla por padrão)
 ```
 
 O job `python-static-analysis` do CI roda `ruff`, `pycodestyle`, `pydocstyle`, `pylint`, `pyright`, `pyrefly`, `deptry`, `complexipy`, `codeclone`, `semgrep` e `uv audit` sobre os arquivos Python, e o nome do job é o check que o ruleset da branch padrão exige, então não o renomeie.
+
+O job `formal` do CI roda as provas uma vez por engine (`formal - yices`, `formal - bitwuzla`, `formal - boolector` e `formal - abc-bmc3`) e o job agregador `formal` decide a partir dos resultados: cada prova precisa ter uma resposta e os engines que responderam precisam concordar entre si e com o esperado. O nome `formal` é o check que o ruleset da branch padrão exige, então não o renomeie; os jobs `formal - <engine>` não são exigidos.
 
 Ao adicionar, renomear ou remover qualquer arquivo versionado, atualize imediatamente:
 - `paths.yaml`

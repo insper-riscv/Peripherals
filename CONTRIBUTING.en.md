@@ -154,9 +154,12 @@ Any change to code, configuration, or documentation must pass all commands below
 make check  # Checks the VHDL-2008 syntax of every source in dependency order
 make test   # Runs the per-entity tests (cocotb + GHDL)
 make paths  # Verifies that every path listed in paths.yaml exists
+make formal # Runs the formal proofs (SymbiYosys) with the engine of FORMAL_ENGINE (bitwuzla by default)
 ```
 
 The `python-static-analysis` CI job runs `ruff`, `pycodestyle`, `pydocstyle`, `pylint`, `pyright`, `pyrefly`, `deptry`, `complexipy`, `codeclone`, `semgrep` and `uv audit` over the Python files, and the job name is the check the default-branch ruleset requires, so do not rename it.
+
+The `formal` CI job runs the proofs once per engine (`formal - yices`, `formal - bitwuzla`, `formal - boolector` and `formal - abc-bmc3`) and the aggregator job `formal` decides from the results: each proof must have an answer, and the engines that answered must agree with each other and with what is wanted. The name `formal` is the check the default-branch ruleset requires, so do not rename it; the `formal - <engine>` jobs are not required.
 
 When adding, renaming, or removing any versioned file, immediately update:
 - `paths.yaml`
