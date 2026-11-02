@@ -105,40 +105,69 @@ jobs:
           path: "**/*.ghw"
           if-no-files-found: ignore
 
-  formal:
-    name: formal
+  formal-engine:
+    # The proofs run once per engine. The jobs of the matrix are not required checks: the job `formal` below
+    # joins their results and is the one the ruleset requires.
+    name: formal - ${{ matrix.engine }}
     needs: reuse
     if: ${{ needs.reuse.outputs.skip != 'true' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     container:
       image: ghcr.io/insper-riscv/ci-vhdl:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [yices, bitwuzla, boolector, abc-bmc3]
 
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: true
 
-      - name: Prove every make target named formal*
-        # A repository without proofs passes with a message; the proofs join by adding a formal target.
-        run: |
-          targets=$(sed -n 's/^\(formal[a-z-]*\):.*/\1/p' Makefile)
-          if [ -z "$targets" ]; then
-            echo "This repository has no formal proofs yet."
-          fi
-          status=0
-          for target in $targets; do
-            make "$target" || status=1
-          done
-          exit $status
+      - name: Prove with the engine
+        run: make formal FORMAL_ENGINE=${{ matrix.engine }}
+
+      - name: Upload the result
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: formal-result-${{ matrix.engine }}
+          path: build/formal/result-*.tsv
+          if-no-files-found: ignore
 
       - name: Upload the logs
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: formal-logs
+          name: formal-logs-${{ matrix.engine }}
           path: build/formal/**/*.log
           if-no-files-found: ignore
+
+  formal:
+    # Decides from the results of every engine (formal/aggregate.sh): it passes when each proof was answered
+    # and the engines that answered agree with each other and with what is wanted. The condition is what makes
+    # it run when an engine job failed; without it the job would be skipped, and a skipped job counts as a
+    # success for a required check. `!cancelled()` and not `always()`, so that a run cancelled by a newer commit
+    # does not start it. When the push to main reuses a passed pull request run, the engines are skipped and so
+    # is this job, like the other required jobs.
+    name: formal
+    needs: [reuse, formal-engine]
+    if: ${{ !cancelled() && needs.reuse.outputs.skip != 'true' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download the results of the engines
+        uses: actions/download-artifact@v8
+        with:
+          pattern: formal-result-*
+          path: formal-results
+
+      - name: Decide
+        run: bash formal/aggregate.sh formal-results
 
   python-static-analysis:
     name: python-static-analysis
