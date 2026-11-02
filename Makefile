@@ -21,6 +21,7 @@ test:
 # Every path the configuration lists exists.
 paths:
 	riscv-tools --root . check-paths --manifest paths.yaml
+	riscv-tools --root . check-tree --kind peripherals --only language-pairs
 
 # Formal proofs (SymbiYosys and one engine of the CI image: FORMAL_ENGINE is yices, bitwuzla, boolector or
 # abc-bmc3). This repository has none yet: a run writes an empty build/formal/result-<engine>.tsv.
