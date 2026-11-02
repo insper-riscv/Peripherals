@@ -2,7 +2,7 @@
     "GpioOperationDecoder": {
         "toplevel": "gpio_operation_decoder",
         "sources": [
-            "GPIO/gpio_operation_decoder.vhd"
+            "src/GPIO/soc/gpio_operation_decoder.vhd"
         ],
         "test_module": "tests.python.unittests.GPIO.gpio_operation_decoder",
         "build_args": [
@@ -15,16 +15,16 @@
     "GPIO": {
         "toplevel": "gpio_tb",
         "sources": [
-            "Common-Components/src/flip_flop.vhd",
-            "Common-Components/src/generic_register.vhd",
-            "Common-Components/src/clearable_register.vhd",
-            "Common-Components/src/mux_4x1.vhd",
-            "Common-Components/src/mux_8x1.vhd",
-            "Common-Components/src/tristate_buffer_1bit.vhd",
-            "Common-Components/src/synchronizer.vhd",
-            "GPIO/gpio_operation_decoder.vhd",
-            "GPIO/gpio_cell.vhd",
-            "GPIO/gpio.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio.vhd",
             "tests/vhdl/gpio_tb.vhd"
         ],
         "test_module": "tests.python.unittests.GPIO.gpio",
@@ -38,7 +38,7 @@
     "TimerOperationDecoder": {
         "toplevel": "timer_operation_decoder",
         "sources": [
-            "TIMER/timer_operation_decoder.vhd"
+            "src/TIMER/soc/timer_operation_decoder.vhd"
         ],
         "test_module": "tests.python.unittests.TIMER.timer_operation_decoder",
         "build_args": [
@@ -51,18 +51,18 @@
     "TIMER": {
         "toplevel": "timer",
         "sources": [
-            "Common-Components/src/flip_flop.vhd",
-            "Common-Components/src/generic_register.vhd",
-            "Common-Components/src/clearable_register.vhd",
-            "Common-Components/src/mux_2x1.vhd",
-            "Common-Components/src/mux_8x1.vhd",
-            "Common-Components/src/adder.vhd",
-            "Common-Components/src/tristate_buffer_1bit.vhd",
-            "TIMER/alu_ge_unsigned.vhd",
-            "TIMER/counter_overflow.vhd",
-            "TIMER/clock_prescaler.vhd",
-            "TIMER/timer_operation_decoder.vhd",
-            "TIMER/timer.vhd"
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_2x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/adder.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/TIMER/soc/alu_ge_unsigned.vhd",
+            "src/TIMER/soc/counter_overflow.vhd",
+            "src/TIMER/soc/clock_prescaler.vhd",
+            "src/TIMER/soc/timer_operation_decoder.vhd",
+            "src/TIMER/soc/timer.vhd"
         ],
         "test_module": "tests.python.unittests.TIMER.timer",
         "build_args": [
@@ -75,12 +75,12 @@
     "UART": {
         "toplevel": "uart",
         "sources": [
-            "UART/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
-            "UART/vendor/opencores_uart2bus/baudGen.vhd",
-            "UART/vendor/opencores_uart2bus/uartRx.vhd",
-            "UART/vendor/opencores_uart2bus/uartTx.vhd",
-            "UART/vendor/opencores_uart2bus/uartTop.vhd",
-            "UART/uart.vhd"
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart.vhd"
         ],
         "test_module": "tests.python.unittests.UART.uart",
         "parameters": {
@@ -98,14 +98,29 @@
     "UARTDefaultBaud": {
         "toplevel": "uart",
         "sources": [
-            "UART/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
-            "UART/vendor/opencores_uart2bus/baudGen.vhd",
-            "UART/vendor/opencores_uart2bus/uartRx.vhd",
-            "UART/vendor/opencores_uart2bus/uartTx.vhd",
-            "UART/vendor/opencores_uart2bus/uartTop.vhd",
-            "UART/uart.vhd"
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart.vhd"
         ],
         "test_module": "tests.python.unittests.UART.uart_default_baud",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplay": {
+        "toplevel": "seg_display",
+        "sources": [
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.seg_display",
         "build_args": [
             "--std=08"
         ],

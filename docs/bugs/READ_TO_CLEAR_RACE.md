@@ -40,9 +40,9 @@ The status flip-flops use `clearable_register`, whose clear is **synchronous**, 
 status during the cycle and the clock edge that ends the read clears it:
 
 ```vhdl
--- GPIO/gpio_cell.vhd
+-- src/GPIO/soc/gpio_cell.vhd
 U_IRQ_STATUS : entity work.clearable_register
--- TIMER/timer.vhd
+-- src/TIMER/soc/timer.vhd
 U_IRQ_STATUS_REG : entity work.clearable_register
 ```
 

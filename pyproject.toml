@@ -24,13 +24,13 @@ package = false
 
 # deptry skips `tests` by default, and the Python of this project is all under it.
 [tool.deptry]
-exclude = ["\\.venv", "build", "Common-Components", "sim_build"]
+exclude = ["\\.venv", "build", "src/common", "sim_build"]
 
 # Static analysis of the Python (runner and tests), as run by the python-static-analysis job of the CI.
 [tool.ruff]
 target-version = "py314"
 line-length = 79
-extend-exclude = ["Common-Components", "build", "sim_build"]
+extend-exclude = ["src/common", "build", "sim_build"]
 
 [tool.ruff.lint]
 select = [
@@ -105,7 +105,9 @@ max-complexity-allowed = 10
 # Pylint reads the whole tree; the VHDL submodules and build output are not Python of this project.
 [tool.pylint.main]
 recursive = true
-ignore = [".venv", "build", "Common-Components", "sim_build"]
+ignore = [".venv", "build", "sim_build"]
+ignore-paths = ["^src/common/"]
+init-hook = "import sys; sys.path.append('.')"
 
 [tool.pylint.basic]
 # The test packages carry the name of the peripheral they exercise (GPIO, TIMER, UART).
@@ -125,5 +127,6 @@ pythonVersion = "3.14"
 
 [tool.pyrefly]
 project-includes = ["tests"]
+search-path = ["."]
 python-version = "3.14"
 preset = "strict"

@@ -16,11 +16,14 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 
 | Path | Contents |
 | :--- | :--- |
-| `GPIO/` | General-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising/falling edge interrupts |
-| `TIMER/` | Timer and PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status, and an interrupt |
-| `UART/` | Memory-mapped 8N1 UART: separate RX and TX byte registers, status and error flags, and an optional RX interrupt; the physical layer is the OpenCores `uart2bus`, vendored in the repository |
-| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{common,GPIO,TIMER,UART}` |
-| `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the GPIO inout pins |
+| `src/common/` | Common-Components submodule, edited only at its source |
+| `src/GPIO/soc/` | General-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising/falling edge interrupts |
+| `src/TIMER/soc/` | Timer and PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status, and an interrupt |
+| `src/UART/serial/` | Memory-mapped 8N1 UART: separate RX and TX byte registers, status and error flags, and an optional RX interrupt; the physical layer is the OpenCores `uart2bus`, vendored in the repository |
+| `src/UART/jtag/` | UART over JTAG: the core writes and reads bytes through registers and a host does the same through the Virtual JTAG (`jtag_uart`); `cyclone-v/` holds the Virtual JTAG shell, board only |
+| `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
+| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{GPIO,TIMER,UART,display}` |
+| `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO |
 
 ## 3. Interface
 
