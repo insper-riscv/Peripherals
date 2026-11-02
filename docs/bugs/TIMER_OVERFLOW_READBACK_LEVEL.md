@@ -29,7 +29,7 @@ overflow status") and the clear-on-read wiring all describe the latched status.
 
 ## Fix
 
-`TIMER/timer.vhd`:
+`src/TIMER/soc/timer.vhd`:
 
 ```vhdl
 overflow_readback <= (31 downto 1 => '0') & overflow_status;

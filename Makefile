@@ -3,8 +3,9 @@ GHDL  := ghdl
 STD   := --std=08
 WDIR  := build/ghdl
 
-# The peripherals use the blocks of Common-Components, included as a submodule.
-VHDL      := $(shell find GPIO TIMER UART tests/vhdl -name '*.vhd' | sort) $(sort $(wildcard Common-Components/src/*.vhd))
+# The peripherals use the blocks of Common-Components, included as a submodule in src/common. The Quartus
+# shells of src/*/cyclone-v/ need Intel's megafunctions, which the toolchain image does not carry.
+VHDL      := $(shell find src tests/vhdl -name '*.vhd' -not -path 'src/common/*' -not -path '*/cyclone-v/*' | sort) $(sort $(wildcard src/common/src/*.vhd))
 
 .PHONY: check test paths formal clean
 
@@ -21,7 +22,7 @@ test:
 # Every path the configuration lists exists.
 paths:
 	riscv-tools --root . check-paths --manifest paths.yaml
-	riscv-tools --root . check-tree --kind peripherals --only language-pairs
+	riscv-tools --root . check-tree --kind peripherals
 
 # Formal proofs (SymbiYosys and one engine of the CI image: FORMAL_ENGINE is yices, bitwuzla, boolector or
 # abc-bmc3). This repository has none yet: a run writes an empty build/formal/result-<engine>.tsv.
