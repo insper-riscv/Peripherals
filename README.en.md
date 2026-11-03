@@ -10,6 +10,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 - [CONTRIBUTING.en.md](CONTRIBUTING.en.md): mandatory contribution rules, VHDL-2008 standard, naming, headers, Python standards, and verification before opening a Pull Request.
 - [CITATION.cff](CITATION.cff): software citation metadata.
 - [docs/bugs/](docs/bugs/README.md): bugs found in the first simulation of the peripherals, with their fixes.
+- [docs/en/UART/jtag_uart.md](docs/en/UART/jtag_uart.md): the UART over JTAG (the core registers, the host side and the limits), with the defect that shaped it in [docs/en/bugs/](docs/en/bugs/JTAG_UART_RESPOSTA_PERDIDA.md).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/en/contracts/02-barramento-e-memoria.md): bus protocol adopted by the peripherals.
 
 ## 2. Repository Structure
