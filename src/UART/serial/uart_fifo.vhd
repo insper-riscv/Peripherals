@@ -51,6 +51,9 @@ architecture rtl of uart_fifo is
 
   -- Conteúdo das posições da fila.
   signal memory        : memory_t;
+  -- Orienta o Quartus a implementar filas pequenas em lógica distribuída.
+  attribute ramstyle : string;
+  attribute ramstyle of memory : signal is "logic";
   -- Posição da próxima palavra a remover.
   signal read_pointer  : natural range 0 to depth - 1;
   -- Posição da próxima palavra a inserir.
