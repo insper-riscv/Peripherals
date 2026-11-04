@@ -10,6 +10,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 - [CONTRIBUTING.en.md](CONTRIBUTING.en.md): mandatory contribution rules, VHDL-2008 standard, naming, headers, Python standards, and verification before opening a Pull Request.
 - [CITATION.cff](CITATION.cff): software citation metadata.
 - [docs/bugs/](docs/bugs/README.md): bugs found in the first simulation of the peripherals, with their fixes.
+- [docs/en/UART/serial_uart.md](docs/en/UART/serial_uart.md): the 8N1 serial UART, its queues, registers, errors, and timing parameters.
 - [docs/en/UART/jtag_uart.md](docs/en/UART/jtag_uart.md): the UART over JTAG (the core registers, the host side and the limits), with the defect that shaped it in [docs/en/bugs/](docs/en/bugs/JTAG_UART_RESPOSTA_PERDIDA.md).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/en/contracts/02-barramento-e-memoria.md): bus protocol adopted by the peripherals.
 
@@ -20,7 +21,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/common/` | Common-Components submodule, edited only at its source |
 | `src/GPIO/soc/` | General-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising/falling edge interrupts |
 | `src/TIMER/soc/` | Timer and PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status, and an interrupt |
-| `src/UART/serial/` | Memory-mapped 8N1 UART: separate RX and TX byte registers, status and error flags, and an optional RX interrupt; the physical layer is the OpenCores `uart2bus`, vendored in the repository |
+| `src/UART/serial/` | Memory-mapped 8N1 UART: parameterized RX and TX queues, separate registers, levels, status and error flags, and an optional RX interrupt; the physical layer is the OpenCores `uart2bus`, vendored in the repository |
 | `src/UART/jtag/` | UART over JTAG: the core writes and reads bytes through registers and a host does the same through the Virtual JTAG (`jtag_uart`); `cyclone-v/` holds the Virtual JTAG shell, board only |
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
 | `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{GPIO,TIMER,UART,display}` |
@@ -54,13 +55,13 @@ Every peripheral shares the same set of ports, following the bus of the Core con
 
 ### 3.3. UART Registers
 
-The UART does not require bus backpressure: software polls `TX_READY` and `RX_VALID`, and every memory-mapped access still completes in one cycle. The initial hardware configuration is 115200 baud, 8N1 at a 50 MHz clock. There are no RX or TX FIFOs: RX has one pending-byte register and the physical transmitter accepts one byte at a time.
+The UART does not require bus backpressure: software polls `TX_READY` and `RX_VALID`, and every memory-mapped access completes in one cycle. The initial configuration is 115200 baud, 8N1 at a 50 MHz clock, with 16-byte queues in each direction. Their depths are independent parameters.
 
 | Address | Register |
 | :--- | :--- |
-| 0 | `TX_DATA` (write-only): writing the low byte starts the transmission; a read returns zero |
-| 1 | `RX_DATA` (read-only): returns the received byte and clears `RX_VALID`; a write has no effect |
-| 2 | `STATUS`: bit 0 `RX_VALID`, bit 1 `TX_READY`, bit 2 `RX_OVERRUN`, bit 3 `TX_DROPPED`; writing 1 to bits 2 and 3 clears them |
+| 0 | `TX_DATA` (write-only): queues the low byte; a read returns zero |
+| 1 | `RX_DATA` (read-only): returns and removes the oldest received byte; a write has no effect |
+| 2 | `STATUS`: bits 0 `RX_VALID`, 1 `TX_READY`, 2 `RX_OVERRUN`, 3 `TX_DROPPED`, 4 `RX_FULL`, 5 `TX_EMPTY`, 6 `TX_IDLE`, 15:8 `RX_LEVEL`, and 23:16 `TX_LEVEL`; writing 1 to bits 2 and 3 clears them |
 | 3 | `CONTROL`: bit 0 enables the RX interrupt request |
 
 ## 4. Verification and Running

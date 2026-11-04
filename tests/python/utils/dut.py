@@ -51,6 +51,22 @@ class UartDut(IrqDut, Protocol):
     phy_new_rx_data: LogicObject
 
 
+class UartFifoDut(Protocol):
+    """Signals of the synchronous FIFO used by the serial UART."""
+
+    i_clk: LogicObject
+    i_rst: LogicObject
+    i_push: LogicObject
+    i_push_data: LogicArrayObject
+    i_pop: LogicObject
+    o_pop_data: LogicArrayObject
+    o_push_accepted: LogicObject
+    o_pop_accepted: LogicObject
+    o_full: LogicObject
+    o_empty: LogicObject
+    o_level: LogicArrayObject
+
+
 class DecoderDut(Protocol):
     """Inputs shared by the operation decoders."""
 
