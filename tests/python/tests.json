@@ -71,6 +71,17 @@
         ],
         "test_module": "tests.python.unittests.TIMER.timer"
     },
+    "UART_FIFO": {
+        "toplevel": "uart_fifo",
+        "sources": [
+            "UART/UART_FIFO.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.fifo",
+        "parameters": {
+            "DATA_WIDTH": "8",
+            "DEPTH": "4"
+        }
+    },
     "UART": {
         "toplevel": "uart",
         "sources": [
@@ -79,13 +90,16 @@
             "UART/vendor/opencores_uart2bus/uartRx.vhd",
             "UART/vendor/opencores_uart2bus/uartTx.vhd",
             "UART/vendor/opencores_uart2bus/uartTop.vhd",
+            "UART/UART_FIFO.vhd",
             "UART/UART.vhd"
         ],
         "test_module": "tests.python.unittests.UART.uart",
         "parameters": {
             "DATA_WIDTH": "32",
             "BAUD_FREQ": "1",
-            "BAUD_LIMIT": "0"
+            "BAUD_LIMIT": "0",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4"
         }
     },
     "UARTDefaultBaud": {
@@ -96,6 +110,7 @@
             "UART/vendor/opencores_uart2bus/uartRx.vhd",
             "UART/vendor/opencores_uart2bus/uartTx.vhd",
             "UART/vendor/opencores_uart2bus/uartTop.vhd",
+            "UART/UART_FIFO.vhd",
             "UART/UART.vhd"
         ],
         "test_module": "tests.python.unittests.UART.uart_default_baud"
