@@ -9,7 +9,29 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
-from tests.python.utils.dut import BusDut, DecoderDut
+from tests.python.utils.dut import BusDut, DecoderDut, ResettableDut
+
+
+async def hold_reset(
+    dut: ResettableDut, hold: int = 3, period_ns: int = 10
+) -> None:
+    """Start the clock, hold the reset for a few edges and release it.
+
+    Parameters
+    ----------
+    dut : ResettableDut
+        The design under test.
+    hold : int
+        Number of clock edges to hold the reset.
+    period_ns : int
+        Clock period in nanoseconds.
+    """
+    cocotb.start_soon(Clock(dut.i_clk, period_ns, unit="ns").start())
+    dut.i_rst.value = 1
+    for _ in range(hold):
+        await RisingEdge(dut.i_clk)
+    await Timer(1, unit="ns")
+    dut.i_rst.value = 0
 
 
 async def reset(dut: BusDut, hold: int = 3, period_ns: int = 10) -> None:
@@ -107,12 +129,12 @@ async def read(dut: BusDut, address: int) -> int:
     return value
 
 
-async def cycles(dut: BusDut, n: int) -> None:
+async def cycles(dut: ResettableDut, n: int) -> None:
     """Wait for a number of clock edges.
 
     Parameters
     ----------
-    dut : BusDut
+    dut : ResettableDut
         The design under test.
     n : int
         Number of clock edges to wait.
