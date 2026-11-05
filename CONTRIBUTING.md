@@ -161,6 +161,8 @@ O job `python-static-analysis` do CI roda `ruff`, `pycodestyle`, `pydocstyle`, `
 
 O job `formal` do CI roda as provas uma vez por engine (`formal - yices`, `formal - bitwuzla`, `formal - boolector` e `formal - abc-bmc3`) e o job agregador `formal` decide a partir dos resultados: cada prova precisa ter uma resposta e os engines que responderam precisam concordar entre si e com o esperado. O nome `formal` é o check que o ruleset da branch padrão exige, então não o renomeie; os jobs `formal - <engine>` não são exigidos.
 
+Um aviso (`warning`) das ferramentas formais é tratado como erro. O `formal/run.sh` varre a saída do GHDL e os logs do Yosys e do SymbiYosys depois de cada passo, inclusive nos mutantes, e falha se aparecer um aviso, apontando arquivo e linha (única exceção: três mensagens do próprio ABC no motor abc-bmc3). A correção é sempre no código ou na prova, nunca em uma opção que esconda o aviso. Detalhes em [docs/pt-br/formal/formal.md](docs/pt-br/formal/formal.md).
+
 Ao adicionar, renomear ou remover qualquer arquivo versionado, atualize imediatamente:
 - `paths.yaml`
 - `tests/python/tests.json`

@@ -25,6 +25,7 @@ timeout_s="${FORMAL_TIMEOUT:-900}"
 results="$out/result-$engine.tsv"; : > "$results"
 
 fail=0
+warnings="$out/warnings.txt"; : > "$warnings"
 # expect <label> <wanted: PASS|FAIL> <result: PASS|FAIL|SKIP|ERROR ...>. An ERROR (the tool did not reach a verdict)
 # never matches, not even a wanted FAIL; a SKIP is a proof this engine does not do and is not a failure. The id,
 # the exit code and the time of the proof come from the files prove left for its tag.
@@ -56,6 +57,39 @@ path_of[uart]="$root/src/UART/serial/uart.vhd"
 path_of[uart_fifo]="$root/src/UART/serial/uart_fifo.vhd"
 mut_from=""; mut_to=""
 
+# A warning is an error. GHDL, Yosys and SymbiYosys print a warning for code that is out of the norm or at its
+# limit, and the fix is in the code or in the proof, never in a flag that hides it (-Wno-* is not used).
+# scan_warnings <log>: records in warnings.txt, and prints on stderr, every line of <log> that has the word
+# "warning" (case-insensitive, as a whole word or its plural: ghdl ":warning:", yosys "Warning:", sby "warning").
+# A name such as warning_count does not match, because the underscore is part of the word, and the summary
+# "Warnings: 0 unique messages, 0 total" of yosys is skipped (a count of zero is not a warning). The files are scanned
+# after the tool ends, in the main shell or in the subshell of prove, so the failure is decided at the end of the
+# run, from warnings.txt.
+# One exception, exact and only for the abc-bmc3 engine: ABC itself prints "Warning:" about the AIGER file that
+# SymbiYosys hands it (the clock input is consumed by the clk2ff step, and ABC announces how many outputs it reads
+# as constraints). They describe the tool's own file format, not the design or the proofs, and cannot be removed
+# from the design; see abc_notes below. Yices, bitwuzla and boolector have no exception, and anything else, in any
+# engine, still fails the run.
+abc_notes='(aig: Warning: Treating undriven bit props\.\\clk like \$anyseq\.|aig: Warning: Treating a total of [0-9]+ undriven bits in props like \$anyseq\.|engine_0: Warning: (The last (output is|[0-9]+ outputs are) interpreted as (a )?constraints?\.|The network has no constraints\.))$'
+scan_warnings() {
+  local line ignore='^$^'
+  [ "$engine" = abc-bmc3 ] && [[ "$1" == *.log && "$1" != *.ghdl.log ]] && ignore="$abc_notes"
+  { grep -inE '(^|[^[:alnum:]_])warnings?([^[:alnum:]_]|$)' "$1" || true; } \
+    | { grep -viE 'warnings?: 0 (unique )?(messages|total)' || true; } \
+    | { grep -vE "$ignore" || true; } \
+    | while IFS= read -r line; do
+        printf 'formal: WARNING treated as error: %s:%s\n' "${1#"$root"/}" "$line" | tee -a "$warnings" >&2
+      done
+}
+
+# strip_vendor <source> <copy>: the copy of a source without the synthesis hints of Quartus (the attributes ramstyle
+# and altera_attribute), keeping every line where it was so that the lines of the other messages still point to the
+# source. GHDL does not know these attributes and warns about each one; they steer the Quartus fitter and have no
+# effect on the logic that is proved. Any other attribute GHDL does not know is still a warning, and an error.
+strip_vendor() {
+  perl -0pe 's/^[ \t]*attribute[ \t]+(?:ramstyle|altera_attribute)\b(?:[^;"]|"(?:[^"]|"")*")*;[^\n]*(?:\n|\z)/"\n" x (($& =~ tr\/\n\/\/))/gme' "$1" > "$2"
+}
+
 # netlist <entity> <name> <sources of the entity...> -- [ghdl generics]: the Verilog netlist GHDL synthesizes for the entity.
 netlist() {
   local ent="$1" name="$2"; shift 2
@@ -64,27 +98,39 @@ netlist() {
   [ "$#" -gt 0 ] && shift
   gen=("$@")
   local work="$out/work_$name"; mkdir -p "$work"
-  local files=()
+  local files=() copy
   for n in "${common[@]}" "${srcs[@]}"; do
-    f="${path_of[$n]}"; [ "$f" = "$mut_from" ] && f="$mut_to"; files+=("$f")
+    f="${path_of[$n]}"; [ "$f" = "$mut_from" ] && f="$mut_to"
+    copy="$work/$(basename "$f")"; strip_vendor "$f" "$copy"; files+=("$copy")
   done
-  ghdl -a --std=08 -Wno-library -Wno-unhandled-attribute --workdir="$work" "${files[@]}"
-  ghdl --synth --std=08 -Wno-library -Wno-unhandled-attribute --workdir="$work" --out=verilog "${gen[@]}" "$ent" > "$name.v"
-  # The Quartus attribute of the synchronizer has quotes inside its value, which the Verilog reader cannot parse.
-  sed -i 's/(\* altera_attribute=.* \*) reg/reg/' "$name.v"
+  # The messages of GHDL go to a log that scan_warnings reads; without a warning the log is empty.
+  local log="$out/$name.ghdl.log"
+  ghdl -a --std=08 --workdir="$work" "${files[@]}" 2> "$log" || { cat "$log" >&2; exit 1; }
+  ghdl --synth --std=08 --workdir="$work" --out=verilog "${gen[@]}" "$ent" > "$name.v" 2>> "$log" || { cat "$log" >&2; exit 1; }
+  scan_warnings "$log"
 }
 
 # expose <netlist> <signal[:high bit]>...: adds the wires of the last module (the top, GHDL writes it last) as
 # the outputs dbg_<signal>. The logic is the same; the proof states the invariants over these registers.
 expose() {
   local v="$1"; shift
-  local ports="" assigns="" s w nm
+  local ports="" assigns="" s w nm top
+  # The text of the top module, the last one: a mutant can leave a signal without a reader, and GHDL then does not
+  # write it. The proof still states its value, and an undeclared name would be an implicit wire without a driver
+  # (a warning), so the output of a signal that is not there is the constant zero. The mutant is still caught by
+  # the properties of the signals it does change.
+  top="$(awk '/^module /{buf=""} {buf = buf $0 "\n"} END{printf "%s", buf}' "$v")"
   for s in "$@"; do
     nm="${s%%:*}"; w=""; [ "$s" != "$nm" ] && w="[${s#*:}:0] "
     ports+=",
    output ${w}dbg_$nm"
-    assigns+="  assign dbg_$nm = $nm;
+    if printf '%s' "$top" | grep -qE "(wire|reg)[^;]*[[:space:]]$nm;"; then
+      assigns+="  assign dbg_$nm = $nm;
 "
+    else
+      assigns+="  assign dbg_$nm = 0;
+"
+    fi
   done
   awk -v ports="$ports" -v assigns="$assigns" '
     { line[NR] = $0 }
@@ -128,10 +174,12 @@ prove() {
       fi
       engine_lines="abc bmc3"
       options_lines="aigsmt none"
-      script_lines=$'tribuf -formal\ntechmap\nopt -fast\nsetundef -anyseq' ;;
+      script_lines=$'tribuf -formal\nmemory_map\nsetundef -undriven -zero\ntechmap\nopt -fast\nsetundef -anyseq' ;;
     # memory_map turns the small queue memory of the UART into registers: the SMT engines (yices above all) take
-    # far longer on a design with an array than on the same design with registers.
-    *) engine_lines="smtbmc $engine"; script_lines=$'tribuf -formal\nmemory_map' ;;
+    # far longer on a design with an array than on the same design with registers. A queue of 3 words has a read
+    # multiplexer for 4 addresses, and the branch of the fourth has no driver (the pointers never reach it), which
+    # SymbiYosys reports as a wire used with no driver: setundef gives that branch the value zero.
+    *) engine_lines="smtbmc $engine"; script_lines=$'tribuf -formal\nmemory_map\nsetundef -undriven -zero' ;;
   esac
   cat > "$6.sby" <<EOS
 [options]
@@ -151,6 +199,7 @@ EOS
   began=$(date +%s%N)
   timeout "$timeout_s" sby -f "$6.sby" > "$6.log" 2>&1 || rc=$?
   ended=$(date +%s%N)
+  scan_warnings "$6.log"
   # ABC refuses a design without registers (the trap unit is combinational): that is a proof this engine does
   # not do, not a failure of the tool.
   if [ "$engine" = abc-bmc3 ] && [ "$rc" = 16 ] && grep -q 'Does not work for combinational networks' "$6.log"; then
@@ -175,6 +224,9 @@ mut_srcs=(); mut_gen=(); mut_expose=(); mut_open=0
 # build <entity> <name> <sources...> -- [generics]: netlist plus the exposure and the pin opening of the block.
 build() {
   netlist "$@"
+  # A floating (tri-state) output has no value to prove and Yosys warns about it: it becomes zero, as the pin of the
+  # GPIO cell does in open_pin. The properties look at the registers behind such an output, not at the output.
+  sed -i "s/1'bz/1'b0/" "$2.v"
   [ "${#mut_expose[@]}" -gt 0 ] && expose "$2.v" "${mut_expose[@]}"
   [ "$mut_open" = 1 ] && open_pin "$2.v"
   return 0
@@ -309,4 +361,5 @@ mutant uartRx "$up" uart '-DRXF' uart_rx_early_sample "s/count16 = \"0111\"/coun
 mutant uartRx "$up" uart '-DRXF' uart_rx_late_sample "s/count16 = \"0111\"/count16 = \"1110\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_msb_first "s/dataBuf <= inSync(1) \& dataBuf(7 downto 1);/dataBuf <= dataBuf(6 downto 0) \& inSync(1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 
+[ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }

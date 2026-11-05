@@ -161,6 +161,8 @@ The `python-static-analysis` CI job runs `ruff`, `pycodestyle`, `pydocstyle`, `p
 
 The `formal` CI job runs the proofs once per engine (`formal - yices`, `formal - bitwuzla`, `formal - boolector` and `formal - abc-bmc3`) and the aggregator job `formal` decides from the results: each proof must have an answer, and the engines that answered must agree with each other and with what is wanted. The name `formal` is the check the default-branch ruleset requires, so do not rename it; the `formal - <engine>` jobs are not required.
 
+A warning from the formal tools is treated as an error. `formal/run.sh` scans the output of GHDL and the logs of Yosys and SymbiYosys after each step, mutants included, and fails when a warning appears, pointing to the file and the line (the only exception: three messages of ABC itself in the abc-bmc3 engine). The fix is always in the code or in the proof, never in an option that hides the warning. Details in [docs/en/formal/formal.md](docs/en/formal/formal.md).
+
 When adding, renaming, or removing any versioned file, immediately update:
 - `paths.yaml`
 - `tests/python/tests.json`

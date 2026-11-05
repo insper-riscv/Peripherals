@@ -8,6 +8,11 @@
 -- second register:
 --              baud_limit = (global_clock_freq / gcd(global_clock_freq, 16*baud_rate)) - baud_freq
 --
+-- local change (Insper RISC-V): the comparison "counter >= baudLimit" between two std_logic_vector is now made
+-- between unsigned(counter) and unsigned(baudLimit), so that GHDL does not warn "comparing non-numeric vector is
+-- unexpected". The behavior is the same: for vectors of '0' and '1' of equal length, the lexicographic order of
+-- the vector comparison is the numeric order of unsigned. Original authors and license: see ORIGIN.md and LICENSE.
+--
 -----------------------------------------------------------------------------------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -36,7 +41,7 @@ architecture Behavioral of baudGen is
         counter <= (others => '0');
         ce16 <= '0';
       elsif (rising_edge(clk)) then
-        if (counter >= baudLimit) then
+        if (unsigned(counter) >= unsigned(baudLimit)) then
           counter <= std_logic_vector(unsigned(counter) - unsigned(baudLimit));
           ce16 <= '1';
         else

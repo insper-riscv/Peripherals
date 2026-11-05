@@ -17,3 +17,10 @@ logic of the physical blocks is preserved as downloaded. Line endings and
 trailing whitespace were normalized, and unused `uartParser`/`uart2BusTop`
 component declarations were removed from `uart2BusTop_pkg.vhd`; no physical
 UART behavior was changed. Project-specific behavior lives in `UART/UART.vhd`.
+
+Local change in `baudGen.vhd`: the comparison between the two `std_logic_vector`
+values (`counter >= baudLimit`) is made between `unsigned(counter)` and
+`unsigned(baudLimit)`, because GHDL warns that comparing a non-numeric vector is
+unexpected, and a warning is an error in this repository. For vectors of `'0'`
+and `'1'` of equal length the result is the same, and the change is noted in the
+header of the file. The authors and the license are unchanged.

@@ -48,6 +48,25 @@ make formal FORMAL_ENGINE=yices      # outro engine
 
 O `abc-bmc3` pula as provas de indução e os covers, que não faz, e responde pelas provas limitadas e pelos mutantes.
 
+## 5. Avisos são erros
+
+Um aviso do GHDL, do Yosys ou do SymbiYosys indica código fora da norma ou no limite dela, e a causa se corrige no código ou na prova. Nenhuma opção esconde um aviso (`-Wno-*` não existe no `formal/run.sh`).
+
+1. Depois de cada `ghdl -a` e `ghdl --synth`, o `formal/run.sh` varre a saída do GHDL. Depois de cada `sby`, varre todos os logs da prova. Isso vale para as provas e para os mutantes.
+2. A função `scan_warnings` casa a palavra `warning` ou o plural, em qualquer caixa, como palavra inteira. Pega `arquivo.vhd:12:5:warning: ...` do GHDL e `Warning: ...` do Yosys e do SymbiYosys. Não pega nomes com sublinhado (`warning_count`), porque o sublinhado faz parte da palavra, e ignora o resumo do Yosys com contagem zero (`Warnings: 0 unique messages, 0 total`).
+3. Cada linha encontrada vai para `build/formal/warnings.txt` e para a saída de erro no formato `arquivo:linha:texto`. No fim da execução, um `warnings.txt` não vazio reprova o `formal/run.sh`.
+4. Há uma exceção exata, só para o motor `abc-bmc3`: as três mensagens que o próprio ABC imprime sobre o arquivo AIGER que o SymbiYosys lhe entrega (`Treating undriven bit props.\clk like $anyseq`, `Treating a total of N undriven bits in props like $anyseq` e `The last N outputs are interpreted as constraints`). Elas descrevem o formato de arquivo da ferramenta, não o projeto, e estão na variável `abc_notes`. Yices, bitwuzla e boolector não têm exceção, e qualquer outra mensagem, em qualquer motor, é erro.
+
+Os avisos que a netlist de cada prova tinha e a causa tratada:
+
+| Aviso | Origem | Tratamento |
+| :--- | :--- | :--- |
+| `comparing non-numeric vector is unexpected` | `baudGen.vhd` (OpenCores), comparação de `std_logic_vector` | A comparação passa a ser entre `unsigned`, com o comportamento igual e a mudança registrada no cabeçalho e no `ORIGIN.md` |
+| `unhandled attribute "ramstyle"` e `"altera_attribute"` | Dicas de síntese do Quartus em `uart_fifo.vhd` e `synchronizer.vhd` | O GHDL não conhece estes atributos, que não mudam a lógica provada. A netlist é sintetizada de uma cópia sem estas duas dicas, com as linhas no mesmo lugar. Qualquer outro atributo desconhecido segue sendo erro |
+| `Wire ... is used but has no driver` | Multiplexador de leitura da fila de 3 palavras depois do `memory_map` (inclusive no abc-bmc3), cujo quarto endereço nunca é alcançado | O ramo sem driver recebe zero (`setundef -undriven -zero`) |
+| `Yosys has only limited support for tri-state logic` | Saída PWM de três estados do `timer` | O estado de alta impedância vira zero na netlist, como no pino do `gpio_cell`. As propriedades olham o registrador interno do PWM, não o pino |
+| `Identifier ... is implicitly declared` e `Wire ... is used but has no driver` | Mutantes que deixam um sinal exposto sem leitor (`timer_level_not_edge`, `uart_levels_swapped`), que o GHDL não escreve na netlist | A saída `dbg_` de um sinal que não existe na netlist é a constante zero, e o mutante segue sendo pego pelas propriedades dos sinais que ele muda |
+
 ---
 
 Copyright 2026 Insper. Licenciado sob a [Apache License, Version 2.0](../../../LICENSE).
