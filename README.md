@@ -10,8 +10,11 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 - [CONTRIBUTING.md](CONTRIBUTING.md): regras obrigatórias de contribuição, norma VHDL-2008, nomenclatura, cabeçalhos, normas Python e verificação antes de abrir Pull Request.
 - [CITATION.cff](CITATION.cff): metadados para citação do software.
 - [docs/bugs/](docs/bugs/README.md): bugs encontrados na primeira simulação dos periféricos, com as correções.
+- [docs/pt-br/formal/formal.md](docs/pt-br/formal/formal.md): provas formais dos periféricos, engines de solver e a regra do agregador que decide o check `formal` do CI.
+- [docs/pt-br/CLINT/clint.md](docs/pt-br/CLINT/clint.md): o CLINT (`mtime`, `mtimecmp` e `msip` de 64 bits no leiaute da SiFive, as saídas `MTIP` e `MSIP` e a escrita segura do `mtimecmp`).
 - [docs/pt-br/UART/serial_uart.md](docs/pt-br/UART/serial_uart.md): a UART serial 8N1, suas filas, registradores, erros e parâmetros de temporização.
 - [docs/pt-br/UART/jtag_uart.md](docs/pt-br/UART/jtag_uart.md): a UART sobre JTAG (os registradores do core, o lado do hospedeiro e os limites), com o defeito que a moldou em [docs/pt-br/bugs/](docs/pt-br/bugs/JTAG_UART_RESPOSTA_PERDIDA.md).
+- [docs/pt-br/flash-controller/flash_controller.md](docs/pt-br/flash-controller/flash_controller.md): o controlador de FLASH (registradores de comando, endereço, estado e buffer de página).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/pt-br/contracts/02-barramento-e-memoria.md): protocolo de barramento adotado pelos periféricos.
 
 ## 2. Estrutura do Repositório
@@ -21,11 +24,16 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `src/common/` | Submódulo Common-Components, editado só na origem |
 | `src/GPIO/soc/` | Entrada e saída de uso geral: direção, saída (carga, set, clear, toggle), leitura sincronizada dos pinos e interrupções por borda de subida e descida em cada pino |
 | `src/TIMER/soc/` | Temporizador e PWM: contador com `TOP`, prescaler, comparador de duty cycle, status de overflow e interrupção |
+| `src/CLINT/soc/` | CLINT: `mtime` de 64 bits com vai-um registrado, `mtimecmp`, `msip` e as saídas de interrupção de timer e de software |
 | `src/UART/serial/` | UART 8N1 mapeada em memória: filas parametrizáveis de RX e TX, registradores separados, níveis, flags de status e de erro e interrupção de RX opcional; a camada física é a `uart2bus` do OpenCores, trazida para o repositório |
 | `src/UART/jtag/` | UART sobre JTAG: o núcleo escreve e lê bytes por registradores e um hospedeiro faz o mesmo pelo Virtual JTAG (`jtag_uart`); `cyclone-v/` guarda a casca do Virtual JTAG, só para a placa |
+| `src/intc/soc/` | Controlador de interrupção externa: reúne as linhas de interrupção dos periféricos em um único `MEIP`, com registradores de pendência, habilitação e fonte (`ext_irq_controller`) |
+| `src/flash-controller/soc/` | Controlador de FLASH: registradores de comando, endereço, estado e buffer de página que levam os comandos de apagar, gravar e proteger ao chip de FLASH do repositório Memory |
 | `src/display/` | Display de sete segmentos: o registrador do valor, o conversor de hexadecimal para segmentos (`soc/`) e a casca do Virtual JTAG da placa (`cyclone-v/`) |
-| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{GPIO,TIMER,UART,display}` |
+| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,GPIO,intc,TIMER,UART,display,flash_controller}` |
 | `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO |
+| `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `uart_fifo` e `uart`, o `run.sh` e o agregador dos engines |
+| `docs/pt-br/`, `docs/en/` | Documentos da UART (`UART/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
 
 ## 3. Interface
 
@@ -53,7 +61,17 @@ Todo periférico compartilha o mesmo conjunto de portas, conforme o barramento d
 | 6 | Saída PWM |
 | 7 | Prescaler (o contador avança a cada `prescaler + 1` ciclos) |
 
-### 3.3. Registradores da UART
+### 3.3. Registradores do CLINT
+
+O endereço tem 14 bits de palavra. O leiaute é o do CLINT da SiFive, com os detalhes em [docs/pt-br/CLINT/clint.md](docs/pt-br/CLINT/clint.md).
+
+| Deslocamento | Registrador |
+| :--- | :--- |
+| `0x0000` | `msip` (bit 0) |
+| `0x4000`, `0x4004` | `mtimecmp` baixa e alta (reset com todos os bits em 1) |
+| `0xBFF8`, `0xBFFC` | `mtime` baixa e alta |
+
+### 3.4. Registradores da UART
 
 A UART não exige espera do barramento: o software consulta `TX_READY` e `RX_VALID`, e todo acesso mapeado em memória termina em um ciclo. A configuração inicial é 115200 baud, 8N1 com clock de 50 MHz e filas de 16 bytes em cada sentido. As profundidades são parâmetros independentes.
 
@@ -66,6 +84,8 @@ A UART não exige espera do barramento: o software consulta `TX_READY` e `RX_VAL
 
 ## 4. Verificação e Execução
 
+### 4.1. Execução local
+
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Peripherals.git
 cd Peripherals
@@ -73,10 +93,18 @@ uv sync
 
 make check   # Verificação de sintaxe VHDL de todos os fontes em ordem de dependência (GHDL)
 make test    # Testes por entidade em cocotb (make test TEST=GPIO para um alvo)
-make paths   # Existência de todos os caminhos listados na configuração
+make paths   # Caminhos do paths.yaml e árvore do repositório (riscv-tools check-tree)
+make formal  # Provas formais (SymbiYosys) com o engine de FORMAL_ENGINE (bitwuzla por padrão)
 ```
 
-As ferramentas (GHDL e uv) vêm da imagem `ci-vhdl` do repositório [Infra](https://github.com/insper-riscv/Infra), onde a integração contínua executa.
+### 4.2. Execução via Docker
+
+A imagem `ghcr.io/insper-riscv/ci-vhdl:latest` publicada pelo repositório [insper-riscv/Infra](https://github.com/insper-riscv/Infra) já traz o GHDL (backend LLVM), Yosys, SymbiYosys, os solvers Yices, Bitwuzla e Boolector, `uv`, Python 3.14 e cocotb pré-instalados:
+
+```bash
+docker run --rm -v "$PWD:/workspace" -w /workspace ghcr.io/insper-riscv/ci-vhdl:latest \
+  bash -c "uv sync && make check && make test && make paths && make formal"
+```
 
 ---
 

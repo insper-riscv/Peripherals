@@ -239,5 +239,91 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "ExtIrqController": {
+        "toplevel": "ext_irq_controller",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/intc/soc/ext_irq_consts.vhd",
+            "src/intc/soc/ext_irq_controller.vhd"
+        ],
+        "test_module": "tests.python.unittests.intc.ext_irq_controller",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "ClintMtime": {
+        "toplevel": "clint_mtime",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/CLINT/soc/clint_mtime.vhd"
+        ],
+        "test_module": "tests.python.unittests.CLINT.clint_mtime",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "CLINT": {
+        "toplevel": "clint",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/TIMER/soc/alu_ge_unsigned.vhd",
+            "src/CLINT/soc/clint_consts.vhd",
+            "src/CLINT/soc/clint_mtime.vhd",
+            "src/CLINT/soc/clint.vhd"
+        ],
+        "test_module": "tests.python.unittests.CLINT.clint",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "ClintTick": {
+        "toplevel": "clint",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/TIMER/soc/alu_ge_unsigned.vhd",
+            "src/CLINT/soc/clint_consts.vhd",
+            "src/CLINT/soc/clint_mtime.vhd",
+            "src/CLINT/soc/clint.vhd"
+        ],
+        "parameters": {
+            "tick_cycles": 4
+        },
+        "test_module": "tests.python.unittests.CLINT.clint_tick",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "FlashController": {
+        "toplevel": "flash_controller",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/flash-controller/soc/flash_controller.vhd"
+        ],
+        "test_module": "tests.python.unittests.flash_controller.flash_controller",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }

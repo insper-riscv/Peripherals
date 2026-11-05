@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formal verification of the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO and the UART with SymbiYosys. Needs
+# Formal verification of the CLINT, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO and the UART with SymbiYosys. Needs
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
@@ -46,15 +46,20 @@ expect() {
 common=(utils_pkg flip_flop generic_register clearable_register synchronizer adder mux_2x1 mux_4x1 mux_8x1 tristate_buffer_1bit)
 timer_srcs=(alu_ge_unsigned counter_overflow clock_prescaler timer_operation_decoder timer)
 gpio_srcs=(gpio_operation_decoder gpio_cell gpio)
+mtime_srcs=(clint_mtime)
+clint_srcs=(alu_ge_unsigned clint_consts clint_mtime clint)
 fifo_srcs=(uart_fifo)
+flash_srcs=(flash_controller)
 uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart)
 declare -A path_of
 for n in "${common[@]}"; do path_of[$n]="$root/src/common/src/$n.vhd"; done
 for n in "${timer_srcs[@]}"; do path_of[$n]="$root/src/TIMER/soc/$n.vhd"; done
 for n in "${gpio_srcs[@]}"; do path_of[$n]="$root/src/GPIO/soc/$n.vhd"; done
 for n in baudGen uartRx uartTx uart2BusTop_pkg uartTop; do path_of[$n]="$root/src/UART/serial/vendor/opencores_uart2bus/$n.vhd"; done
+for n in clint_consts clint_mtime clint; do path_of[$n]="$root/src/CLINT/soc/$n.vhd"; done
 path_of[uart]="$root/src/UART/serial/uart.vhd"
 path_of[uart_fifo]="$root/src/UART/serial/uart_fifo.vhd"
+path_of[flash_controller]="$root/src/flash-controller/soc/flash_controller.vhd"
 mut_from=""; mut_to=""
 
 # A warning is an error. GHDL, Yosys and SymbiYosys print a warning for code that is out of the norm or at its
@@ -255,6 +260,20 @@ build timer timer "${timer_srcs[@]}" --
 expect "registers follow the bus writes, counter, overflow status, IRQ, PWM and readback (induction)" PASS "$(prove timer.v "$f/timer_props.sv" prove 3 '' timer_safety)"
 expect "cover: an overflow raises the IRQ, the status read clears it, the counter advances with a tick" PASS "$(prove timer.v "$f/timer_props.sv" cover 20 '-DCOVER' timer_cover)"
 
+echo "clint_mtime"
+mut_expose=()
+build clint_mtime mtime "${mtime_srcs[@]}" --
+expect "the value shown is the ideal 64-bit counter: one per increment, a write wins, the carry is never lost (bounded, 12 cycles)" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" bmc 12 '' mtime_safety)"
+expect "cover: the carry between the halves and a high write with the low wrap are reachable" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" cover 12 '-DCOVER' mtime_cover)"
+
+echo "clint"
+cgen=(-gtick_cycles=3)
+build clint clint "${clint_srcs[@]}" -- "${cgen[@]}"
+expect "MTIP, MSIP and the read of every address follow the ideal model, with a tick every 3 cycles (bounded, 20 cycles)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3' clint_safety)"
+expect "port write sequence: MTIP never rises in the middle unless the old or the final mtimecmp is reached (bounded, 20 cycles)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3 -DSEQ' clint_sequence)"
+expect "cover: MTIP rises and falls, MSIP is raised and the high half advances" PASS "$(prove clint.v "$f/clint_props.sv" cover 20 '-DTICK=3 -DCOVER' clint_cover)"
+expect "cover: the port sequence ends with the mtime above the old value" PASS "$(prove clint.v "$f/clint_props.sv" cover 20 '-DTICK=3 -DSEQ -DCOVER' clint_seq_cover)"
+
 echo "gpio_cell"
 mut_expose=(); mut_open=1
 build gpio_cell cell gpio_cell -- 
@@ -268,6 +287,12 @@ fgen=(-gdepth=3)
 build uart_fifo fifo "${fifo_srcs[@]}" -- "${fgen[@]}"
 expect "level, flags and acceptances follow a shifting reference queue; the oldest word is the first one in (bounded, 14 cycles, 3 words)" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" bmc 14 '' fifo_safety)"
 expect "cover: a push and a pop on a full queue, a push refused when full, and a push with a pop on an empty queue are reachable" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" cover 14 '-DCOVER' fifo_cover)"
+
+echo "flash_controller"
+mut_expose=()
+build flash_controller flashc "${flash_srcs[@]}" -- -gpage_bytes=16
+expect "command pulse, registers, status read and page buffer follow the reference (bounded, 14 cycles, 4 words)" PASS "$(prove flashc.v "$f/flash_controller_props.sv" bmc 14 '' flashc_safety)"
+expect "cover: a program command, a status with busy and refused, a write at the last word and a buffer read are reachable" PASS "$(prove flashc.v "$f/flash_controller_props.sv" cover 14 '-DCOVER' flashc_cover)"
 
 echo "uart"
 uart_exp=(rx_overrun tx_dropped rx_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7 phy_tx_data:7 rx_fifo_data:7 rx_fifo_level:1 tx_fifo_level:1)
@@ -321,6 +346,34 @@ mutant timer "$tp" timer '' timer_pwm_inverted "s/pwm_inverted   <= not pwm_alu;
 mutant timer_operation_decoder "$tp" timer '' timer_read_select "s/\"000\" when ADDR_TIMER_LOAD,/\"001\" when ADDR_TIMER_LOAD,/" 8 "${timer_srcs[@]}" --
 mutant timer_operation_decoder "$tp" timer '' timer_write_address "s/o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_TOP /o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_DUTY_CYCLE /" 8 "${timer_srcs[@]}" --
 
+mut_expose=(); mut_open=0
+mp="$f/clint_mtime_props.sv"
+mutant clint_mtime "$mp" clint_mtime '' mtime_carry_lost "s/lo = LO_ALL_ONES/lo = x\"FFFFFFFE\"/" 12 "${mtime_srcs[@]}" --
+mutant clint_mtime "$mp" clint_mtime '' mtime_hi_incoherent "s/o_hi <= hi_inc when carry = '1' else hi;/o_hi <= hi;/" 12 "${mtime_srcs[@]}" --
+mutant clint_mtime "$mp" clint_mtime '' mtime_write_loses "s/lo_nxt <= i_wdata when i_we_lo = '1' else lo_inc;/lo_nxt <= lo_inc;/" 12 "${mtime_srcs[@]}" --
+cp_="$f/clint_props.sv"
+mutant clint "$cp_" clint '-DTICK=3' clint_msip_bit "s/i_d      => i_data_in(0 downto 0),/i_d      => i_data_in(1 downto 1),/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant clint "$cp_" clint '-DTICK=3' clint_cmp_reset_zero "s/clear_value => '1'/clear_value => '0'/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant clint "$cp_" clint '-DTICK=3' clint_cmp_hi_address "s/wr_cmp_hi   <= i_write when i_address = ADDR_MTIMECMP_HI/wr_cmp_hi   <= i_write when i_address = ADDR_MTIMECMP_LO/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant clint "$cp_" clint '-DTICK=3' clint_mtip_unregistered "s/o_irq_timer    <= timer_irq;/o_irq_timer    <= timer_ge;/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant clint "$cp_" clint '-DTICK=3' clint_read_swapped "s/mtime_lo                   when ADDR_MTIME_LO,/mtime_hi                   when ADDR_MTIME_LO,/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant clint "$cp_" clint '-DTICK=3' clint_tick_early "s/tick <= '1' when phase = tick_cycles - 1/tick <= '1' when phase = 0/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant clint "$cp_" clint '-DTICK=3' clint_mtime_hi_address "s/wr_mtime_hi <= i_write when i_address = ADDR_MTIME_HI /wr_mtime_hi <= i_write when i_address = ADDR_MTIME_LO /" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant alu_ge_unsigned "$cp_" clint '-DTICK=3' clint_strict_compare "s/c(0)  <= '1';/c(0)  <= '0';/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant clint "$cp_" clint '-DTICK=3 -DSEQ' clint_seq_cmp_clear_not_ones "s/clear_value => '1'/clear_value => '0'/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+
+mut_expose=()
+fp="$f/flash_controller_props.sv"
+mutant flash_controller "$fp" flash_controller '' flashc_ptr_stuck "s/ptr <= ptr + 1;/ptr <= ptr;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_cmd_any_write "s/wr_cmd      <= i_write when i_address = REG_CMD else '0';/wr_cmd      <= i_write;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_status_swapped "s/o_data_out(0) <= i_busy;/o_data_out(0) <= i_wel;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_addr_any_write "s/if i_write = '1' and i_address = REG_ADDR then/if i_write = '1' then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_op_shifted "s/o_cmd_op    <= i_data_in(2 downto 0);/o_cmd_op    <= i_data_in(3 downto 1);/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_word_misplaced "s/page(to_integer(ptr)) <= i_data_in;/page(to_integer(ptr + 1)) <= i_data_in;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_read_ungated "s/if i_read = '1' then/if true then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_ptr_write_ignored "s/if i_write = '1' and i_address = REG_BUF_PTR then/if false then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_status_bit_lost "s/o_data_out(2) <= i_refused;/o_data_out(2) <= '0';/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+
 mut_expose=(); mut_open=1
 gp="$f/gpio_cell_props.sv"
 mutant gpio_cell "$gp" gpio_cell '' cell_dir_always "s/i_enable => i_wr_signals(0),/i_enable => '1',/" 10 gpio_cell --
@@ -360,6 +413,9 @@ mutant uartTx "$up" uart '-DTXF' uart_tx_short_frame "s/bitCount = \"1001\"/bitC
 mutant uartRx "$up" uart '-DRXF' uart_rx_early_sample "s/count16 = \"0111\"/count16 = \"0000\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_late_sample "s/count16 = \"0111\"/count16 = \"1110\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_msb_first "s/dataBuf <= inSync(1) \& dataBuf(7 downto 1);/dataBuf <= dataBuf(6 downto 0) \& inSync(1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+
+# External interrupt controller (own file, so the proofs of the other blocks stay untouched).
+source "$root/formal/ext_irq_controller.sh"
 
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }

@@ -33,6 +33,24 @@ class IrqDut(BusDut, Protocol):
     o_irq: LogicObject
 
 
+class ClintDut(BusDut, Protocol):
+    """Signals of the CLINT."""
+
+    o_irq_timer: LogicObject
+    o_irq_software: LogicObject
+
+
+class ClintMtimeDut(ResettableDut, Protocol):
+    """Signals of the CLINT mtime counter."""
+
+    i_inc: LogicObject
+    i_we_lo: LogicObject
+    i_we_hi: LogicObject
+    i_wdata: LogicArrayObject
+    o_lo: LogicArrayObject
+    o_hi: LogicArrayObject
+
+
 class GpioDut(IrqDut, Protocol):
     """Signals of the GPIO testbench."""
 
@@ -162,3 +180,23 @@ class JtagUartDut(JtagDut, ResettableDut, Protocol):
     o_rdata: LogicArrayObject
     i_tdi: LogicObject
     o_tdo: LogicObject
+
+
+class ExtIrqControllerDut(BusDut, Protocol):
+    """Signals of the external interrupt controller."""
+
+    i_irq_lines: LogicArrayObject
+    o_irq_external: LogicObject
+
+
+class FlashControllerDut(BusDut, Protocol):
+    """Signals of the FLASH controller."""
+
+    o_cmd_valid: LogicObject
+    o_cmd_op: LogicArrayObject
+    o_cmd_addr: LogicArrayObject
+    i_busy: LogicObject
+    i_wel: LogicObject
+    i_refused: LogicObject
+    i_buf_idx: LogicArrayObject
+    o_buf_data: LogicArrayObject
