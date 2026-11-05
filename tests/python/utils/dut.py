@@ -10,11 +10,16 @@ from typing import Protocol
 from cocotb.handle import LogicArrayObject, LogicObject
 
 
-class BusDut(Protocol):
-    """Signals of any peripheral on the memory-mapped bus."""
+class ResettableDut(Protocol):
+    """A clocked design with a synchronous reset."""
 
     i_clk: LogicObject
     i_rst: LogicObject
+
+
+class BusDut(ResettableDut, Protocol):
+    """Signals of any peripheral on the memory-mapped bus."""
+
     i_write: LogicObject
     i_read: LogicObject
     i_address: LogicArrayObject
@@ -71,3 +76,73 @@ class TimerDecoderDut(DecoderDut, Protocol):
     """Signals of the TIMER operation decoder."""
 
     o_cnt_sel: LogicObject
+
+
+class ComparatorDut(Protocol):
+    """Operands of the unsigned comparators."""
+
+    i_source_1: LogicArrayObject
+    o_ge: LogicObject
+
+
+class AluGeDut(ComparatorDut, Protocol):
+    """Signals of the ALU greater-or-equal comparator."""
+
+    i_source_2: LogicArrayObject
+
+
+class CounterOverflowDut(Protocol):
+    """Signals of the counter overflow unit."""
+
+    i_counter_value: LogicArrayObject
+    i_top_value: LogicArrayObject
+    o_overflow: LogicObject
+
+
+class PrescalerDut(ResettableDut, Protocol):
+    """Signals of the clock prescaler."""
+
+    i_prescaler_in: LogicArrayObject
+    o_tick: LogicObject
+
+
+class GpioCellDut(ResettableDut, Protocol):
+    """Signals of the GPIO cell testbench."""
+
+    i_data_in: LogicObject
+    o_data_out: LogicArrayObject
+    i_wr_signals: LogicArrayObject
+    i_wr_op: LogicArrayObject
+    i_pin_drive: LogicObject
+    i_pin_drive_en: LogicObject
+    o_pin: LogicObject
+
+
+class Seg7Dut(Protocol):
+    """Signals of the hexadecimal digit decoder."""
+
+    i_digit: LogicArrayObject
+    o_seg: LogicArrayObject
+
+
+class JtagDut(Protocol):
+    """Scan signals of a design behind a Virtual JTAG instance."""
+
+    i_tck: LogicObject
+    i_ir_in: LogicArrayObject
+    i_state_cdr: LogicObject
+    i_state_sdr: LogicObject
+    i_state_udr: LogicObject
+    i_state_uir: LogicObject
+
+
+class JtagUartDut(JtagDut, ResettableDut, Protocol):
+    """Signals of the UART over JTAG."""
+
+    i_addr: LogicArrayObject
+    i_wdata: LogicArrayObject
+    i_we: LogicObject
+    i_re: LogicObject
+    o_rdata: LogicArrayObject
+    i_tdi: LogicObject
+    o_tdo: LogicObject

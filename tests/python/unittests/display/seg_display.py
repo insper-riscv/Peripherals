@@ -15,28 +15,9 @@ from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
 from tests.python.unittests.checks import Prng, check_equal
+from tests.python.unittests.display.patterns import PATTERNS
 from tests.python.unittests.dut import Dut
-
-HALF_TCK_NS = 40
-# segments g..a of each hexadecimal digit, low level lit (the DE0-CV)
-PATTERNS = [
-    0b1000000,
-    0b1111001,
-    0b0100100,
-    0b0110000,
-    0b0011001,
-    0b0010010,
-    0b0000010,
-    0b1111000,
-    0b0000000,
-    0b0010000,
-    0b0001000,
-    0b0000011,
-    0b1000110,
-    0b0100001,
-    0b0000110,
-    0b0001110,
-]
+from tests.python.utils import jtag
 
 
 def expected_hex(value: int) -> int:
@@ -83,7 +64,7 @@ async def start(dut: Dut):
         await RisingEdge(dut.i_clk)
     dut.i_rst.value = 0
     await post_edge(dut)
-    await tck(dut, ir=1)
+    await jtag.tck(dut, ir=1)
 
 
 async def core_write(dut: Dut, value: int, addr: int = 0):
@@ -107,32 +88,6 @@ async def core_read(dut: Dut, addr: int = 0):
     return value
 
 
-async def tck(dut: Dut, state: str = "", ir: int | None = None):
-    """Give one TCK pulse in a scan state.
-
-    `state` is `cdr`, `sdr` or `udr` (or empty for none), and `ir`, when
-    given, selects an instruction through the UIR state.
-    """
-    if ir is not None:
-        dut.i_ir_in.value = ir
-    dut.i_state_cdr.value = int(state == "cdr")
-    dut.i_state_sdr.value = int(state == "sdr")
-    dut.i_state_udr.value = int(state == "udr")
-    dut.i_state_uir.value = int(ir is not None)
-    dut.i_tck.value = 0
-    await Timer(HALF_TCK_NS, unit="ns")
-    dut.i_tck.value = 1
-    await Timer(HALF_TCK_NS, unit="ns")
-    dut.i_tck.value = 0
-    for sig in (
-        dut.i_state_cdr,
-        dut.i_state_sdr,
-        dut.i_state_udr,
-        dut.i_state_uir,
-    ):
-        sig.value = 0
-
-
 async def scan(dut: Dut, value: int | None = None):
     """One scan of the 25-bit register.
 
@@ -140,14 +95,14 @@ async def scan(dut: Dut, value: int | None = None):
 
     """
     word = 0 if value is None else (1 << 24) | value
-    await tck(dut, "cdr")
+    await jtag.tck(dut, "cdr")
     out = 0
     for i in range(25):
         dut.i_tdi.value = (word >> i) & 1
         await Timer(1, unit="ns")
         out |= int(dut.o_tdo.value) << i
-        await tck(dut, "sdr")
-    await tck(dut, "udr")
+        await jtag.tck(dut, "sdr")
+    await jtag.tck(dut, "udr")
     return out & 0xFFFFFF
 
 
@@ -157,17 +112,17 @@ async def scan_fail(dut: Dut, value: int | None = None):
     Writes `value` if given, returns the flag read.
 
     """
-    await tck(dut, ir=2)
+    await jtag.tck(dut, ir=2)
     word = 0 if value is None else 2 | int(value)
-    await tck(dut, "cdr")
+    await jtag.tck(dut, "cdr")
     out = 0
     for i in range(2):
         dut.i_tdi.value = (word >> i) & 1
         await Timer(1, unit="ns")
         out |= int(dut.o_tdo.value) << i
-        await tck(dut, "sdr")
-    await tck(dut, "udr")
-    await tck(dut, ir=1)
+        await jtag.tck(dut, "sdr")
+    await jtag.tck(dut, "udr")
+    await jtag.tck(dut, ir=1)
     return out & 1
 
 

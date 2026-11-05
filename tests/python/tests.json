@@ -127,5 +127,96 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "AluGeUnsigned": {
+        "toplevel": "alu_ge_unsigned",
+        "sources": [
+            "src/TIMER/soc/alu_ge_unsigned.vhd"
+        ],
+        "test_module": "tests.python.unittests.TIMER.alu_ge_unsigned",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "CounterOverflow": {
+        "toplevel": "counter_overflow",
+        "sources": [
+            "src/TIMER/soc/alu_ge_unsigned.vhd",
+            "src/TIMER/soc/counter_overflow.vhd"
+        ],
+        "test_module": "tests.python.unittests.TIMER.counter_overflow",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "ClockPrescaler": {
+        "toplevel": "clock_prescaler",
+        "sources": [
+            "src/common/src/adder.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/TIMER/soc/alu_ge_unsigned.vhd",
+            "src/TIMER/soc/clock_prescaler.vhd"
+        ],
+        "test_module": "tests.python.unittests.TIMER.clock_prescaler",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GpioCell": {
+        "toplevel": "gpio_cell_tb",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "tests/vhdl/gpio_cell_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_cell",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HexToSeg7": {
+        "toplevel": "hex_to_seg7",
+        "sources": [
+            "src/display/soc/hex_to_seg7.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.hex_to_seg7",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "JtagUart": {
+        "toplevel": "jtag_uart",
+        "sources": [
+            "src/UART/jtag/jtag_uart.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.jtag_uart",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }
