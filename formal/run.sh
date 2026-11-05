@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formal verification of the timer (with its prescaler, overflow detector and comparator), the GPIO cell and the UART with SymbiYosys. Needs
+# Formal verification of the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO and the UART with SymbiYosys. Needs
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
@@ -45,13 +45,15 @@ expect() {
 common=(utils_pkg flip_flop generic_register clearable_register synchronizer adder mux_2x1 mux_4x1 mux_8x1 tristate_buffer_1bit)
 timer_srcs=(alu_ge_unsigned counter_overflow clock_prescaler timer_operation_decoder timer)
 gpio_srcs=(gpio_operation_decoder gpio_cell gpio)
-uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart)
+fifo_srcs=(uart_fifo)
+uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart)
 declare -A path_of
 for n in "${common[@]}"; do path_of[$n]="$root/src/common/src/$n.vhd"; done
 for n in "${timer_srcs[@]}"; do path_of[$n]="$root/src/TIMER/soc/$n.vhd"; done
 for n in "${gpio_srcs[@]}"; do path_of[$n]="$root/src/GPIO/soc/$n.vhd"; done
 for n in baudGen uartRx uartTx uart2BusTop_pkg uartTop; do path_of[$n]="$root/src/UART/serial/vendor/opencores_uart2bus/$n.vhd"; done
 path_of[uart]="$root/src/UART/serial/uart.vhd"
+path_of[uart_fifo]="$root/src/UART/serial/uart_fifo.vhd"
 mut_from=""; mut_to=""
 
 # netlist <entity> <name> <sources of the entity...> -- [ghdl generics]: the Verilog netlist GHDL synthesizes for the entity.
@@ -206,14 +208,22 @@ expect "direction, output and masks change only by writes; pin read is the synch
 expect "cover: a rise and a fall interrupt and a stable output are reachable" PASS "$(prove cell.v "$f/gpio_cell_props.sv" cover 14 '-DCOVER' cell_cover)"
 mut_open=0
 
+echo "uart_fifo"
+mut_expose=()
+fgen=(-gdepth=3)
+build uart_fifo fifo "${fifo_srcs[@]}" -- "${fgen[@]}"
+expect "level, flags and acceptances follow a shifting reference queue; the oldest word is the first one in (bounded, 14 cycles, 3 words)" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" bmc 14 '' fifo_safety)"
+expect "cover: a push and a pop on a full queue, a push refused when full, and a push with a pop on an empty queue are reachable" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" cover 14 '-DCOVER' fifo_cover)"
+
 echo "uart"
-uart_exp=(rx_data_reg:7 rx_valid rx_overrun tx_dropped rx_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7)
+uart_exp=(rx_overrun tx_dropped rx_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7 phy_tx_data:7 rx_fifo_data:7 rx_fifo_level:1 tx_fifo_level:1)
 mut_expose=("${uart_exp[@]}")
-ugen=(-gbaud_freq=0 -gbaud_limit=0)
+ugen=(-gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3)
 build uart uart "${uart_srcs[@]}" -- "${ugen[@]}"
-expect "valid, overrun, dropped, mask and readback follow the contract; no byte lost with the buffer free (induction)" PASS "$(prove uart.v "$f/uart_props.sv" prove 3 '-DREGS' uart_regs)"
-expect "from any state: the same, with the PHY and the wrapper in any state (induction)" PASS "$(prove uart.v "$f/uart_props.sv" prove 3 '-DREGS -DANYSTATE' uart_regs_any)"
-expect "cover: a write with the PHY busy and a write that starts a frame are reachable" PASS "$(prove uart.v "$f/uart_props.sv" cover 30 '-DREGS -DCOVER' uart_regs_cover)"
+expect "queue levels, overrun, dropped, mask, interrupt and readback follow the contract (induction)" PASS "$(prove uart.v "$f/uart_props.sv" prove 3 '-DREGS' uart_regs)"
+expect "from any state: the same, with the PHY, the queues and the wrapper in any state (induction)" PASS "$(prove uart.v "$f/uart_props.sv" prove 3 '-DREGS -DANYSTATE' uart_regs_any)"
+expect "cover: a dropped write, a write that starts a frame and a full transmit queue are reachable" PASS "$(prove uart.v "$f/uart_props.sv" cover 30 '-DREGS -DCOVER' uart_regs_cover)"
+expect "cover: from any state, an overrun and a full receive queue that is read while a byte arrives are reachable" PASS "$(prove uart.v "$f/uart_props.sv" cover 200 '-DREGS -DANYSTATE -DCOVER' uart_regs_any_cover)"
 expect "transmit frame: start, 8 data bits LSB first, stop, 16 cycles per bit (bounded, 200 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 200 '-DTXF' uart_tx)"
 expect "cover: a frame of 5A is transmitted" PASS "$(prove uart.v "$f/uart_props.sv" cover 100 '-DTXF -DCOVER' uart_tx_cover)"
 expect "receive: the byte is sampled mid-bit despite noise at the edges, once, none lost (bounded, 200 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 200 '-DRXF' uart_rx)"
@@ -268,14 +278,28 @@ mutant gpio_cell "$gp" gpio_cell '' cell_status_not_cleared "s/irq_clear     <= 
 mutant gpio_cell "$gp" gpio_cell '' cell_pin_not_driven "s/i_enable => dir_reg,/i_enable => '0',/" 10 gpio_cell --
 mut_open=0
 
+mut_expose=()
+fp="$f/uart_fifo_props.sv"
+mutant uart_fifo "$fp" uart_fifo '' fifo_no_wrap "s/return 0;/return pointer;/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+mutant uart_fifo "$fp" uart_fifo '' fifo_overwrite_when_full "s/(count < depth or pop_accepted = '1')/true/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+mutant uart_fifo "$fp" uart_fifo '' fifo_no_reuse_on_pop "s/(count < depth or pop_accepted = '1')/(count < depth)/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+mutant uart_fifo "$fp" uart_fifo '' fifo_pop_not_counted "s/count <= count - 1;/count <= count;/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+mutant uart_fifo "$fp" uart_fifo '' fifo_push_not_counted "s/count <= count + 1;/count <= count;/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+mutant uart_fifo "$fp" uart_fifo '' fifo_pop_keeps_head "s/read_pointer <= next_pointer(read_pointer);/read_pointer <= 0;/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+mutant uart_fifo "$fp" uart_fifo '' fifo_empty_shows_data "s/else (others => '0');/else memory(read_pointer);/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+mutant uart_fifo "$fp" uart_fifo '' fifo_pop_when_empty "s/i_pop = '1' and count > 0/i_pop = '1'/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+
 mut_expose=("${uart_exp[@]}")
 up="$f/uart_props.sv"
-mutant uart "$up" uart '-DREGS -DANYSTATE' uart_overrun_ignored "s/if rx_valid = '1' and/if false and/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uart "$up" uart '-DREGS -DANYSTATE' uart_read_keeps_valid "s/rx_valid <= '0';/null;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_overrun_ignored "s/rx_overrun <= '1';/null;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_drop_not_flagged "s/tx_dropped <= '1';/null;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uart "$up" uart '-DREGS -DANYSTATE' uart_write_when_busy "s/ and phy_tx_busy = '0'$//" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_mask_ignored "s/o_irq <= rx_valid and rx_irq_enable;/o_irq <= rx_valid;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uart "$up" uart '-DREGS -DANYSTATE' uart_status_ready_inverted "s/value(1) := not phy_tx_busy;/value(1) := phy_tx_busy;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_w1c_wrong_bit "s/if i_data_in(2) = '1' then/if i_data_in(3) = '1' then/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_tx_pops_when_busy "s/when phy_tx_busy = '0' and tx_fifo_empty = '0'/when tx_fifo_empty = '0'/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_rx_pops_on_any_read "s/when i_read = '1' and i_address = RX_DATA_ADDRESS/when i_read = '1'/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_mask_ignored "s/o_irq <= (not rx_fifo_empty) and rx_irq_enable;/o_irq <= not rx_fifo_empty;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_status_ready_inverted "s/value(1) := not tx_fifo_full;/value(1) := tx_fifo_full;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_idle_ignores_phy "s/value(6) := tx_fifo_empty and not phy_tx_busy;/value(6) := tx_fifo_empty;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_levels_swapped "s/to_unsigned(rx_fifo_level, 8)/to_unsigned(tx_fifo_level, 8)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartTx "$up" uart '-DTXF' uart_tx_stop_low "s/dataBuf <= '1' \& dataBuf(8 downto 1);/dataBuf <= '0' \& dataBuf(8 downto 1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartTx "$up" uart '-DTXF' uart_tx_start_high "s/dataBuf <= txData \& '0';/dataBuf <= txData \& '1';/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartTx "$up" uart '-DTXF' uart_tx_short_frame "s/bitCount = \"1001\"/bitCount = \"1000\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
