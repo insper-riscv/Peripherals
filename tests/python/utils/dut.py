@@ -33,6 +33,24 @@ class IrqDut(BusDut, Protocol):
     o_irq: LogicObject
 
 
+class ClintDut(BusDut, Protocol):
+    """Signals of the CLINT."""
+
+    o_irq_timer: LogicObject
+    o_irq_software: LogicObject
+
+
+class ClintMtimeDut(ResettableDut, Protocol):
+    """Signals of the CLINT mtime counter."""
+
+    i_inc: LogicObject
+    i_we_lo: LogicObject
+    i_we_hi: LogicObject
+    i_wdata: LogicArrayObject
+    o_lo: LogicArrayObject
+    o_hi: LogicArrayObject
+
+
 class GpioDut(IrqDut, Protocol):
     """Signals of the GPIO testbench."""
 
