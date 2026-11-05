@@ -129,7 +129,9 @@ prove() {
       engine_lines="abc bmc3"
       options_lines="aigsmt none"
       script_lines=$'tribuf -formal\ntechmap\nopt -fast\nsetundef -anyseq' ;;
-    *) engine_lines="smtbmc $engine"; script_lines="tribuf -formal" ;;
+    # memory_map turns the small queue memory of the UART into registers: the SMT engines (yices above all) take
+    # far longer on a design with an array than on the same design with registers.
+    *) engine_lines="smtbmc $engine"; script_lines=$'tribuf -formal\nmemory_map' ;;
   esac
   cat > "$6.sby" <<EOS
 [options]
