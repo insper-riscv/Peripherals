@@ -162,3 +162,16 @@ class JtagUartDut(JtagDut, ResettableDut, Protocol):
     o_rdata: LogicArrayObject
     i_tdi: LogicObject
     o_tdo: LogicObject
+
+
+class FlashControllerDut(BusDut, Protocol):
+    """Signals of the FLASH controller."""
+
+    o_cmd_valid: LogicObject
+    o_cmd_op: LogicArrayObject
+    o_cmd_addr: LogicArrayObject
+    i_busy: LogicObject
+    i_wel: LogicObject
+    i_refused: LogicObject
+    i_buf_idx: LogicArrayObject
+    o_buf_data: LogicArrayObject
