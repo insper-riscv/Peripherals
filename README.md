@@ -11,6 +11,7 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 - [CITATION.cff](CITATION.cff): metadados para citação do software.
 - [docs/bugs/](docs/bugs/README.md): bugs encontrados na primeira simulação dos periféricos, com as correções.
 - [docs/pt-br/formal/formal.md](docs/pt-br/formal/formal.md): provas formais dos periféricos, engines de solver e a regra do agregador que decide o check `formal` do CI.
+- [docs/pt-br/CLINT/clint.md](docs/pt-br/CLINT/clint.md): o CLINT (`mtime`, `mtimecmp` e `msip` de 64 bits no leiaute da SiFive, as saídas `MTIP` e `MSIP` e a escrita segura do `mtimecmp`).
 - [docs/pt-br/UART/serial_uart.md](docs/pt-br/UART/serial_uart.md): a UART serial 8N1, suas filas, registradores, erros e parâmetros de temporização.
 - [docs/pt-br/UART/jtag_uart.md](docs/pt-br/UART/jtag_uart.md): a UART sobre JTAG (os registradores do core, o lado do hospedeiro e os limites), com o defeito que a moldou em [docs/pt-br/bugs/](docs/pt-br/bugs/JTAG_UART_RESPOSTA_PERDIDA.md).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/pt-br/contracts/02-barramento-e-memoria.md): protocolo de barramento adotado pelos periféricos.
@@ -22,11 +23,12 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `src/common/` | Submódulo Common-Components, editado só na origem |
 | `src/GPIO/soc/` | Entrada e saída de uso geral: direção, saída (carga, set, clear, toggle), leitura sincronizada dos pinos e interrupções por borda de subida e descida em cada pino |
 | `src/TIMER/soc/` | Temporizador e PWM: contador com `TOP`, prescaler, comparador de duty cycle, status de overflow e interrupção |
+| `src/CLINT/soc/` | CLINT: `mtime` de 64 bits com vai-um registrado, `mtimecmp`, `msip` e as saídas de interrupção de timer e de software |
 | `src/UART/serial/` | UART 8N1 mapeada em memória: filas parametrizáveis de RX e TX, registradores separados, níveis, flags de status e de erro e interrupção de RX opcional; a camada física é a `uart2bus` do OpenCores, trazida para o repositório |
 | `src/UART/jtag/` | UART sobre JTAG: o núcleo escreve e lê bytes por registradores e um hospedeiro faz o mesmo pelo Virtual JTAG (`jtag_uart`); `cyclone-v/` guarda a casca do Virtual JTAG, só para a placa |
 | `src/intc/soc/` | Controlador de interrupção externa: reúne as linhas de interrupção dos periféricos em um único `MEIP`, com registradores de pendência, habilitação e fonte (`ext_irq_controller`) |
 | `src/display/` | Display de sete segmentos: o registrador do valor, o conversor de hexadecimal para segmentos (`soc/`) e a casca do Virtual JTAG da placa (`cyclone-v/`) |
-| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{GPIO,intc,TIMER,UART,display}` |
+| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,GPIO,intc,TIMER,UART,display}` |
 | `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO |
 | `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `uart_fifo` e `uart`, o `run.sh` e o agregador dos engines |
 | `docs/pt-br/`, `docs/en/` | Documentos da UART (`UART/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
@@ -57,7 +59,17 @@ Todo periférico compartilha o mesmo conjunto de portas, conforme o barramento d
 | 6 | Saída PWM |
 | 7 | Prescaler (o contador avança a cada `prescaler + 1` ciclos) |
 
-### 3.3. Registradores da UART
+### 3.3. Registradores do CLINT
+
+O endereço tem 14 bits de palavra. O leiaute é o do CLINT da SiFive, com os detalhes em [docs/pt-br/CLINT/clint.md](docs/pt-br/CLINT/clint.md).
+
+| Deslocamento | Registrador |
+| :--- | :--- |
+| `0x0000` | `msip` (bit 0) |
+| `0x4000`, `0x4004` | `mtimecmp` baixa e alta (reset com todos os bits em 1) |
+| `0xBFF8`, `0xBFFC` | `mtime` baixa e alta |
+
+### 3.4. Registradores da UART
 
 A UART não exige espera do barramento: o software consulta `TX_READY` e `RX_VALID`, e todo acesso mapeado em memória termina em um ciclo. A configuração inicial é 115200 baud, 8N1 com clock de 50 MHz e filas de 16 bytes em cada sentido. As profundidades são parâmetros independentes.
 
