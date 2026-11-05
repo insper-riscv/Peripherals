@@ -1,7 +1,6 @@
 """CLINT: mtime, mtimecmp, msip, the MTIP and MSIP outputs."""
 
 import cocotb
-from cocotb.triggers import RisingEdge, Timer
 
 from tests.python.unittests.CLINT.registers import (
     MASK32,
@@ -66,31 +65,6 @@ async def write_mtimecmp(dut: ClintDut, value: int) -> list[int]:
     return seen
 
 
-async def sample(dut: ClintDut, address: int) -> tuple[int, int]:
-    """Read one register and the MTIP in the same cycle.
-
-    Parameters
-    ----------
-    dut : ClintDut
-        The design under test.
-    address : int
-        Register address.
-
-    Returns
-    -------
-    tuple[int, int]
-        The value read and the MTIP before the clock edge.
-    """
-    dut.i_address.value = address
-    dut.i_read.value = 1
-    await Timer(1, unit="ns")
-    pair = (int(dut.o_data_out.value), int(dut.o_irq_timer.value))
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_read.value = 0
-    return pair
-
-
 @cocotb.test()
 async def test_reset_state(dut: ClintDut) -> None:
     """After reset: mtimecmp all ones, msip zero, no interrupt."""
@@ -150,14 +124,15 @@ async def test_mtip_is_the_registered_comparison(dut: ClintDut) -> None:
     # Two writes ran after the mtime write, so the first sample is 12.
     first = MTIME_START + 2
     fired = None
-    for k in range(40):
-        _, irq = await sample(dut, MSIP)
-        if k >= 1:
-            wanted = int(first + k - 1 >= CMP_VALUE)
-            check(irq == wanted, f"cycle {k}: irq {irq}, wanted {wanted}")
+    for k in range(READ_WINDOW):
+        await bus.read(dut, MSIP)
+        # After the read edge MTIP compares the cycle just sampled.
+        irq = int(dut.o_irq_timer.value)
+        wanted = int(first + k >= CMP_VALUE)
+        check(irq == wanted, f"cycle {k}: irq {irq}, wanted {wanted}")
         if irq and fired is None:
             fired = k
-    check(fired == CMP_VALUE - first + 1, f"first MTIP at sample {fired}")
+    check(fired == CMP_VALUE - first, f"first MTIP after sample {fired}")
 
 
 @cocotb.test()
