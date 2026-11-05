@@ -10,6 +10,7 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 - [CONTRIBUTING.md](CONTRIBUTING.md): regras obrigatórias de contribuição, norma VHDL-2008, nomenclatura, cabeçalhos, normas Python e verificação antes de abrir Pull Request.
 - [CITATION.cff](CITATION.cff): metadados para citação do software.
 - [docs/bugs/](docs/bugs/README.md): bugs encontrados na primeira simulação dos periféricos, com as correções.
+- [docs/pt-br/formal/formal.md](docs/pt-br/formal/formal.md): provas formais dos periféricos, engines de solver e a regra do agregador que decide o check `formal` do CI.
 - [docs/pt-br/UART/serial_uart.md](docs/pt-br/UART/serial_uart.md): a UART serial 8N1, suas filas, registradores, erros e parâmetros de temporização.
 - [docs/pt-br/UART/jtag_uart.md](docs/pt-br/UART/jtag_uart.md): a UART sobre JTAG (os registradores do core, o lado do hospedeiro e os limites), com o defeito que a moldou em [docs/pt-br/bugs/](docs/pt-br/bugs/JTAG_UART_RESPOSTA_PERDIDA.md).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/pt-br/contracts/02-barramento-e-memoria.md): protocolo de barramento adotado pelos periféricos.
@@ -26,6 +27,8 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `src/display/` | Display de sete segmentos: o registrador do valor, o conversor de hexadecimal para segmentos (`soc/`) e a casca do Virtual JTAG da placa (`cyclone-v/`) |
 | `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{GPIO,TIMER,UART,display}` |
 | `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO |
+| `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `uart_fifo` e `uart`, o `run.sh` e o agregador dos engines |
+| `docs/pt-br/`, `docs/en/` | Documentos da UART (`UART/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
 
 ## 3. Interface
 
@@ -66,6 +69,8 @@ A UART não exige espera do barramento: o software consulta `TX_READY` e `RX_VAL
 
 ## 4. Verificação e Execução
 
+### 4.1. Execução local
+
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Peripherals.git
 cd Peripherals
@@ -73,10 +78,18 @@ uv sync
 
 make check   # Verificação de sintaxe VHDL de todos os fontes em ordem de dependência (GHDL)
 make test    # Testes por entidade em cocotb (make test TEST=GPIO para um alvo)
-make paths   # Existência de todos os caminhos listados na configuração
+make paths   # Caminhos do paths.yaml e árvore do repositório (riscv-tools check-tree)
+make formal  # Provas formais (SymbiYosys) com o engine de FORMAL_ENGINE (bitwuzla por padrão)
 ```
 
-As ferramentas (GHDL e uv) vêm da imagem `ci-vhdl` do repositório [Infra](https://github.com/insper-riscv/Infra), onde a integração contínua executa.
+### 4.2. Execução via Docker
+
+A imagem `ghcr.io/insper-riscv/ci-vhdl:latest` publicada pelo repositório [insper-riscv/Infra](https://github.com/insper-riscv/Infra) já traz o GHDL (backend LLVM), Yosys, SymbiYosys, os solvers Yices, Bitwuzla e Boolector, `uv`, Python 3.14 e cocotb pré-instalados:
+
+```bash
+docker run --rm -v "$PWD:/workspace" -w /workspace ghcr.io/insper-riscv/ci-vhdl:latest \
+  bash -c "uv sync && make check && make test && make paths && make formal"
+```
 
 ---
 
