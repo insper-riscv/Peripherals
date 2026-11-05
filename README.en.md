@@ -24,8 +24,9 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/TIMER/soc/` | Timer and PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status, and an interrupt |
 | `src/UART/serial/` | Memory-mapped 8N1 UART: parameterized RX and TX queues, separate registers, levels, status and error flags, and an optional RX interrupt; the physical layer is the OpenCores `uart2bus`, vendored in the repository |
 | `src/UART/jtag/` | UART over JTAG: the core writes and reads bytes through registers and a host does the same through the Virtual JTAG (`jtag_uart`); `cyclone-v/` holds the Virtual JTAG shell, board only |
+| `src/intc/soc/` | External interrupt controller: gathers the peripherals' interrupt lines into a single `MEIP`, with pending, enable and source registers (`ext_irq_controller`) |
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
-| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{GPIO,TIMER,UART,display}` |
+| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{GPIO,intc,TIMER,UART,display}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO |
 | `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
 | `docs/pt-br/`, `docs/en/` | UART documents (`UART/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
