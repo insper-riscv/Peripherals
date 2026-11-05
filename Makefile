@@ -25,7 +25,8 @@ paths:
 	riscv-tools --root . check-tree --kind peripherals
 
 # Formal proofs (SymbiYosys and one engine of the CI image: FORMAL_ENGINE is yices, bitwuzla, boolector or
-# abc-bmc3). This repository has none yet: a run writes an empty build/formal/result-<engine>.tsv.
+# abc-bmc3): the proofs of the timer (with its prescaler, overflow detector and comparator), the GPIO cell and
+# the UART, with their mutants. The result of the run is build/formal/result-<engine>.tsv.
 FORMAL_ENGINE ?= bitwuzla
 formal:
 	FORMAL_ENGINE=$(FORMAL_ENGINE) bash formal/run.sh

@@ -1,17 +1,286 @@
 #!/usr/bin/env bash
-# The formal proofs of this repository. It has none yet, so a run writes an empty result for the engine and
-# the formal job decides over zero proofs. A proof joins by running sby here and writing one line per proof to
-# build/formal/result-<engine>.tsv, the way the Core and the Memory do (see formal/aggregate.sh for the format).
-# Run from the root of the repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
+# Formal verification of the timer (with its prescaler, overflow detector and comparator), the GPIO cell and the UART with SymbiYosys. Needs
+# ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
+# repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
+#
+# FORMAL_ENGINE is one of yices, bitwuzla (the default), boolector and abc-bmc3. The first three are SMT solvers
+# of the smtbmc engine; abc-bmc3 is the bounded model checker of ABC, which has no induction and no cover, so it
+# skips those proofs. FORMAL_TIMEOUT (seconds, 900 by default) bounds each proof.
+#
+# Besides the report, the run writes build/formal/result-<engine>.tsv, one line per proof with the columns
+# id, wanted (pass or fail), verdict (pass, fail, error or skip), sby exit code, milliseconds and the label, which
+# formal/aggregate.sh joins across engines.
 set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+out="$root/build/formal"
+rm -rf "$out"; mkdir -p "$out"; cd "$out"
 
 engine="${FORMAL_ENGINE:-bitwuzla}"
 case "$engine" in
-  yices | bitwuzla | boolector | abc-bmc3) ;;
+  yices|bitwuzla|boolector|abc-bmc3) ;;
   *) echo "FORMAL_ENGINE must be yices, bitwuzla, boolector or abc-bmc3, not '$engine'" >&2; exit 2 ;;
 esac
+timeout_s="${FORMAL_TIMEOUT:-900}"
+results="$out/result-$engine.tsv"; : > "$results"
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-mkdir -p "$root/build/formal"
-: > "$root/build/formal/result-$engine.tsv"
-echo "This repository has no formal proofs yet (engine $engine)."
+fail=0
+# expect <label> <wanted: PASS|FAIL> <result: PASS|FAIL|SKIP|ERROR ...>. An ERROR (the tool did not reach a verdict)
+# never matches, not even a wanted FAIL; a SKIP is a proof this engine does not do and is not a failure. The id,
+# the exit code and the time of the proof come from the files prove left for its tag.
+expect() {
+  local tag verdict rc ms
+  tag="$(cat "$out/.last")"
+  IFS=$'\t' read -r verdict rc ms < "$out/$tag.res"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$tag" "${2,,}" "$verdict" "$rc" "$ms" "$1" >> "$results"
+  case "$3" in
+    SKIP*) printf '  skip  %-62s %s\n' "$1" "${3#SKIP }" ;;
+    ERROR*) printf '  ERROR %-62s %s\n' "$1" "${3#ERROR }"; fail=1 ;;
+    "$2") printf '  ok    %-62s %s (%s ms)\n' "$1" "$3" "$ms" ;;
+    *) printf '  WRONG %-62s wanted %s, got %s\n' "$1" "$2" "$3"; fail=1 ;;
+  esac
+}
+
+# Sources in dependency order. The file under proof, when it is a mutant, replaces the original in the list.
+common=(utils_pkg flip_flop generic_register clearable_register synchronizer adder mux_2x1 mux_4x1 mux_8x1 tristate_buffer_1bit)
+timer_srcs=(alu_ge_unsigned counter_overflow clock_prescaler timer_operation_decoder timer)
+gpio_srcs=(gpio_operation_decoder gpio_cell gpio)
+uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart)
+declare -A path_of
+for n in "${common[@]}"; do path_of[$n]="$root/src/common/src/$n.vhd"; done
+for n in "${timer_srcs[@]}"; do path_of[$n]="$root/src/TIMER/soc/$n.vhd"; done
+for n in "${gpio_srcs[@]}"; do path_of[$n]="$root/src/GPIO/soc/$n.vhd"; done
+for n in baudGen uartRx uartTx uart2BusTop_pkg uartTop; do path_of[$n]="$root/src/UART/serial/vendor/opencores_uart2bus/$n.vhd"; done
+path_of[uart]="$root/src/UART/serial/uart.vhd"
+mut_from=""; mut_to=""
+
+# netlist <entity> <name> <sources of the entity...> -- [ghdl generics]: the Verilog netlist GHDL synthesizes for the entity.
+netlist() {
+  local ent="$1" name="$2"; shift 2
+  local srcs=() gen=() n f
+  while [ "$#" -gt 0 ] && [ "$1" != -- ]; do srcs+=("$1"); shift; done
+  [ "$#" -gt 0 ] && shift
+  gen=("$@")
+  local work="$out/work_$name"; mkdir -p "$work"
+  local files=()
+  for n in "${common[@]}" "${srcs[@]}"; do
+    f="${path_of[$n]}"; [ "$f" = "$mut_from" ] && f="$mut_to"; files+=("$f")
+  done
+  ghdl -a --std=08 -Wno-library -Wno-unhandled-attribute --workdir="$work" "${files[@]}"
+  ghdl --synth --std=08 -Wno-library -Wno-unhandled-attribute --workdir="$work" --out=verilog "${gen[@]}" "$ent" > "$name.v"
+  # The Quartus attribute of the synchronizer has quotes inside its value, which the Verilog reader cannot parse.
+  sed -i 's/(\* altera_attribute=.* \*) reg/reg/' "$name.v"
+}
+
+# expose <netlist> <signal[:high bit]>...: adds the wires of the last module (the top, GHDL writes it last) as
+# the outputs dbg_<signal>. The logic is the same; the proof states the invariants over these registers.
+expose() {
+  local v="$1"; shift
+  local ports="" assigns="" s w nm
+  for s in "$@"; do
+    nm="${s%%:*}"; w=""; [ "$s" != "$nm" ] && w="[${s#*:}:0] "
+    ports+=",
+   output ${w}dbg_$nm"
+    assigns+="  assign dbg_$nm = $nm;
+"
+  done
+  awk -v ports="$ports" -v assigns="$assigns" '
+    { line[NR] = $0 }
+    /^module / { m = NR }
+    /^endmodule/ { e = NR }
+    END {
+      done = 0
+      for (i = 1; i <= NR; i++) {
+        l = line[i]
+        if (i >= m && !done && l ~ /\);[ \t]*$/) { sub(/\);[ \t]*$/, ports ");", l); done = 1 }
+        if (i == e) printf "%s", assigns
+        print l
+      }
+    }' "$v" > "$v.tmp" && mv "$v.tmp" "$v"
+  grep -q "dbg_${1%%:*}" "$v" || true
+}
+
+# open_pin <netlist>: the bidirectional pin of the GPIO cell becomes an input (what the pin is worth) and an
+# output (what the cell drives), and a floating tristate output becomes zero. The logic is the same.
+open_pin() {
+  sed -i -e 's/inout  io_gpio_pin);/input  i_pin,\n   output o_pin_drv);/' \
+         -e 's/^  assign io_gpio_pin = /  assign o_pin_drv = /' \
+         -e 's/ = io_gpio_pin;/ = i_pin;/' \
+         -e "s/1'bz/1'b0/" "$1"
+  grep -q 'o_pin_drv' "$1" && grep -q 'i_pin' "$1" || { echo "open_pin: the pin of $1 was not found"; exit 1; }
+}
+
+# prove <netlist> <props> <mode: prove|bmc|cover> <depth> <defines> <tag>  ->  PASS, FAIL, SKIP or ERROR
+# PASS is sby exit code 0, FAIL is 2 (a counterexample or a goal that cannot be covered) and any other code
+# (4 unknown, 8 timeout, 16 error, 124 the FORMAL_TIMEOUT) is ERROR: the tool did not reach a verdict. The
+# abc-bmc3 engine only checks bounded properties of designs with registers, so it answers SKIP for a proof by
+# induction, for a cover and for a combinational design.
+# The verdict, the exit code and the milliseconds go to <tag>.res, and the tag to .last, for expect.
+prove() {
+  echo "$6" > "$out/.last"
+  local engine_lines script_lines options_lines="" rc=0 verdict began ended
+  case "$engine" in
+    abc-bmc3)
+      if [ "$3" != bmc ]; then
+        printf 'SKIP\t-\t0\n' > "$6.res"; echo "SKIP abc-bmc3 has no $3"; return
+      fi
+      engine_lines="abc bmc3"
+      options_lines="aigsmt none"
+      script_lines=$'tribuf -formal\ntechmap\nopt -fast\nsetundef -anyseq' ;;
+    *) engine_lines="smtbmc $engine"; script_lines="tribuf -formal" ;;
+  esac
+  cat > "$6.sby" <<EOS
+[options]
+mode $3
+depth $4
+$options_lines
+[engines]
+$engine_lines
+[script]
+read_verilog -formal -sv $5 $1 $2
+prep -top props
+$script_lines
+[files]
+$1
+$2
+EOS
+  began=$(date +%s%N)
+  timeout "$timeout_s" sby -f "$6.sby" > "$6.log" 2>&1 || rc=$?
+  ended=$(date +%s%N)
+  # ABC refuses a design without registers (the trap unit is combinational): that is a proof this engine does
+  # not do, not a failure of the tool.
+  if [ "$engine" = abc-bmc3 ] && [ "$rc" = 16 ] && grep -q 'Does not work for combinational networks' "$6.log"; then
+    printf 'skip\t%s\t0\n' "$rc" > "$6.res"; echo "SKIP abc-bmc3 does not work for a combinational design"; return
+  fi
+  case "$rc" in
+    0) verdict=PASS ;;
+    2) verdict=FAIL ;;
+    *) verdict=ERROR ;;
+  esac
+  printf '%s\t%s\t%s\n' "${verdict,,}" "$rc" "$(( (ended - began) / 1000000 ))" > "$6.res"
+  case "$verdict" in
+    ERROR) echo "ERROR sby exited with code $rc, not a verdict (see $6.log)" ;;
+    *) echo "$verdict" ;;
+  esac
+}
+
+src="$root/src"; f="$root/formal"
+# Setup of the mutants of the block being proved: the sources, the generics, the signals exposed and whether the pin is opened.
+mut_srcs=(); mut_gen=(); mut_expose=(); mut_open=0
+
+# build <entity> <name> <sources...> -- [generics]: netlist plus the exposure and the pin opening of the block.
+build() {
+  netlist "$@"
+  [ "${#mut_expose[@]}" -gt 0 ] && expose "$2.v" "${mut_expose[@]}"
+  [ "$mut_open" = 1 ] && open_pin "$2.v"
+  return 0
+}
+
+echo "alu_ge_unsigned"
+mut_expose=(); mut_open=0
+build alu_ge_unsigned alu alu_ge_unsigned -- -gdata_width=8
+expect "o_ge is exactly a >= b, unsigned, for every input (8 bits, induction)" PASS "$(prove alu.v "$f/alu_ge_unsigned_props.sv" prove 2 '-DWIDTH=8' alu_safety)"
+expect "cover: greater, equal and less are reachable" PASS "$(prove alu.v "$f/alu_ge_unsigned_props.sv" cover 2 '-DWIDTH=8 -DCOVER' alu_cover)"
+
+echo "counter_overflow"
+build counter_overflow ovf alu_ge_unsigned counter_overflow -- -gdata_width=8
+expect "overflow exactly when the counter reached the top (8 bits, induction)" PASS "$(prove ovf.v "$f/counter_overflow_props.sv" prove 2 '-DWIDTH=8' ovf_safety)"
+expect "cover: overflow at the top and above it, and no overflow, are reachable" PASS "$(prove ovf.v "$f/counter_overflow_props.sv" cover 2 '-DWIDTH=8 -DCOVER' ovf_cover)"
+
+echo "clock_prescaler"
+build clock_prescaler presc alu_ge_unsigned clock_prescaler -- -gdata_width=3
+expect "a tick exactly every prescaler + 1 cycles, none lost or doubled (bounded, 40 cycles, 3 bits)" PASS "$(prove presc.v "$f/clock_prescaler_props.sv" bmc 40 '-DWIDTH=3' presc_safety)"
+expect "cover: the first tick and a tick at every cycle are reachable" PASS "$(prove presc.v "$f/clock_prescaler_props.sv" cover 24 '-DWIDTH=3 -DCOVER' presc_cover)"
+
+echo "timer"
+timer_exp=(counter:31 top_reg:31 duty_reg:31 prescaler_reg:31 config_reg:3 overflow_status overflow_prev tick pwm_inverted)
+mut_expose=("${timer_exp[@]}")
+build timer timer "${timer_srcs[@]}" --
+expect "registers follow the bus writes, counter, overflow status, IRQ, PWM and readback (induction)" PASS "$(prove timer.v "$f/timer_props.sv" prove 3 '' timer_safety)"
+expect "cover: an overflow raises the IRQ, the status read clears it, the counter advances with a tick" PASS "$(prove timer.v "$f/timer_props.sv" cover 20 '-DCOVER' timer_cover)"
+
+echo "gpio_cell"
+mut_expose=(); mut_open=1
+build gpio_cell cell gpio_cell -- 
+expect "direction, output and masks change only by writes; pin read is the synchronized pin; status (bounded, 16 cycles)" PASS "$(prove cell.v "$f/gpio_cell_props.sv" bmc 16 '' cell_safety)"
+expect "cover: a rise and a fall interrupt and a stable output are reachable" PASS "$(prove cell.v "$f/gpio_cell_props.sv" cover 14 '-DCOVER' cell_cover)"
+mut_open=0
+
+echo "uart"
+uart_exp=(rx_data_reg:7 rx_valid rx_overrun tx_dropped rx_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7)
+mut_expose=("${uart_exp[@]}")
+ugen=(-gbaud_freq=0 -gbaud_limit=0)
+build uart uart "${uart_srcs[@]}" -- "${ugen[@]}"
+expect "valid, overrun, dropped, mask and readback follow the contract; no byte lost with the buffer free (induction)" PASS "$(prove uart.v "$f/uart_props.sv" prove 3 '-DREGS' uart_regs)"
+expect "from any state: the same, with the PHY and the wrapper in any state (induction)" PASS "$(prove uart.v "$f/uart_props.sv" prove 3 '-DREGS -DANYSTATE' uart_regs_any)"
+expect "cover: a write with the PHY busy and a write that starts a frame are reachable" PASS "$(prove uart.v "$f/uart_props.sv" cover 30 '-DREGS -DCOVER' uart_regs_cover)"
+expect "transmit frame: start, 8 data bits LSB first, stop, 16 cycles per bit (bounded, 200 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 200 '-DTXF' uart_tx)"
+expect "cover: a frame of 5A is transmitted" PASS "$(prove uart.v "$f/uart_props.sv" cover 100 '-DTXF -DCOVER' uart_tx_cover)"
+expect "receive: the byte is sampled mid-bit despite noise at the edges, once, none lost (bounded, 200 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 200 '-DRXF' uart_rx)"
+expect "cover: a frame of A5 is received" PASS "$(prove uart.v "$f/uart_props.sv" cover 200 '-DRXF -DCOVER' uart_rx_cover)"
+
+# Mutants of the VHDL: each defect must make a proof fail.
+# mutant <source name> <props> <entity> <defines> <name> <sed expression> <bmc depth> <sources...> -- [generics]
+mutant() {
+  local sname="$1" props="$2" ent="$3" defs="$4" name="$5" expr="$6" depth="$7"; shift 7
+  local copy="$out/mut_$name.vhd"
+  sed "$expr" "${path_of[$sname]}" > "$copy"
+  cmp -s "${path_of[$sname]}" "$copy" && { echo "mutant $name: the edit did not change the file"; exit 1; }
+  mut_from="${path_of[$sname]}"; mut_to="$copy"
+  build "$ent" "mut_$name" "$@"
+  mut_from=""; mut_to=""
+  expect "mutant $name is caught" FAIL "$(prove "mut_$name.v" "$props" bmc "$depth" "$defs" "mut_$name")"
+}
+
+mut_expose=(); mut_open=0
+ap="$f/alu_ge_unsigned_props.sv"
+mutant alu_ge_unsigned "$ap" alu_ge_unsigned '-DWIDTH=8' alu_strict "s/c(0)  <= '1';/c(0)  <= '0';/" 2 alu_ge_unsigned -- -gdata_width=8
+mutant alu_ge_unsigned "$ap" alu_ge_unsigned '-DWIDTH=8' alu_no_invert "s/b_inv <= not i_source_2;/b_inv <= i_source_2;/" 2 alu_ge_unsigned -- -gdata_width=8
+mutant counter_overflow "$f/counter_overflow_props.sv" counter_overflow '-DWIDTH=8' ovf_swapped "s/i_source_1 => i_counter_value,/i_source_1 => i_top_value,/;s/i_source_2 => i_top_value, /i_source_2 => i_counter_value,/" 2 alu_ge_unsigned counter_overflow -- -gdata_width=8
+mutant alu_ge_unsigned "$f/counter_overflow_props.sv" counter_overflow '-DWIDTH=8' ovf_strict "s/c(0)  <= '1';/c(0)  <= '0';/" 2 alu_ge_unsigned counter_overflow -- -gdata_width=8
+pp="$f/clock_prescaler_props.sv"
+mutant clock_prescaler "$pp" clock_prescaler '-DWIDTH=3' presc_unregistered "s/o_tick <= tick_out;/o_tick <= comp_result;/" 40 alu_ge_unsigned clock_prescaler -- -gdata_width=3
+mutant alu_ge_unsigned "$pp" clock_prescaler '-DWIDTH=3' presc_strict "s/c(0)  <= '1';/c(0)  <= '0';/" 40 alu_ge_unsigned clock_prescaler -- -gdata_width=3
+mutant clock_prescaler "$pp" clock_prescaler '-DWIDTH=3' presc_no_clear "s/counter_clear <= i_rst or comp_result;/counter_clear <= i_rst;/" 40 alu_ge_unsigned clock_prescaler -- -gdata_width=3
+
+mut_expose=("${timer_exp[@]}")
+tp="$f/timer_props.sv"
+mutant timer "$tp" timer '' timer_top_enable "s/i_enable => wr_en(3),/i_enable => wr_en(4),/" 8 "${timer_srcs[@]}" --
+mutant timer "$tp" timer '' timer_prescaler_enable "s/i_enable => wr_en(6),/i_enable => wr_en(5),/" 8 "${timer_srcs[@]}" --
+mutant timer "$tp" timer '' timer_top_reset "s/clear_value => '1'/clear_value => '0'/" 8 "${timer_srcs[@]}" --
+mutant timer "$tp" timer '' timer_mode_inverted "s/(overflow and not mode_signal)/(overflow and mode_signal)/" 8 "${timer_srcs[@]}" --
+mutant timer "$tp" timer '' timer_start_ignored "s/start_signal and tick and not/tick and not/" 8 "${timer_srcs[@]}" --
+mutant timer "$tp" timer '' timer_mask_ignored "s/i_sel => irq_mask,/i_sel => '1',/" 8 "${timer_srcs[@]}" --
+mutant timer "$tp" timer '' timer_status_not_cleared "s/ovf_clear      <= i_rst or wr_en(5);/ovf_clear      <= i_rst;/" 8 "${timer_srcs[@]}" --
+mutant timer "$tp" timer '' timer_level_not_edge "s/overflow_pulse <= overflow and not overflow_prev;/overflow_pulse <= overflow;/" 8 "${timer_srcs[@]}" --
+mutant timer "$tp" timer '' timer_pwm_inverted "s/pwm_inverted   <= not pwm_alu;/pwm_inverted   <= pwm_alu;/" 8 "${timer_srcs[@]}" --
+mutant timer_operation_decoder "$tp" timer '' timer_read_select "s/\"000\" when ADDR_TIMER_LOAD,/\"001\" when ADDR_TIMER_LOAD,/" 8 "${timer_srcs[@]}" --
+mutant timer_operation_decoder "$tp" timer '' timer_write_address "s/o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_TOP /o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_DUTY_CYCLE /" 8 "${timer_srcs[@]}" --
+
+mut_expose=(); mut_open=1
+gp="$f/gpio_cell_props.sv"
+mutant gpio_cell "$gp" gpio_cell '' cell_dir_always "s/i_enable => i_wr_signals(0),/i_enable => '1',/" 10 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_no_set_clear "s/out_enable    <= i_wr_signals(1) or (i_wr_signals(2) and i_data_in);/out_enable    <= i_wr_signals(1);/" 10 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_toggle_is_load "s/i_d3  => toggle_vector,/i_d3  => load_vector,/" 10 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_mask_ignored "s/irq_set       <= interrupt_logic and irq_mask;/irq_set       <= interrupt_logic;/" 10 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_fall_uses_rise "s/(irq_fall_mask and (not pin_input and prev_pin_input))/(irq_rise_mask and (not pin_input and prev_pin_input))/" 10 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_status_not_cleared "s/irq_clear     <= i_rst or i_wr_signals(6);/irq_clear     <= i_rst;/" 10 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_pin_not_driven "s/i_enable => dir_reg,/i_enable => '0',/" 10 gpio_cell --
+mut_open=0
+
+mut_expose=("${uart_exp[@]}")
+up="$f/uart_props.sv"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_overrun_ignored "s/if rx_valid = '1' and/if false and/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_read_keeps_valid "s/rx_valid <= '0';/null;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_drop_not_flagged "s/tx_dropped <= '1';/null;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_write_when_busy "s/ and phy_tx_busy = '0'$//" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_mask_ignored "s/o_irq <= rx_valid and rx_irq_enable;/o_irq <= rx_valid;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_status_ready_inverted "s/value(1) := not phy_tx_busy;/value(1) := phy_tx_busy;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF' uart_tx_stop_low "s/dataBuf <= '1' \& dataBuf(8 downto 1);/dataBuf <= '0' \& dataBuf(8 downto 1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF' uart_tx_start_high "s/dataBuf <= txData \& '0';/dataBuf <= txData \& '1';/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF' uart_tx_short_frame "s/bitCount = \"1001\"/bitCount = \"1000\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartRx "$up" uart '-DRXF' uart_rx_early_sample "s/count16 = \"0111\"/count16 = \"0000\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartRx "$up" uart '-DRXF' uart_rx_late_sample "s/count16 = \"0111\"/count16 = \"1110\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartRx "$up" uart '-DRXF' uart_rx_msb_first "s/dataBuf <= inSync(1) \& dataBuf(7 downto 1);/dataBuf <= dataBuf(6 downto 0) \& inSync(1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+
+[ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }
