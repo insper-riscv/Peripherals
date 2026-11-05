@@ -17,6 +17,7 @@ The formal proofs run in SymbiYosys on the Verilog netlist that GHDL synthesizes
 | `gpio_cell` | `gpio_cell_props.sv` | bounded, 16 cycles | Direction, output and masks change only by a write (set, clear and toggle with the bit mask); the pin read is the pin from two cycles ago; the status rises on the edge the masks select and falls only by a read or a reset; with the output on and steady the read and the output do not diverge |
 | `uart_fifo` | `uart_fifo_props.sv` | bounded, 14 cycles, 3 words | Level, full and empty flags and acceptances follow a reference queue that shifts the words; a push on a full queue is accepted only with an accepted pop; the oldest word is the first one in that has not left, or zero when the queue is empty |
 | `uart` | `uart_props.sv` | induction and bounded, 200 cycles | Queue levels, overrun and dropped flags, mask, interrupt and read of each address against the contract, from any state; the byte of the transmit queue reaches the PHY only when it is free; transmit frame with start, eight data bits from the least significant and stop, 16 cycles per bit; receive of a frame with noise at the edges of each data bit, sampled mid-bit |
+| `flash_controller` | `flash_controller_props.sv` | bounded, 14 cycles, 4-word page | The command pulse comes only from a write to register 0, with the three low bits of the data and the stored address; the read of each address returns the command address, the chip state or the buffer index, and zero in the other addresses and without a read; the buffer index advances at each data write and is set by a write to register 3; the chip reads from the buffer, one edge later, the word the write left at the index |
 
 Each entity has a cover that shows the proved situation is reachable.
 
@@ -41,6 +42,7 @@ Each deliberate defect of the VHDL must make a proof fail. `formal/run.sh` appli
 | `clint` | `clint_msip_bit`, `clint_cmp_reset_zero`, `clint_cmp_hi_address`, `clint_mtip_unregistered`, `clint_read_swapped`, `clint_tick_early`, `clint_mtime_hi_address`, `clint_strict_compare`, `clint_seq_cmp_clear_not_ones` |
 | `gpio_cell` | `cell_dir_always`, `cell_no_set_clear`, `cell_toggle_is_load`, `cell_mask_ignored`, `cell_fall_uses_rise`, `cell_status_not_cleared`, `cell_pin_not_driven` |
 | `uart_fifo` | `fifo_no_wrap`, `fifo_overwrite_when_full`, `fifo_no_reuse_on_pop`, `fifo_pop_not_counted`, `fifo_push_not_counted`, `fifo_pop_keeps_head`, `fifo_empty_shows_data`, `fifo_pop_when_empty` |
+| `flash_controller` | `flashc_ptr_stuck`, `flashc_cmd_any_write`, `flashc_status_swapped`, `flashc_addr_any_write`, `flashc_op_shifted`, `flashc_word_misplaced`, `flashc_read_ungated`, `flashc_ptr_write_ignored`, `flashc_status_bit_lost` |
 | `uart` | `uart_overrun_ignored`, `uart_drop_not_flagged`, `uart_w1c_wrong_bit`, `uart_tx_pops_when_busy`, `uart_rx_pops_on_any_read`, `uart_irq_mask_ignored`, `uart_status_ready_inverted`, `uart_idle_ignores_phy`, `uart_levels_swapped`, `uart_tx_stop_low`, `uart_tx_start_high`, `uart_tx_short_frame`, `uart_rx_early_sample`, `uart_rx_late_sample`, `uart_rx_msb_first` |
 
 ## 4. Running

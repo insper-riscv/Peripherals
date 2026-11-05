@@ -17,6 +17,7 @@ As provas formais rodam no SymbiYosys sobre a netlist Verilog que o GHDL sinteti
 | `gpio_cell` | `gpio_cell_props.sv` | limitada, 16 ciclos | Direção, saída e máscaras só mudam por escrita (set, clear e toggle com a máscara de bit); a leitura do pino é o pino de dois ciclos atrás; o status sobe na borda selecionada pelas máscaras e só desce por leitura ou reset; com a saída ligada e estável a leitura e a saída não divergem |
 | `uart_fifo` | `uart_fifo_props.sv` | limitada, 14 ciclos, 3 palavras | Nível, flags de cheia e de vazia e aceitações seguem uma fila de referência que desloca as palavras; uma inserção numa fila cheia só é aceita junto de uma remoção aceita; a palavra mais antiga é a primeira que entrou e ainda não saiu, ou zero com a fila vazia |
 | `uart` | `uart_props.sv` | indução e limitada, 200 ciclos | Níveis das filas, flags de overrun e de descarte, máscara, interrupção e leitura de cada endereço contra o contrato, a partir de qualquer estado; o byte da fila de transmissão só chega ao PHY com ele livre; quadro de transmissão com start, oito dados do menos significativo ao mais e stop, 16 ciclos por bit; recepção de um quadro com ruído nas bordas de cada bit de dado, amostrada no meio do bit |
+| `flash_controller` | `flash_controller_props.sv` | limitada, 14 ciclos, página de 4 palavras | O pulso de comando sai só da escrita no registrador 0, com os três bits baixos do dado e o endereço guardado; a leitura de cada endereço devolve o endereço do comando, o estado do chip ou o índice do buffer, e zero nos demais e sem leitura; o índice do buffer avança a cada escrita de dado e é definido pela escrita no registrador 3; o chip lê do buffer, uma borda depois, a palavra que a escrita deixou no índice |
 
 Cada entidade tem um cover que mostra que a situação provada é alcançável.
 
@@ -41,6 +42,7 @@ Cada defeito proposital do VHDL precisa fazer uma prova falhar. O `formal/run.sh
 | `clint` | `clint_msip_bit`, `clint_cmp_reset_zero`, `clint_cmp_hi_address`, `clint_mtip_unregistered`, `clint_read_swapped`, `clint_tick_early`, `clint_mtime_hi_address`, `clint_strict_compare`, `clint_seq_cmp_clear_not_ones` |
 | `gpio_cell` | `cell_dir_always`, `cell_no_set_clear`, `cell_toggle_is_load`, `cell_mask_ignored`, `cell_fall_uses_rise`, `cell_status_not_cleared`, `cell_pin_not_driven` |
 | `uart_fifo` | `fifo_no_wrap`, `fifo_overwrite_when_full`, `fifo_no_reuse_on_pop`, `fifo_pop_not_counted`, `fifo_push_not_counted`, `fifo_pop_keeps_head`, `fifo_empty_shows_data`, `fifo_pop_when_empty` |
+| `flash_controller` | `flashc_ptr_stuck`, `flashc_cmd_any_write`, `flashc_status_swapped`, `flashc_addr_any_write`, `flashc_op_shifted`, `flashc_word_misplaced`, `flashc_read_ungated`, `flashc_ptr_write_ignored`, `flashc_status_bit_lost` |
 | `uart` | `uart_overrun_ignored`, `uart_drop_not_flagged`, `uart_w1c_wrong_bit`, `uart_tx_pops_when_busy`, `uart_rx_pops_on_any_read`, `uart_irq_mask_ignored`, `uart_status_ready_inverted`, `uart_idle_ignores_phy`, `uart_levels_swapped`, `uart_tx_stop_low`, `uart_tx_start_high`, `uart_tx_short_frame`, `uart_rx_early_sample`, `uart_rx_late_sample`, `uart_rx_msb_first` |
 
 ## 4. Rodando

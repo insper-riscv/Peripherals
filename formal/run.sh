@@ -49,6 +49,7 @@ gpio_srcs=(gpio_operation_decoder gpio_cell gpio)
 mtime_srcs=(clint_mtime)
 clint_srcs=(alu_ge_unsigned clint_consts clint_mtime clint)
 fifo_srcs=(uart_fifo)
+flash_srcs=(flash_controller)
 uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart)
 declare -A path_of
 for n in "${common[@]}"; do path_of[$n]="$root/src/common/src/$n.vhd"; done
@@ -58,6 +59,7 @@ for n in baudGen uartRx uartTx uart2BusTop_pkg uartTop; do path_of[$n]="$root/sr
 for n in clint_consts clint_mtime clint; do path_of[$n]="$root/src/CLINT/soc/$n.vhd"; done
 path_of[uart]="$root/src/UART/serial/uart.vhd"
 path_of[uart_fifo]="$root/src/UART/serial/uart_fifo.vhd"
+path_of[flash_controller]="$root/src/flash-controller/soc/flash_controller.vhd"
 mut_from=""; mut_to=""
 
 # A warning is an error. GHDL, Yosys and SymbiYosys print a warning for code that is out of the norm or at its
@@ -286,6 +288,12 @@ build uart_fifo fifo "${fifo_srcs[@]}" -- "${fgen[@]}"
 expect "level, flags and acceptances follow a shifting reference queue; the oldest word is the first one in (bounded, 14 cycles, 3 words)" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" bmc 14 '' fifo_safety)"
 expect "cover: a push and a pop on a full queue, a push refused when full, and a push with a pop on an empty queue are reachable" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" cover 14 '-DCOVER' fifo_cover)"
 
+echo "flash_controller"
+mut_expose=()
+build flash_controller flashc "${flash_srcs[@]}" -- -gpage_bytes=16
+expect "command pulse, registers, status read and page buffer follow the reference (bounded, 14 cycles, 4 words)" PASS "$(prove flashc.v "$f/flash_controller_props.sv" bmc 14 '' flashc_safety)"
+expect "cover: a program command, a status with busy and refused, a write at the last word and a buffer read are reachable" PASS "$(prove flashc.v "$f/flash_controller_props.sv" cover 14 '-DCOVER' flashc_cover)"
+
 echo "uart"
 uart_exp=(rx_overrun tx_dropped rx_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7 phy_tx_data:7 rx_fifo_data:7 rx_fifo_level:1 tx_fifo_level:1)
 mut_expose=("${uart_exp[@]}")
@@ -353,6 +361,18 @@ mutant clint "$cp_" clint '-DTICK=3' clint_tick_early "s/tick <= '1' when phase 
 mutant clint "$cp_" clint '-DTICK=3' clint_mtime_hi_address "s/wr_mtime_hi <= i_write when i_address = ADDR_MTIME_HI /wr_mtime_hi <= i_write when i_address = ADDR_MTIME_LO /" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
 mutant alu_ge_unsigned "$cp_" clint '-DTICK=3' clint_strict_compare "s/c(0)  <= '1';/c(0)  <= '0';/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
 mutant clint "$cp_" clint '-DTICK=3 -DSEQ' clint_seq_cmp_clear_not_ones "s/clear_value => '1'/clear_value => '0'/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+
+mut_expose=()
+fp="$f/flash_controller_props.sv"
+mutant flash_controller "$fp" flash_controller '' flashc_ptr_stuck "s/ptr <= ptr + 1;/ptr <= ptr;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_cmd_any_write "s/wr_cmd      <= i_write when i_address = REG_CMD else '0';/wr_cmd      <= i_write;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_status_swapped "s/o_data_out(0) <= i_busy;/o_data_out(0) <= i_wel;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_addr_any_write "s/if i_write = '1' and i_address = REG_ADDR then/if i_write = '1' then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_op_shifted "s/o_cmd_op    <= i_data_in(2 downto 0);/o_cmd_op    <= i_data_in(3 downto 1);/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_word_misplaced "s/page(to_integer(ptr)) <= i_data_in;/page(to_integer(ptr + 1)) <= i_data_in;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_read_ungated "s/if i_read = '1' then/if true then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_ptr_write_ignored "s/if i_write = '1' and i_address = REG_BUF_PTR then/if false then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_status_bit_lost "s/o_data_out(2) <= i_refused;/o_data_out(2) <= '0';/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 
 mut_expose=(); mut_open=1
 gp="$f/gpio_cell_props.sv"

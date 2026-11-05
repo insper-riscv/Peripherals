@@ -311,5 +311,19 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "FlashController": {
+        "toplevel": "flash_controller",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/flash-controller/soc/flash_controller.vhd"
+        ],
+        "test_module": "tests.python.unittests.flash_controller.flash_controller",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }
