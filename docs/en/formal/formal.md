@@ -48,6 +48,25 @@ make formal FORMAL_ENGINE=yices      # another engine
 
 `abc-bmc3` skips the induction proofs and the covers, which it does not do, and answers for the bounded proofs and the mutants.
 
+## 5. Warnings are errors
+
+A warning from GHDL, Yosys or SymbiYosys flags code that is out of the norm or at its limit, and the cause is fixed in the code or in the proof. No option hides a warning (`formal/run.sh` has no `-Wno-*`).
+
+1. After each `ghdl -a` and `ghdl --synth`, `formal/run.sh` scans the output of GHDL. After each `sby`, it scans every log of the proof. This holds for the proofs and for the mutants.
+2. The `scan_warnings` function matches the word `warning` or its plural, in any case, as a whole word. It catches `file.vhd:12:5:warning: ...` from GHDL and `Warning: ...` from Yosys and SymbiYosys. It does not catch names with an underscore (`warning_count`), because the underscore is part of the word, and it skips the Yosys summary with a count of zero (`Warnings: 0 unique messages, 0 total`).
+3. Each line found goes to `build/formal/warnings.txt` and to the standard error as `file:line:text`. At the end of the run, a non-empty `warnings.txt` fails `formal/run.sh`.
+4. There is one exact exception, only for the `abc-bmc3` engine: the three messages that ABC itself prints about the AIGER file SymbiYosys hands it (`Treating undriven bit props.\clk like $anyseq`, `Treating a total of N undriven bits in props like $anyseq` and `The last N outputs are interpreted as constraints`). They describe the file format of the tool, not the design, and live in the `abc_notes` variable. Yices, bitwuzla and boolector have no exception, and any other message, in any engine, is an error.
+
+The warnings that the netlist of each proof had and how each cause was handled:
+
+| Warning | Origin | Handling |
+| :--- | :--- | :--- |
+| `comparing non-numeric vector is unexpected` | `baudGen.vhd` (OpenCores), comparison of `std_logic_vector` | The comparison is made between `unsigned` values, with the same behavior and the change recorded in the header and in `ORIGIN.md` |
+| `unhandled attribute "ramstyle"` and `"altera_attribute"` | Quartus synthesis hints in `uart_fifo.vhd` and `synchronizer.vhd` | GHDL does not know these attributes, which do not change the proved logic. The netlist is synthesized from a copy without these two hints, with the lines in the same place. Any other unknown attribute is still an error |
+| `Wire ... is used but has no driver` | Read multiplexer of the 3-word queue after `memory_map` (abc-bmc3 included), whose fourth address is never reached | The branch without a driver gets zero (`setundef -undriven -zero`) |
+| `Yosys has only limited support for tri-state logic` | Tri-state PWM output of the `timer` | The high-impedance state becomes zero in the netlist, as for the pin of the `gpio_cell`. The properties look at the internal PWM register, not at the pin |
+| `Identifier ... is implicitly declared` and `Wire ... is used but has no driver` | Mutants that leave an exposed signal without a reader (`timer_level_not_edge`, `uart_levels_swapped`), which GHDL does not write in the netlist | The `dbg_` output of a signal that is not in the netlist is the constant zero, and the mutant is still caught by the properties of the signals it changes |
+
 ---
 
 Copyright 2026 Insper. Licensed under the [Apache License, Version 2.0](../../../LICENSE).
