@@ -13,6 +13,7 @@
 --   bit 4  máscara de interrupção por borda de subida
 --   bit 5  máscara de interrupção por borda de descida
 --   bit 6  limpeza do status de interrupção na leitura do registrador de IRQ
+--   bit 7  modo de nível da interrupção por pino
 -- =============================================================================
 
 library ieee;
@@ -28,13 +29,15 @@ entity gpio_operation_decoder is
     i_read    : in  std_logic;
 
     -- Habilitações de escrita dos registradores (mapa de bits no cabeçalho).
-    o_wr_en   : out std_logic_vector(6 downto 0);
+    o_wr_en   : out std_logic_vector(7 downto 0);
 
     -- Operação do registrador de saída: 00 carrega, 01 liga, 10 limpa, 11 inverte.
     o_wr_op   : out std_logic_vector(1 downto 0);
 
     -- Seletor do multiplexador de leitura.
-    o_rd_sel  : out std_logic_vector(2 downto 0)
+    o_rd_sel  : out std_logic_vector(2 downto 0);
+    -- O endereço lido é o do modo de nível (a entrada 7 do multiplexador só vale nele).
+    o_rd_level : out std_logic
   );
 end entity gpio_operation_decoder;
 
@@ -52,6 +55,7 @@ architecture rtl of gpio_operation_decoder is
   --    4  | WR_RISE_MASK  – Rising‑edge interrupt mask
   --    5  | WR_FALL_MASK  – Falling‑edge interrupt mask
   --    6  | IRQ_STATUS_CLR    – Reset interrupt status on IRQ Register read
+  --    7  | WR_LEVEL_MASK  – Level-mode mask (rise = high level, fall = low level)
   -- ===========================================================================
   -- Posição, no vetor de habilitações, da escrita da direção.
   constant WR_DIR_I       : integer := 0;
@@ -67,6 +71,8 @@ architecture rtl of gpio_operation_decoder is
   constant WR_FALL_MASK_I : integer := 5;
   -- Posição da limpeza do status de interrupção na leitura do registrador de IRQ.
   constant IRQ_CLR_I   : integer := 6;
+  -- Posição da escrita do modo de nível.
+  constant WR_LEVEL_MASK_I : integer := 7;
 
   -- ===========================================================================
   -- Direction Register
@@ -110,6 +116,12 @@ architecture rtl of gpio_operation_decoder is
   -- Endereço da leitura dos pinos sincronizados.
   constant ADDR_PINS      : std_logic_vector(3 downto 0) := "1001";
 
+  -- ===========================================================================
+  -- IRQ Level Mode Register
+  -- ===========================================================================
+  -- Endereço do modo de nível da interrupção.
+  constant ADDR_LEVEL_MASK : std_logic_vector(3 downto 0) := "1010";
+
 begin
 
   -- -----------------------------------------------------------------------------
@@ -127,6 +139,8 @@ begin
   o_wr_en(WR_RISE_MASK_I) <= i_write when i_address = ADDR_RISE_MASK else '0';
   o_wr_en(WR_FALL_MASK_I) <= i_write when i_address = ADDR_FALL_MASK else '0';
   o_wr_en(IRQ_CLR_I)   <= i_read when i_address = ADDR_IRQ_STAT   else '0';
+  o_wr_en(WR_LEVEL_MASK_I) <= i_write when i_address = ADDR_LEVEL_MASK else '0';
+  o_rd_level <= '1' when i_address = ADDR_LEVEL_MASK else '0';
 
   -- -----------------------------------------------------------------------------
   -- Operação de saída do GPIO: seletor do multiplexador (wr_op)

@@ -24,7 +24,9 @@ The address is the offset in words inside the peripheral.
 | 2 | `STATUS` | Bit 0 busy, bit 1 write latch armed, bit 2 last erase or program refused | Ignored |
 | 3 | `BUF_PTR` | Index of the buffer word that the next `BUF_DATA` writes | Sets the index (low bits of the data) |
 | 4 | `BUF_DATA` | Zero | Writes the word into the buffer at `BUF_PTR` and adds one to `BUF_PTR`, which wraps at the end of the page |
-| 5 to 7 | Reserved | Zero | Ignored |
+| 5 | `IRQ_ENABLE` | Bit 0 done, bit 1 refused | Sets both bits; zero after reset |
+| 6 | `IRQ_STATUS` | Bit 0 `DONE`, bit 1 `REFUSED` | A one in a bit clears it (W1C) |
+| 7 | Reserved | Zero | Ignored |
 
 Codes of `CMD`:
 
@@ -57,6 +59,17 @@ The chip reads the buffer through `i_buf_idx`, and `o_buf_data` brings the word 
 3. For each page of the sector, write `ADDR`, fill the buffer, write `CMD` with 1 and then with 3, and wait for the end.
 4. Read `STATUS` and check that bit 2 is zero.
 
+### 3.4. Interrupt
+
+Two chip events set bits of `IRQ_STATUS`, even with the enable off.
+
+| Bit | Event | Detection |
+| ---: | :--- | :--- |
+| 0 `DONE` | The chip finished an accepted erase or program | Fall of `i_busy` |
+| 1 `REFUSED` | The chip refused an erase or program | Rise of `i_refused`, which only falls with a new write enable |
+
+The `o_irq` output is one while any pending bit is enabled. Software clears an event by writing a one to the bit. An event in the same cycle as the clear wins and keeps the bit set.
+
 ## 4. Interface
 
 ### 4.1. Generics
@@ -76,6 +89,7 @@ The chip reads the buffer through `i_buf_idx`, and `o_buf_data` brings the word 
 | `i_write` | input | 1 | Write pulse |
 | `i_read` | input | 1 | Read pulse |
 | `o_data_out` | output | 32 | Read data, zero without `i_read` |
+| `o_irq` | output | 1 | Level interrupt, `(IRQ_STATUS and IRQ_ENABLE) /= 0` |
 | `o_cmd_valid` | output | 1 | Pulse that delivers a command to the chip |
 | `o_cmd_op` | output | 3 | Command code |
 | `o_cmd_addr` | output | 32 | Byte address of the command |

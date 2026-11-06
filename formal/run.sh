@@ -294,8 +294,16 @@ build flash_controller flashc "${flash_srcs[@]}" -- -gpage_bytes=16
 expect "command pulse, registers, status read and page buffer follow the reference (bounded, 14 cycles, 4 words)" PASS "$(prove flashc.v "$f/flash_controller_props.sv" bmc 14 '' flashc_safety)"
 expect "cover: a program command, a status with busy and refused, a write at the last word and a buffer read are reachable" PASS "$(prove flashc.v "$f/flash_controller_props.sv" cover 14 '-DCOVER' flashc_cover)"
 
+echo "jtag_uart"
+jtag_srcs=(jtag_uart)
+path_of[jtag_uart]="$root/src/UART/jtag/jtag_uart.vhd"
+mut_expose=(); mut_open=0
+build jtag_uart jtagu "${jtag_srcs[@]}" -- -glog2_depth=2
+expect "CONTROL reads back its three bits; the interrupt is transmit-empty or error, each with its enable (bounded, 14 cycles, 4-byte queues)" PASS "$(prove jtagu.v "$f/jtag_uart_props.sv" bmc 14 '' jtagu_safety)"
+expect "cover: a transmit-empty and an error interrupt, and a queue with bytes that holds the line low, are reachable" PASS "$(prove jtagu.v "$f/jtag_uart_props.sv" cover 14 '-DCOVER' jtagu_cover)"
+
 echo "uart"
-uart_exp=(rx_overrun tx_dropped rx_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7 phy_tx_data:7 rx_fifo_data:7 rx_fifo_level:1 tx_fifo_level:1)
+uart_exp=(rx_overrun tx_dropped rx_irq_enable tx_irq_enable err_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7 phy_tx_data:7 rx_fifo_data:7 rx_fifo_level:1 tx_fifo_level:1)
 mut_expose=("${uart_exp[@]}")
 ugen=(-gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3)
 build uart uart "${uart_srcs[@]}" -- "${ugen[@]}"
@@ -372,6 +380,11 @@ mutant flash_controller "$fp" flash_controller '' flashc_op_shifted "s/o_cmd_op 
 mutant flash_controller "$fp" flash_controller '' flashc_word_misplaced "s/page(to_integer(ptr)) <= i_data_in;/page(to_integer(ptr + 1)) <= i_data_in;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 mutant flash_controller "$fp" flash_controller '' flashc_read_ungated "s/if i_read = '1' then/if true then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 mutant flash_controller "$fp" flash_controller '' flashc_ptr_write_ignored "s/if i_write = '1' and i_address = REG_BUF_PTR then/if false then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_done_on_busy_rising "s/ev_done    <= busy_prev and not i_busy;/ev_done    <= i_busy and not busy_prev;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_refused_level "s/ev_refused <= i_refused and not refused_prev;/ev_refused <= i_refused;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_irq_mask_ignored "s/o_irq      <= '1' when (irq_status and irq_enable) \/= \"00\" else '0';/o_irq      <= '1' when irq_status \/= \"00\" else '0';/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_w1c_clears_all "s/irq_status <= irq_status and not i_data_in(1 downto 0);/irq_status <= (others => '0');/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_event_loses_to_clear "s/        if ev_done = '1' then/        if ev_done = '1' and not (i_write = '1' and i_address = REG_IRQ_STATUS) then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 mutant flash_controller "$fp" flash_controller '' flashc_status_bit_lost "s/o_data_out(2) <= i_refused;/o_data_out(2) <= '0';/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 
 mut_expose=(); mut_open=1
@@ -382,6 +395,9 @@ mutant gpio_cell "$gp" gpio_cell '' cell_toggle_is_load "s/i_d3  => toggle_vecto
 mutant gpio_cell "$gp" gpio_cell '' cell_mask_ignored "s/irq_set       <= interrupt_logic and irq_mask;/irq_set       <= interrupt_logic;/" 10 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '' cell_fall_uses_rise "s/(irq_fall_mask and (not pin_input and prev_pin_input))/(irq_rise_mask and (not pin_input and prev_pin_input))/" 10 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '' cell_status_not_cleared "s/irq_clear     <= i_rst or i_wr_signals(6);/irq_clear     <= i_rst;/" 10 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_level_ignored "s/interrupt_logic <= level_logic when irq_level_mode = '1' else edge_logic;/interrupt_logic <= edge_logic;/" 16 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_level_fall_is_high "s/(irq_fall_mask and not pin_input)/(irq_fall_mask and pin_input)/" 16 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_level_mode_write "s/i_enable => i_wr_signals(7),/i_enable => i_wr_signals(3),/" 16 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '' cell_pin_not_driven "s/i_enable => dir_reg,/i_enable => '0',/" 10 gpio_cell --
 mut_open=0
 
@@ -396,6 +412,11 @@ mutant uart_fifo "$fp" uart_fifo '' fifo_pop_keeps_head "s/read_pointer <= next_
 mutant uart_fifo "$fp" uart_fifo '' fifo_empty_shows_data "s/else (others => '0');/else memory(read_pointer);/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
 mutant uart_fifo "$fp" uart_fifo '' fifo_pop_when_empty "s/i_pop = '1' and count > 0/i_pop = '1'/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
 
+mut_expose=(); jp="$f/jtag_uart_props.sv"
+mutant jtag_uart "$jp" jtagu '' jtagu_tx_empty_inverted "s/(tx_empty and tx_irq_enable)/((not tx_empty) and tx_irq_enable)/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2
+mutant jtag_uart "$jp" jtagu '' jtagu_error_mask_ignored "s/(lost and err_irq_enable)/lost/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2
+mutant jtag_uart "$jp" jtagu '' jtagu_control_bit_swapped "s/tx_irq_enable  <= i_wdata(1);/tx_irq_enable  <= i_wdata(2);/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2
+mutant jtag_uart "$jp" jtagu '' jtagu_lost_stays "s/            lost <= '0';/            null;/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2
 mut_expose=("${uart_exp[@]}")
 up="$f/uart_props.sv"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_overrun_ignored "s/rx_overrun <= '1';/null;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
@@ -403,7 +424,11 @@ mutant uart "$up" uart '-DREGS -DANYSTATE' uart_drop_not_flagged "s/tx_dropped <
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_w1c_wrong_bit "s/if i_data_in(2) = '1' then/if i_data_in(3) = '1' then/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_tx_pops_when_busy "s/when phy_tx_busy = '0' and tx_fifo_empty = '0'/when tx_fifo_empty = '0'/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_rx_pops_on_any_read "s/when i_read = '1' and i_address = RX_DATA_ADDRESS/when i_read = '1'/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_mask_ignored "s/o_irq <= (not rx_fifo_empty) and rx_irq_enable;/o_irq <= not rx_fifo_empty;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_mask_ignored "s/((not rx_fifo_empty) and rx_irq_enable)/(not rx_fifo_empty)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_tx_empty_inverted "s/or (tx_fifo_empty and tx_irq_enable)/or ((not tx_fifo_empty) and tx_irq_enable)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_error_ignores_drop "s/((rx_overrun or tx_dropped) and err_irq_enable)/(rx_overrun and err_irq_enable)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_error_mask_ignored "s/((rx_overrun or tx_dropped) and err_irq_enable)/(rx_overrun or tx_dropped)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_control_bit_swapped "s/tx_irq_enable  <= i_data_in(1);/tx_irq_enable  <= i_data_in(2);/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_status_ready_inverted "s/value(1) := not tx_fifo_full;/value(1) := tx_fifo_full;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_idle_ignores_phy "s/value(6) := tx_fifo_empty and not phy_tx_busy;/value(6) := tx_fifo_empty;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_levels_swapped "s/to_unsigned(rx_fifo_level, 8)/to_unsigned(tx_fifo_level, 8)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"

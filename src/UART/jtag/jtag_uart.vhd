@@ -17,6 +17,13 @@
 --                      descartado desde a última leitura deste registrador (a leitura limpa),
 --                      bit 17 um hospedeiro já varreu desde o reset (um programa que só imprime
 --                      quando alguém escuta o lê); escrita: ignorada
+--   palavra 3  CONTROL leitura e escrita: bit 0 RX_IRQ_ENABLE, bit 1 TX_EMPTY_IRQ_ENABLE, bit 2
+--                      ERROR_IRQ_ENABLE; zero no reset
+--
+-- A saída o_irq é de nível e vale a soma de três causas, cada uma com a sua habilitação: fila de
+-- recepção não vazia (cai ao ler RXDATA até esvaziar), fila de transmissão vazia (o hospedeiro
+-- levou tudo; cai ao escrever TXDATA) e byte descartado (cai com a leitura de STATUS, que limpa o
+-- bit 16).
 --
 -- Lado do hospedeiro: a lógica atrás de uma instância do Virtual JTAG
 -- (sld_virtual_jtag no topo da placa, conduzida pelo testbench em simulação) em
@@ -65,6 +72,8 @@ entity jtag_uart is
     i_re      : in  std_logic;
     -- Dado lido.
     o_rdata   : out std_logic_vector(31 downto 0);
+    -- Requisição de interrupção de nível (recepção, transmissão vazia ou byte descartado).
+    o_irq     : out std_logic;
 
     -- Clock da cadeia JTAG.
     i_tck       : in  std_logic;
@@ -108,6 +117,16 @@ architecture rtl of jtag_uart is
   signal lost      : std_logic := '0';
   -- Um hospedeiro já varreu desde o reset.
   signal attached  : std_logic := '0';
+  -- Há byte esperando na fila de recepção.
+  signal rx_pending     : std_logic;
+  -- A fila de transmissão está vazia.
+  signal tx_empty       : std_logic;
+  -- Habilitação da interrupção por byte recebido.
+  signal rx_irq_enable  : std_logic := '0';
+  -- Habilitação da interrupção por fila de transmissão vazia.
+  signal tx_irq_enable  : std_logic := '0';
+  -- Habilitação da interrupção por byte descartado.
+  signal err_irq_enable : std_logic := '0';
   -- Sincronizador de dois estágios do toggle de comando.
   signal cmd_s     : std_logic_vector(1 downto 0) := "00";
   -- Toggle de conclusão (registrado).
@@ -144,13 +163,20 @@ architecture rtl of jtag_uart is
 
 begin
 
+  rx_pending <= '1' when rx_level /= 0 else '0';
+  tx_empty   <= '1' when tx_level = 0 else '0';
+  o_irq <= (rx_pending and rx_irq_enable)
+           or (tx_empty and tx_irq_enable)
+           or (lost and err_irq_enable);
+
   tx_level <= tx_w - tx_r;
   rx_level <= rx_w - rx_r;
   busy     <= '1' when cmd_i /= done_s(1) else '0';
   o_tdo      <= sr(0) when ir = "01" else bypass;
 
   -- os registradores lidos pelo core
-  process (i_addr, rx_mem, rx_r, rx_level, tx_level, lost, attached)
+  process (i_addr, rx_mem, rx_r, rx_level, tx_level, lost, attached,
+           rx_irq_enable, tx_irq_enable, err_irq_enable)
     -- Lugares livres na fila de transmissão.
     variable free : unsigned(15 downto 0);
   begin
@@ -167,6 +193,10 @@ begin
         o_rdata(15 downto 8) <= std_logic_vector(resize(rx_level, 8));
         o_rdata(16)          <= lost;
         o_rdata(17)          <= attached;
+      when 3 =>
+        o_rdata(0) <= rx_irq_enable;
+        o_rdata(1) <= tx_irq_enable;
+        o_rdata(2) <= err_irq_enable;
       when others =>
         null;
     end case;
@@ -194,6 +224,9 @@ begin
         rx_r <= (others => '0');
         lost <= '0';
         attached <= '0';
+        rx_irq_enable  <= '0';
+        tx_irq_enable  <= '0';
+        err_irq_enable <= '0';
         done_i <= cmd_s(1);   -- um comando pendente antes do reset não é executado
         resp <= (others => '0');
       else
@@ -205,6 +238,11 @@ begin
             tx_mem(to_integer(tx_w(log2_depth - 1 downto 0))) <= i_wdata(7 downto 0);
             tx_w <= tx_w + 1;
           end if;
+        end if;
+        if i_we = '1' and to_integer(unsigned(i_addr)) = 3 then
+          rx_irq_enable  <= i_wdata(0);
+          tx_irq_enable  <= i_wdata(1);
+          err_irq_enable <= i_wdata(2);
         end if;
         if i_re = '1' then
           if to_integer(unsigned(i_addr)) = 1 and rx_level /= 0 then

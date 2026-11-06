@@ -131,6 +131,7 @@ class GpioDecoderDut(DecoderDut, Protocol):
     """Signals of the GPIO operation decoder."""
 
     o_wr_op: LogicArrayObject
+    o_rd_level: LogicObject
 
 
 class TimerDecoderDut(DecoderDut, Protocol):
@@ -205,6 +206,7 @@ class JtagUartDut(JtagDut, ResettableDut, Protocol):
     i_we: LogicObject
     i_re: LogicObject
     o_rdata: LogicArrayObject
+    o_irq: LogicObject
     i_tdi: LogicObject
     o_tdo: LogicObject
 
@@ -219,6 +221,7 @@ class ExtIrqControllerDut(BusDut, Protocol):
 class FlashControllerDut(BusDut, Protocol):
     """Signals of the FLASH controller."""
 
+    o_irq: LogicObject
     o_cmd_valid: LogicObject
     o_cmd_op: LogicArrayObject
     o_cmd_addr: LogicArrayObject

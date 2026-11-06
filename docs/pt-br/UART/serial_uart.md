@@ -28,7 +28,7 @@ Cada quadro recebido adiciona um byte à cauda de RX. Uma leitura de `RX_DATA` d
 | 0 | `TX_DATA` | Zero | Enfileira os bits 7:0 em TX |
 | 1 | `RX_DATA` | Bits 7:0 do byte mais antigo e remoção ao final do acesso | Ignorada |
 | 2 | `STATUS` | Estado, erros e níveis descritos abaixo | Um em um bit de erro o limpa |
-| 3 | `CONTROL` | Bit 0 igual a `RX_IRQ_ENABLE` | Bit 0 habilita a interrupção de RX |
+| 3 | `CONTROL` | Bit 0 `RX_IRQ_ENABLE`, bit 1 `TX_EMPTY_IRQ_ENABLE`, bit 2 `ERROR_IRQ_ENABLE` | Os três bits habilitam as causas de interrupção |
 
 | Bits de `STATUS` | Nome | Significado |
 | :--- | :--- | :--- |
@@ -50,7 +50,15 @@ Cada quadro recebido adiciona um byte à cauda de RX. Uma leitura de `RX_DATA` d
 
 Quando RX está cheia, o byte novo é descartado e todos os bytes antigos permanecem em ordem. Quando TX está cheia, a escrita nova é descartada sem alterar os bytes que já esperam.
 
-A interrupção vale um quando `RX_IRQ_ENABLE` está ativo e RX não está vazia. Ela permanece ativa até o software remover o último byte ou desabilitá-la.
+A saída `o_irq` é de nível e vale a soma de três causas, cada uma com a sua habilitação, todas zeradas no reset.
+
+| Causa | Condição | Deixa de valer quando |
+| :--- | :--- | :--- |
+| Recepção (`RX_IRQ_ENABLE`) | RX não está vazia | O software remove o último byte |
+| Transmissor vazio (`TX_EMPTY_IRQ_ENABLE`) | TX está vazia | O software escreve em `TX_DATA` |
+| Erro (`ERROR_IRQ_ENABLE`) | `RX_OVERRUN` ou `TX_DROPPED` ativo | O software limpa o bit em `STATUS` |
+
+Com TX vazia a causa de transmissor vazio vale logo ao ser habilitada, então o software a habilita só quando tem bytes a enviar e a desabilita ao terminar.
 
 ## 5. Verificação
 

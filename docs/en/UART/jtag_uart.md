@@ -6,7 +6,7 @@ A UART whose other end is a host on JTAG instead of a serial line: the core writ
 
 | Part | Role |
 | :--- | :--- |
-| Core side | Three word registers, one access per pulse of `we` or `re` (section 2) |
+| Core side | Four word registers, one access per pulse of `we` or `re` (section 2) |
 | Queues | Transmit and receive, 64 bytes each |
 | Host side | The logic behind a Virtual JTAG instance (`sld_virtual_jtag` on the board, driven by the testbench in simulation), on the JTAG clock (section 3) |
 
@@ -19,6 +19,15 @@ The interconnect that decodes the address and gives the core the `ready` is in I
 | 0 | TXDATA | 0 | queue bits 7:0 for the host; dropped and flagged if the queue is full |
 | 1 | RXDATA | bit 8 = a byte was waiting, bits 7:0 = that byte (removed); 0 when empty | ignored |
 | 2 | STATUS | bits 7:0 free places in the transmit queue (0 to 64), bits 15:8 bytes in the receive queue, bit 16 a byte was dropped since the last read (the read clears it), bit 17 a host has scanned since the reset | ignored |
+| 3 | CONTROL | Bit 0 `RX_IRQ_ENABLE`, bit 1 `TX_EMPTY_IRQ_ENABLE`, bit 2 `ERROR_IRQ_ENABLE`; zero after reset | Sets the three bits |
+
+The `o_irq` output is a level and is the sum of three causes, each with its own enable.
+
+| Cause | Condition | Stops holding when |
+| :--- | :--- | :--- |
+| Receive | A byte waits in the receive queue | The core reads the last byte of RXDATA |
+| Transmit empty | The transmit queue is empty (the host took everything) | The core writes TXDATA |
+| Error | A byte was dropped | The core reads STATUS, which clears bit 16 |
 
 A write to a full queue never blocks the core. A program that must not stop when no host is attached reads bit 17 of STATUS: while it is 0 nobody listens and the program does not print; once it is 1 the program waits for a free place, up to a bound.
 
@@ -49,4 +58,4 @@ Every accepted scan takes up to four bytes out of the transmit queue. The JTAG c
 
 ## 5. Verification and a fixed defect
 
-The behavior is exercised through the bus, by the `ExtBus` system test of Insper-RISC-V (bytes in order, full queues, an answer shown once, the status flags). The block has no entity test of its own yet. The defect that shaped the host side is in [JTAG_UART_RESPOSTA_PERDIDA.md](../bugs/JTAG_UART_RESPOSTA_PERDIDA.md).
+The behavior is exercised through the bus, by the `ExtBus` system test of Insper-RISC-V (bytes in order, full queues, an answer shown once, the status flags). The block has an entity test of its own (queues, order, CONTROL and the three interrupt causes). The defect that shaped the host side is in [JTAG_UART_RESPOSTA_PERDIDA.md](../bugs/JTAG_UART_RESPOSTA_PERDIDA.md).

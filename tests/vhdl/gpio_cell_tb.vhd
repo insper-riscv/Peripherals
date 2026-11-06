@@ -19,9 +19,9 @@ entity gpio_cell_tb is
     -- Dado de 1 bit vindo do processador.
     i_data_in      : in  std_logic;
     -- Estado interno lido pelo processador, um bit por registrador.
-    o_data_out     : out std_logic_vector(6 downto 0);
+    o_data_out     : out std_logic_vector(7 downto 0);
     -- Habilitações de escrita dos registradores.
-    i_wr_signals   : in  std_logic_vector(6 downto 0);
+    i_wr_signals   : in  std_logic_vector(7 downto 0);
     -- Operação de saída: 00 carrega, 01 liga, 10 limpa, 11 inverte.
     i_wr_op        : in  std_logic_vector(1 downto 0);
     -- Valor que o mundo externo coloca no pino.

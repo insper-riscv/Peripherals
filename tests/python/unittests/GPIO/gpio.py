@@ -7,7 +7,8 @@ from tests.python.utils.check import check
 from tests.python.utils.dut import GpioDut
 
 DIR, OUT_LOAD, OUT_SET, OUT_CLR, OUT_TGL = 0, 1, 2, 3, 4
-IRQ_MASK, RISE_MASK, FALL_MASK, IRQ_STAT, PINS = 5, 6, 7, 8, 9
+IRQ_MASK, RISE_MASK, FALL_MASK, IRQ_STAT, PINS, LEVEL_MASK = 5, 6, 7, 8, 9, 10
+UNMAPPED = (11, 12, 13, 14, 15)
 ALL_PINS = 0xFF
 SYNC_CYCLES = 3
 EDGE_CYCLES = 4
@@ -38,7 +39,7 @@ async def setup(dut: GpioDut) -> None:
 async def test_reset_state(dut: GpioDut) -> None:
     """Every register is zero after the reset."""
     await setup(dut)
-    registers = (DIR, OUT_LOAD, IRQ_MASK, RISE_MASK, FALL_MASK, IRQ_STAT)
+    registers = (DIR, OUT_LOAD, IRQ_MASK, RISE_MASK, FALL_MASK, IRQ_STAT, LEVEL_MASK)
     for address in registers:
         value = await bus.read(dut, address)
         check(value == 0, f"register {address} after reset")
@@ -175,3 +176,37 @@ async def test_masked_pin_raises_nothing(dut: GpioDut) -> None:
     await _edge(dut, 0b000, 0b110, {IRQ_MASK: 0b010, RISE_MASK: ALL_PINS})
     pending = await bus.read(dut, IRQ_STAT)
     check(pending == UNMASKED_PIN, "only the unmasked pin")
+
+
+@cocotb.test()
+async def test_level_mode_is_per_pin_and_o_irq_is_a_level(
+    dut: GpioDut,
+) -> None:
+    """A pin in level mode keeps the interrupt up while the level holds."""
+    await setup(dut)
+    for address in UNMAPPED:
+        check(await bus.read(dut, address) == 0, f"address {address}")
+    dut.i_pin_drive_en.value = ALL_PINS
+    dut.i_pin_drive.value = 0b0000_0000
+    await bus.write(dut, IRQ_MASK, ALL_PINS)
+    await bus.write(dut, RISE_MASK, 0b0000_0100)
+    await bus.write(dut, FALL_MASK, 0b0000_0010)
+    await bus.write(dut, LEVEL_MASK, 0b0000_0110)
+    check(await bus.read(dut, LEVEL_MASK) == 0b0000_0110)
+    await bus.cycles(dut, EDGE_CYCLES)
+    check(int(dut.o_irq.value) == 1, "pin 1 is low and wants the low level")
+    dut.i_pin_drive.value = 0b0000_0010
+    await bus.cycles(dut, EDGE_CYCLES)
+    await bus.read(dut, IRQ_STAT)
+    await bus.cycles(dut, EDGE_CYCLES)
+    check(int(dut.o_irq.value) == 0, "no pin meets its level")
+    dut.i_pin_drive.value = 0b0000_0110
+    await bus.cycles(dut, EDGE_CYCLES)
+    pending = await bus.read(dut, IRQ_STAT)
+    check(pending == 0b0000_0100, f"only pin 2 (high level): {pending:#x}")
+    await bus.cycles(dut, EDGE_CYCLES)
+    check(int(dut.o_irq.value) == 1, "the high level still holds")
+    await bus.write(dut, RISE_MASK, 0)
+    await bus.read(dut, IRQ_STAT)
+    await bus.cycles(dut, EDGE_CYCLES)
+    check(int(dut.o_irq.value) == 0, "mask off, the line drops")

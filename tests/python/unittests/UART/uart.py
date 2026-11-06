@@ -21,6 +21,8 @@ RX_FULL = 1 << 4
 TX_EMPTY = 1 << 5
 TX_IDLE = 1 << 6
 RX_IRQ_ENABLE = 1 << 0
+TX_EMPTY_IRQ_ENABLE = 1 << 1
+ERROR_IRQ_ENABLE = 1 << 2
 RX_LEVEL_SHIFT = 8
 TX_LEVEL_SHIFT = 16
 LEVEL_MASK = 0xFF
@@ -29,6 +31,7 @@ BIT_CYCLES = 16
 DATA_BITS = 8
 STOP_MARGIN_CYCLES = 4
 FIFO_DEPTH = 4
+DRAIN_CYCLES = BIT_CYCLES * 10 * (FIFO_DEPTH + 3)
 STATUS_POLL_LIMIT = BIT_CYCLES * 12
 
 BYTE_TX = 0xA5
@@ -341,3 +344,67 @@ async def test_tx_read_and_rx_write_are_side_effect_free(
 
     check(await bus.read(dut, RX_DATA) == BYTE_SIDE_EFFECT)
     check(await bus.read(dut, STATUS) & RX_VALID == 0)
+
+
+@cocotb.test()
+async def test_tx_empty_interrupt_follows_queue_and_enable(dut: UartDut) -> None:
+    """A interrupção de transmissor vazio é de nível e segue a fila TX."""
+    await setup(dut)
+    check(int(dut.o_irq.value) == 0, "desabilitada, não sobe com a fila vazia")
+
+    await bus.write(dut, CONTROL, TX_EMPTY_IRQ_ENABLE)
+    check(await bus.read(dut, CONTROL) == TX_EMPTY_IRQ_ENABLE)
+    check(int(dut.o_irq.value) == 1, "fila vazia e habilitada")
+
+    for value in range(0x50, 0x50 + FIFO_DEPTH + 1):
+        await bus.write(dut, TX_DATA, value)
+    check(int(dut.o_irq.value) == 0, "fila com bytes")
+
+    await bus.cycles(dut, DRAIN_CYCLES)
+    await wait_tx_idle(dut)
+    check(int(dut.o_irq.value) == 1, "fila esvaziou")
+
+    await bus.write(dut, CONTROL, 0)
+    check(int(dut.o_irq.value) == 0, "habilitação desligada")
+
+
+@cocotb.test()
+async def test_error_interrupt_until_cleared_by_w1c(dut: UartDut) -> None:
+    """Overrun de recepção e descarte de transmissão levantam o erro."""
+    await setup(dut)
+    await bus.write(dut, CONTROL, ERROR_IRQ_ENABLE)
+    check(int(dut.o_irq.value) == 0)
+
+    for value in range(FIFO_DEPTH + 1):
+        await send_serial_byte(dut, 0x60 + value)
+    check(int(dut.o_irq.value) == 1, "overrun de recepção")
+    await bus.write(dut, STATUS, RX_OVERRUN)
+    check(int(dut.o_irq.value) == 0, "limpo escrevendo 1")
+
+    for value in range(FIFO_DEPTH + 2):
+        await bus.write(dut, TX_DATA, 0x70 + value)
+    await bus.write(dut, TX_DATA, BYTE_DROPPED)
+    check(int(dut.o_irq.value) == 1, "descarte de transmissão")
+    await bus.write(dut, STATUS, TX_DROPPED)
+    check(int(dut.o_irq.value) == 0)
+    await bus.cycles(dut, DRAIN_CYCLES)
+    await wait_tx_idle(dut)
+
+    await bus.write(dut, CONTROL, 0)
+    await send_serial_byte(dut, BYTE_PREVIOUS)
+    check(int(dut.o_irq.value) == 0, "sem habilitação nada sobe")
+
+
+@cocotb.test()
+async def test_interrupt_causes_are_independent(dut: UartDut) -> None:
+    """Cada habilitação só libera a sua causa."""
+    await setup(dut)
+    await send_serial_byte(dut, BYTE_FIRST_IRQ)
+    await bus.write(dut, CONTROL, TX_EMPTY_IRQ_ENABLE | ERROR_IRQ_ENABLE)
+    check(int(dut.o_irq.value) == 1, "TX vazia, mesmo com byte recebido")
+    await bus.write(dut, CONTROL, ERROR_IRQ_ENABLE)
+    check(int(dut.o_irq.value) == 0, "recepção não habilitada")
+    await bus.write(dut, CONTROL, RX_IRQ_ENABLE)
+    check(int(dut.o_irq.value) == 1)
+    check(await bus.read(dut, RX_DATA) == BYTE_FIRST_IRQ)
+    check(int(dut.o_irq.value) == 0)

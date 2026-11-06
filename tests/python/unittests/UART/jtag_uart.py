@@ -14,7 +14,8 @@ from tests.python.utils.dut import JtagUartDut
 CLK_NS = 20
 DEPTH = 64
 SCAN_BITS = 48
-TXDATA, RXDATA, STATUS = 0, 1, 2
+TXDATA, RXDATA, STATUS, CONTROL = 0, 1, 2, 3
+RX_IRQ_ENABLE, TX_EMPTY_IRQ_ENABLE, ERROR_IRQ_ENABLE = 1, 2, 4
 PUSH_BIT = 1 << 8
 BYTES_SHIFT = 32
 COUNT_SHIFT = 32
@@ -66,6 +67,25 @@ async def _core_write(dut: JtagUartDut, value: int) -> None:
         The byte.
     """
     dut.i_addr.value = TXDATA
+    dut.i_wdata.value = value
+    dut.i_we.value = 1
+    await _post_edge(dut)
+    dut.i_we.value = 0
+
+
+async def _core_write_register(dut: JtagUartDut, address: int, value: int) -> None:
+    """Write a word to any register from the core side.
+
+    Parameters
+    ----------
+    dut : JtagUartDut
+        The design under test.
+    address : int
+        Word address.
+    value : int
+        The word.
+    """
+    dut.i_addr.value = address
     dut.i_wdata.value = value
     dut.i_we.value = 1
     await _post_edge(dut)
@@ -227,3 +247,68 @@ async def test_full_transmit_queue_drops_and_flags(dut: JtagUartDut) -> None:
     check((status >> 16) & 1 == 0, "reading the status clears the flag")
     received = await _host_bytes(dut)
     check(received == list(range(DEPTH)), "the dropped byte never appears")
+
+
+@cocotb.test()
+async def test_control_register_reads_back_and_resets(dut: JtagUartDut) -> None:
+    """CONTROL holds the three enables and is zero after the reset."""
+    await _start(dut)
+    check(await _core_read(dut, CONTROL) == 0, "zero after the reset")
+    await _core_write_register(dut, CONTROL, 0xFFFF_FFFF)
+    check(await _core_read(dut, CONTROL) == 0b111, "three bits only")
+    await _core_write_register(dut, CONTROL, 0b010)
+    check(await _core_read(dut, CONTROL) == 0b010)
+    await bus.hold_reset(dut, 2, CLK_NS)
+    await _post_edge(dut)
+    check(await _core_read(dut, CONTROL) == 0, "cleared by the reset")
+
+
+@cocotb.test()
+async def test_receive_interrupt_follows_the_queue(dut: JtagUartDut) -> None:
+    """The receive interrupt is a level: up while a byte waits."""
+    await _start(dut)
+    check(int(dut.o_irq.value) == 0)
+    await _core_write_register(dut, CONTROL, RX_IRQ_ENABLE)
+    check(int(dut.o_irq.value) == 0, "empty queue")
+    for byte in (0x11, 0x22):
+        await _scan(dut, PUSH_BIT | byte)
+    for _ in range(3):
+        await _scan(dut)
+    check(int(dut.o_irq.value) == 1, "byte waiting")
+    await _core_read(dut, RXDATA)
+    check(int(dut.o_irq.value) == 1, "one byte left")
+    await _core_read(dut, RXDATA)
+    check(int(dut.o_irq.value) == 0, "queue empty")
+    await _core_write_register(dut, CONTROL, 0)
+
+
+@cocotb.test()
+async def test_transmit_empty_interrupt_follows_the_host(dut: JtagUartDut) -> None:
+    """The transmit-empty interrupt rises when the host drains the queue."""
+    await _start(dut)
+    await _core_write_register(dut, CONTROL, TX_EMPTY_IRQ_ENABLE)
+    check(int(dut.o_irq.value) == 1, "empty at the start")
+    await _core_write(dut, 0x41)
+    check(int(dut.o_irq.value) == 0, "byte queued")
+    received = await _host_bytes(dut)
+    check(received == [0x41])
+    check(int(dut.o_irq.value) == 1, "drained by the host")
+    await _core_write_register(dut, CONTROL, 0)
+    check(int(dut.o_irq.value) == 0, "enable off")
+
+
+@cocotb.test()
+async def test_error_interrupt_until_status_read(dut: JtagUartDut) -> None:
+    """A dropped byte raises the error interrupt until STATUS is read."""
+    await _start(dut)
+    await _core_write_register(dut, CONTROL, ERROR_IRQ_ENABLE)
+    for byte in range(DEPTH):
+        await _core_write(dut, byte)
+    check(int(dut.o_irq.value) == 0, "full but nothing lost")
+    await _core_write(dut, 0xEE)
+    check(int(dut.o_irq.value) == 1, "byte dropped")
+    await _core_read(dut, STATUS)
+    check(int(dut.o_irq.value) == 0, "the status read clears it")
+    await _core_write_register(dut, CONTROL, 0)
+    await _core_write(dut, 0xEF)
+    check(int(dut.o_irq.value) == 0, "disabled, a loss raises nothing")

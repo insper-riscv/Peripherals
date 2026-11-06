@@ -6,7 +6,7 @@ Uma UART cuja outra ponta é um hospedeiro na JTAG em vez de uma linha serial: o
 
 | Parte | Papel |
 | :--- | :--- |
-| Lado do core | Três registradores de palavra, um acesso por pulso de `we` ou `re` (seção 2) |
+| Lado do core | Quatro registradores de palavra, um acesso por pulso de `we` ou `re` (seção 2) |
 | Filas | De transmissão e de recepção, 64 bytes cada |
 | Lado do hospedeiro | A lógica atrás de uma instância do Virtual JTAG (`sld_virtual_jtag` na placa, conduzida pelo testbench em simulação), no clock da JTAG (seção 3) |
 
@@ -19,6 +19,15 @@ O interconector que decodifica o endereço e dá o `ready` ao core está no Insp
 | 0 | TXDATA | 0 | Enfileira os bits 7:0 para o hospedeiro, descartados e sinalizados se a fila está cheia |
 | 1 | RXDATA | Bit 8 = havia um byte esperando, bits 7:0 = esse byte (removido), 0 quando vazia | Ignorada |
 | 2 | STATUS | Bits 7:0 lugares livres na fila de transmissão (0 a 64), bits 15:8 bytes na fila de recepção, bit 16 um byte foi descartado desde a última leitura (a leitura o limpa), bit 17 um hospedeiro já varreu desde o reset | Ignorada |
+| 3 | CONTROL | Bit 0 `RX_IRQ_ENABLE`, bit 1 `TX_EMPTY_IRQ_ENABLE`, bit 2 `ERROR_IRQ_ENABLE`; zero no reset | Define os três bits |
+
+A saída `o_irq` é de nível e vale a soma de três causas, cada uma com a sua habilitação.
+
+| Causa | Condição | Deixa de valer quando |
+| :--- | :--- | :--- |
+| Recepção | Há byte na fila de recepção | O core lê o último byte em RXDATA |
+| Transmissão vazia | A fila de transmissão está vazia (o hospedeiro levou tudo) | O core escreve em TXDATA |
+| Erro | Um byte foi descartado | O core lê STATUS, que limpa o bit 16 |
 
 Uma escrita numa fila cheia nunca bloqueia o core. Um programa que não pode parar quando nenhum hospedeiro está conectado lê o bit 17 do STATUS: enquanto ele vale 0, ninguém escuta e o programa não imprime, e quando passa a valer 1 o programa espera um lugar livre, até um limite.
 
@@ -49,4 +58,4 @@ Toda varredura aceita tira até quatro bytes da fila de transmissão. O clock da
 
 ## 5. Verificação e um defeito corrigido
 
-O comportamento é exercitado pelo barramento, pelo teste de sistema `ExtBus` do Insper-RISC-V (bytes em ordem, filas cheias, uma resposta mostrada uma vez e os flags de status). O bloco ainda não tem um teste de entidade próprio. O defeito que moldou o lado do hospedeiro está em [JTAG_UART_RESPOSTA_PERDIDA.md](../bugs/JTAG_UART_RESPOSTA_PERDIDA.md).
+O comportamento é exercitado pelo barramento, pelo teste de sistema `ExtBus` do Insper-RISC-V (bytes em ordem, filas cheias, uma resposta mostrada uma vez e os flags de status). O bloco tem teste de entidade próprio (filas, ordem, CONTROL e as três causas de interrupção). O defeito que moldou o lado do hospedeiro está em [JTAG_UART_RESPOSTA_PERDIDA.md](../bugs/JTAG_UART_RESPOSTA_PERDIDA.md).

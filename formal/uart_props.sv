@@ -22,7 +22,7 @@ module props (input clk);
   (* anyseq *) wire [31:0] wdata;
   wire [31:0] rdata;
   wire irq, tx;
-  wire d_over, d_drop, d_ie, d_new_rx, d_busy, d_new_tx;
+  wire d_over, d_drop, d_ie, d_tie, d_eie, d_new_rx, d_busy, d_new_tx;
   wire [7:0] d_phy_rx, d_phy_tx, d_rx_head;
   wire [1:0] d_rxl, d_txl;
 `ifdef RXF
@@ -33,7 +33,7 @@ module props (input clk);
 
   uart dut (.i_clk(clk), .i_rst(reset), .i_data_in(wdata), .i_address(addr), .i_write(write), .i_read(read),
     .o_data_out(rdata), .o_irq(irq), .i_uart_rx(rx), .o_uart_tx(tx), .dbg_rx_overrun(d_over),
-    .dbg_tx_dropped(d_drop), .dbg_rx_irq_enable(d_ie), .dbg_phy_new_rx_data(d_new_rx), .dbg_phy_tx_busy(d_busy),
+    .dbg_tx_dropped(d_drop), .dbg_rx_irq_enable(d_ie), .dbg_tx_irq_enable(d_tie), .dbg_err_irq_enable(d_eie), .dbg_phy_new_rx_data(d_new_rx), .dbg_phy_tx_busy(d_busy),
     .dbg_phy_new_tx_data(d_new_tx), .dbg_phy_rx_data(d_phy_rx), .dbg_phy_tx_data(d_phy_tx),
     .dbg_rx_fifo_data(d_rx_head), .dbg_rx_fifo_level(d_rxl), .dbg_tx_fifo_level(d_txl));
 
@@ -60,10 +60,10 @@ module props (input clk);
   // só é aceita junto de uma remoção aceita.
 `ifdef ANYSTATE
   reg [1:0] m_rxl, m_txl;
-  reg m_over, m_drop, m_ie;
+  reg m_over, m_drop, m_ie, m_tie, m_eie;
 `else
   reg [1:0] m_rxl = 0, m_txl = 0;
-  reg m_over = 0, m_drop = 0, m_ie = 0;
+  reg m_over = 0, m_drop = 0, m_ie = 0, m_tie = 0, m_eie = 0;
 `endif
   wire rx_pop = rd_rx && m_rxl != 0;
   wire rx_acc = d_new_rx && (m_rxl != `DEPTH || rx_pop);
@@ -72,12 +72,14 @@ module props (input clk);
 `ifdef ANYSTATE
   initial begin
     assume (m_rxl == d_rxl); assume (m_txl == d_txl); assume (m_over == d_over); assume (m_drop == d_drop);
-    assume (m_ie == d_ie); assume (m_rxl <= `DEPTH); assume (m_txl <= `DEPTH);
+    assume (m_ie == d_ie); assume (m_tie == d_tie); assume (m_eie == d_eie); assume (m_rxl <= `DEPTH); assume (m_txl <= `DEPTH);
   end
 `endif
 
   always @(posedge clk) begin
     m_ie <= reset ? 1'b0 : (wr_ctl ? wdata[0] : m_ie);
+    m_tie <= reset ? 1'b0 : (wr_ctl ? wdata[1] : m_tie);
+    m_eie <= reset ? 1'b0 : (wr_ctl ? wdata[2] : m_eie);
     m_over <= reset ? 1'b0
       : ((d_new_rx && !rx_acc) ? 1'b1 : ((wr_stat && wdata[2]) ? 1'b0 : m_over));
     m_drop <= reset ? 1'b0
@@ -94,7 +96,7 @@ module props (input clk);
     assert (m_rxl <= `DEPTH && m_txl <= `DEPTH);
     assert (d_over == m_over);
     assert (d_drop == m_drop);
-    assert (d_ie == m_ie);
+    assert (d_ie == m_ie && d_tie == m_tie && d_eie == m_eie);
     // 2. Um byte da fila de transmissão só chega ao PHY com ele livre, e toda vez que ele está livre e há byte.
     assert (d_new_tx == (!d_busy && m_txl != 0));
     // 3. Leitura de cada endereço e interrupção. O byte lido de RX_DATA é o primeiro da fila, ou zero se vazia.
@@ -103,9 +105,10 @@ module props (input clk);
       2'd1: assert (rdata == {24'b0, d_rx_head} && (m_rxl != 0 || d_rx_head == 8'h0));
       2'd2: assert (rdata == {8'b0, 6'b0, m_txl, 6'b0, m_rxl, 1'b0, m_txl == 0 && !d_busy, m_txl == 0,
                               m_rxl == `DEPTH, m_drop, m_over, m_txl != `DEPTH, m_rxl != 0});
-      2'd3: assert (rdata == {31'b0, m_ie});
+      2'd3: assert (rdata == {29'b0, m_eie, m_tie, m_ie});
     endcase
-    assert (irq == (m_rxl != 0 && m_ie));
+    // 4. A saída é a soma de três causas de nível, cada uma com a sua habilitação.
+    assert (irq == ((m_rxl != 0 && m_ie) || (m_txl == 0 && m_tie) || ((m_over || m_drop) && m_eie)));
   end
 
 `ifdef COVER
@@ -113,6 +116,7 @@ module props (input clk);
     cover (m_drop);
     cover (tx_acc && !d_busy && wdata[7:0] == 8'hA5);
     cover (m_txl == `DEPTH);
+    cover (irq && m_txl == 0 && m_tie && m_rxl == 0 && !m_over && !m_drop);
 `ifdef ANYSTATE
     cover (m_over);
     cover (d_new_rx && m_rxl == `DEPTH && rx_pop);

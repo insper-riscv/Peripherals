@@ -28,7 +28,9 @@ entity jtag_uart_shell is
     -- Leitura ('1').
     i_re      : in  std_logic;
     -- Dado lido.
-    o_rdata   : out std_logic_vector(31 downto 0)
+    o_rdata   : out std_logic_vector(31 downto 0);
+    -- Requisição de interrupção de nível da UART.
+    o_irq     : out std_logic
   );
 end entity jtag_uart_shell;
 
@@ -83,7 +85,7 @@ begin
 
   u_uart : entity work.jtag_uart
     port map (
-      i_clk => i_clk, i_rst => i_rst, i_addr => i_addr, i_wdata => i_wdata, i_we => i_we, i_re => i_re, o_rdata => o_rdata,
+      i_clk => i_clk, i_rst => i_rst, i_addr => i_addr, i_wdata => i_wdata, i_we => i_we, i_re => i_re, o_rdata => o_rdata, o_irq => o_irq,
       i_tck => tck, i_tdi => tdi, o_tdo => tdo, i_ir_in => ir_in,
       i_state_cdr => st_cdr, i_state_sdr => st_sdr, i_state_udr => st_udr, i_state_uir => st_uir
     );
