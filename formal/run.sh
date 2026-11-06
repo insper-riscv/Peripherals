@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formal verification of the CLINT, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO and the UART with SymbiYosys. Needs
+# Formal verification of the CLINT, the PLIC, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO and the UART with SymbiYosys. Needs
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
@@ -441,6 +441,9 @@ mutant uartRx "$up" uart '-DRXF' uart_rx_msb_first "s/dataBuf <= inSync(1) \& da
 
 # External interrupt controller (own file, so the proofs of the other blocks stay untouched).
 source "$root/formal/ext_irq_controller.sh"
+
+# PLIC (own file, like the external interrupt controller).
+source "$root/formal/plic.sh"
 
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }

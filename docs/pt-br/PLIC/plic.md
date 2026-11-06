@@ -67,6 +67,9 @@ A leitura do claim devolve o identificador da vencedora, ou 0 sem candidata, e l
 | :--- | :--- |
 | Testes de entidade `PLIC`, `PlicOneSource`, `PlicWide` e `PlicMax` | Reset, registradores com larguras extremas (1 fonte e 1 bit; 70 fontes e 8 bits com janela maior; 1023 fontes e 32 bits), prioridade zero, limiar estrito, habilitação, desempate por id, regras do complete, gateways independentes, claim sem candidata, todas as fontes e 3000 ciclos aleatórios contra um modelo de referência |
 | Testes de entidade `PlicGateway` e `PlicArbiter` | O gateway contra o modelo de pendente e atendimento, e o árbitro em todas as máscaras de pendência e habilitação, com limiares e prioridades aleatórias |
+| Provas formais `plic_gateway`, `plic_arbiter` e `plic` | O gateway ideal, o árbitro contra a definição (maior prioridade acima do limiar, menor id no empate), `o_meip` igual a existir candidata, o claim, o complete que desmascara só a fonte escrita e a leitura de cada endereço contra o modelo, com mutantes e covers |
+
+Os mutantes e o método estão em [formal.md](../formal/formal.md).
 
 ---
 
