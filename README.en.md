@@ -23,7 +23,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | Path | Contents |
 | :--- | :--- |
 | `src/common/` | Common-Components submodule, edited only at its source |
-| `src/GPIO/soc/` | General-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising/falling edge interrupts |
+| `src/GPIO/soc/` | General-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising-edge, falling-edge or level interrupts |
 | `src/TIMER/soc/` | Timer and PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status, and an interrupt |
 | `src/CLINT/soc/` | CLINT: 64-bit `mtime` with a registered carry, `mtimecmp`, `msip` and the timer and software interrupt outputs |
 | `src/UART/serial/` | Memory-mapped 8N1 UART: parameterized RX and TX queues, separate registers, levels, status and error flags, and an optional RX interrupt; the physical layer is the OpenCores `uart2bus`, vendored in the repository |
