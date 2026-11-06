@@ -2,7 +2,7 @@
 
 ## 1. Scope
 
-The console is the text channel between the program and the host. This contract defines the two backends and when each one applies. The program always sees a UART behind the interconnect (contract K6), and the backend only changes what is on the other side.
+The console is the text channel between the program and the host. This contract defines the two backends and when each one applies. The program always sees a UART behind the interconnect (contract K6), and the backend only changes what is on the other side. The entity that implements the contract is the [console](../UART/console.md), which picks the backend through a generic.
 
 ## 2. Backends
 

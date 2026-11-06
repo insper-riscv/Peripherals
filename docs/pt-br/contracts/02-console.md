@@ -2,7 +2,7 @@
 
 ## 1. Escopo
 
-O console é o canal de texto entre o programa e o hospedeiro. Este contrato define os dois backends e quando cada um vale. O programa vê sempre uma UART atrás do interconector (contrato K6), e o backend só muda o que está do outro lado.
+O console é o canal de texto entre o programa e o hospedeiro. Este contrato define os dois backends e quando cada um vale. O programa vê sempre uma UART atrás do interconector (contrato K6), e o backend só muda o que está do outro lado. A entidade que implementa o contrato é o [console](../UART/console.md), que escolhe o backend por generic.
 
 ## 2. Backends
 
