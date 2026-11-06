@@ -8,7 +8,7 @@ Uma UART cuja outra ponta é um hospedeiro na JTAG em vez de uma linha serial: o
 | :--- | :--- |
 | Lado do core | Quatro registradores de palavra, um acesso por pulso de `we` ou `re` (seção 2) |
 | Filas | De transmissão e de recepção, 64 bytes cada |
-| Lado do hospedeiro | A lógica atrás de uma instância do Virtual JTAG (`sld_virtual_jtag` na placa, conduzida pelo testbench em simulação), no clock da JTAG (seção 3) |
+| Lado do hospedeiro | A lógica atrás de uma instância do Virtual JTAG (a entidade `virtual_jtag` do Common-Components, que instancia o `sld_virtual_jtag` da Intel na placa e é conduzida pelo testbench em simulação), no clock da JTAG (seção 3) |
 
 O interconector que decodifica o endereço e dá o `ready` ao core está no Insper-RISC-V (`src/interconnect/`, ver o seu `ext_interconnect.md`).
 
