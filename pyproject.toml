@@ -1,6 +1,6 @@
 [project]
 name = "riscv-peripherals"
-version = "0.5.3"
+version = "0.5.4"
 description = "Memory-mapped peripherals of the RV32 SoC (GPIO, TIMER, CLINT and UART) with per-entity cocotb tests."
 license = "Apache-2.0"
 # Same Python as the ci-vhdl image of Infra, which also carries riscv-tools.
@@ -25,6 +25,12 @@ package = false
 # deptry skips `tests` by default, and the Python of this project is all under it.
 [tool.deptry]
 exclude = ["\\.venv", "build", "src/common", "sim_build"]
+
+# codeclone: the runner.py of the src/common submodule (Common-Components) is gated by its own
+# repository. The pattern matches from the right, so it covers both files of a clone between the two
+# runners and nothing else.
+[tool.codeclone]
+golden_fixture_paths = ["tests/python/runner.py"]
 
 # Static analysis of the Python (runner and tests), as run by the python-static-analysis job of the CI.
 [tool.ruff]
