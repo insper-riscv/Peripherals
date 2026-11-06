@@ -16,9 +16,15 @@ module props (input clk);
   (* anyseq *) wire [13:0] addr;
   wire [31:0] dout;
   wire irq_timer, irq_software;
+  // Os registradores do CLINT, expostos pelo script (expose em formal/run.sh) para a invariante de indução.
+  wire dbg_msip;
+  wire [31:0] dbg_cmp_lo, dbg_cmp_hi, dbg_mtime_lo, dbg_mtime_hi;
+  wire [1:0] dbg_gen_tick_divided_phase;
 
   clint dut (.i_clk(clk), .i_rst(reset), .i_data_in(data), .i_address(addr), .i_write(write), .i_read(read),
-    .o_data_out(dout), .o_irq_timer(irq_timer), .o_irq_software(irq_software));
+    .o_data_out(dout), .o_irq_timer(irq_timer), .o_irq_software(irq_software),
+    .dbg_msip(dbg_msip), .dbg_cmp_lo(dbg_cmp_lo), .dbg_cmp_hi(dbg_cmp_hi), .dbg_mtime_lo(dbg_mtime_lo),
+    .dbg_mtime_hi(dbg_mtime_hi), .dbg_gen_tick_divided_phase(dbg_gen_tick_divided_phase));
 
   // Os registradores não têm valor inicial: o primeiro clock é um reset, como na placa.
   initial assume (reset);
@@ -28,6 +34,9 @@ module props (input clk);
   reg [63:0] m_cmp = {64{1'b1}};
   reg m_msip = 0, m_mtip = 0;
   reg [7:0] m_phase = 0;
+  // O mtime e o mtimecmp do ciclo anterior e se aquele ciclo foi um reset: o MTIP registrado é a comparação deles.
+  reg [63:0] p_mtime = 0, p_cmp = {64{1'b1}};
+  reg p_rst = 1;
 
   wire wr_msip = write && addr == A_MSIP;
   wire wr_cmp_lo = write && addr == A_CMP_LO;
@@ -48,6 +57,25 @@ module props (input clk);
     m_msip <= reset ? 1'b0 : (wr_msip ? data[0] : m_msip);
     m_mtip <= reset ? 1'b0 : (m_mtime >= m_cmp);
     m_phase <= (reset || tick) ? 8'h0 : m_phase + 8'h1;
+    p_mtime <= m_mtime; p_cmp <= m_cmp; p_rst <= reset;
+  end
+
+  // O mtime não dá a volta em 2^64 ticks (mais de cinco mil anos a 100 MHz): o estado com todos os bits em '1' é
+  // excluído, o que mantém o mtime monótono sem escrita.
+  always @(*) assume (m_mtime != {64{1'b1}});
+
+  // Invariante de indução: o modelo é o estado dos registradores do CLINT. O mtime mostrado tem a metade alta
+  // com o vai-um pendente somado, como no valor ideal. Os registradores zeram no reset assíncrono, por isso a
+  // invariante vale nos ciclos sem reset.
+  always @(*) if (f_past && !reset) begin
+    assert (dbg_msip == m_msip);
+    assert ({dbg_cmp_hi, dbg_cmp_lo} == m_cmp);
+    assert ({dbg_mtime_hi, dbg_mtime_lo} == m_mtime);
+    assert (m_phase == {6'b0, dbg_gen_tick_divided_phase});
+    assert (m_phase < T);
+    // O MTIP registrado é a comparação do ciclo anterior.
+    if (!p_rst) assert (m_mtip == (p_mtime >= p_cmp));
+    if (p_rst) assert (!m_mtip);
   end
 
   reg [31:0] expect_dout;
@@ -99,6 +127,13 @@ module props (input clk);
   end
   // Durante a sequência (e no ciclo seguinte ao último passo) o MTIP só vale se o valor antigo ou o final
   // do mtimecmp já tivesse feito o mtime alcançá-lo.
+  // O mtimecmp em cada passo e o que o ciclo anterior comparou (invariantes da indução).
+  always @(*) if (f_past && !reset && !p_rst) begin
+    if (p == 1) assert (m_cmp == {old[63:32], 32'hFFFFFFFF} && (p_cmp == old || p_cmp == m_cmp));
+    if (p == 2) assert (m_cmp == {fin_hi, 32'hFFFFFFFF} && (p_cmp == m_cmp || p_cmp == {old[63:32], 32'hFFFFFFFF}));
+    if (p == 3) assert (m_cmp == {fin_hi, fin_lo} && (p_cmp == m_cmp || p_cmp == {fin_hi, 32'hFFFFFFFF}));
+    if (p != 0) assert (m_mtime >= p_mtime);
+  end
   always @(*) if (f_past && !reset && p != 0)
     assert (!irq_timer || m_mtime >= old || m_mtime >= {fin_hi, fin_lo});
   always @(*) if (f_past && !reset) assert (irq_timer == m_mtip);
