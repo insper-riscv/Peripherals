@@ -325,5 +325,114 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "PLIC": {
+        "toplevel": "plic",
+        "sources": [
+            "src/PLIC/soc/plic_consts.vhd",
+            "src/PLIC/soc/plic_gateway.vhd",
+            "src/PLIC/soc/plic_arbiter.vhd",
+            "src/PLIC/soc/plic.vhd"
+        ],
+        "test_module": "tests.python.unittests.PLIC.plic",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PlicOneSource": {
+        "toplevel": "plic",
+        "sources": [
+            "src/PLIC/soc/plic_consts.vhd",
+            "src/PLIC/soc/plic_gateway.vhd",
+            "src/PLIC/soc/plic_arbiter.vhd",
+            "src/PLIC/soc/plic.vhd"
+        ],
+        "parameters": {
+            "n_sources": 1,
+            "priority_bits": 1
+        },
+        "test_module": "tests.python.unittests.PLIC.plic",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PlicWide": {
+        "toplevel": "plic",
+        "sources": [
+            "src/PLIC/soc/plic_consts.vhd",
+            "src/PLIC/soc/plic_gateway.vhd",
+            "src/PLIC/soc/plic_arbiter.vhd",
+            "src/PLIC/soc/plic.vhd"
+        ],
+        "parameters": {
+            "n_sources": 70,
+            "priority_bits": 8,
+            "addr_width": 22
+        },
+        "test_module": "tests.python.unittests.PLIC.plic",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PlicMax": {
+        "toplevel": "plic",
+        "sources": [
+            "src/PLIC/soc/plic_consts.vhd",
+            "src/PLIC/soc/plic_gateway.vhd",
+            "src/PLIC/soc/plic_arbiter.vhd",
+            "src/PLIC/soc/plic.vhd"
+        ],
+        "parameters": {
+            "n_sources": 1023,
+            "priority_bits": 32,
+            "addr_width": 31
+        },
+        "test_module": "tests.python.unittests.PLIC.plic",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PlicGateway": {
+        "toplevel": "plic_gateway",
+        "sources": [
+            "src/PLIC/soc/plic_gateway.vhd"
+        ],
+        "test_module": "tests.python.unittests.PLIC.plic_gateway",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PlicArbiter": {
+        "toplevel": "plic_arbiter",
+        "sources": [
+            "src/PLIC/soc/plic_arbiter.vhd"
+        ],
+        "test_module": "tests.python.unittests.PLIC.plic_arbiter",
+        "parameters": {
+            "n_sources": 6,
+            "priority_bits": 3,
+            "id_width": 3
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }

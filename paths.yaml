@@ -4,9 +4,10 @@
 repository: Peripherals
 references:
   - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
-  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/UART/serial, src/UART/jtag, src/display/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, src/common/src/flip_flop.vhd]}
+  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/UART/serial, src/UART/jtag, src/display/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, src/common/src/flip_flop.vhd]}
   - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/clint_mtime_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/uart_props.sv, formal/uart_fifo_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}
   - {name: CLINT documents, paths: [docs/pt-br/CLINT/clint.md, docs/en/CLINT/clint.md]}
+  - {name: PLIC documents, paths: [docs/pt-br/PLIC/plic.md, docs/en/PLIC/plic.md]}
   - {name: FLASH controller documents, paths: [docs/pt-br/flash-controller/flash_controller.md, docs/en/flash-controller/flash_controller.md]}
   - {name: serial UART documents, paths: [docs/pt-br/UART/serial_uart.md, docs/en/UART/serial_uart.md]}
   - {name: JTAG UART documents, paths: [docs/pt-br/UART/jtag_uart.md, docs/en/UART/jtag_uart.md, docs/pt-br/bugs/JTAG_UART_RESPOSTA_PERDIDA.md, docs/en/bugs/JTAG_UART_RESPOSTA_PERDIDA.md]}
@@ -21,7 +22,7 @@ tree:
       uart: []
       uart_fifo: []
   # The peripherals are named after what they are, in capitals, like the extensions of the Core.
-  identifier_folders: [CLINT, GPIO, TIMER, UART]
+  identifier_folders: [CLINT, GPIO, PLIC, TIMER, UART]
 
 provides:
   # Each component lists its sources in GHDL dependency order and the components it needs. A requires with the
@@ -84,6 +85,13 @@ provides:
     requires: [Common-Components/utils]
     sources:
       - src/flash-controller/soc/flash_controller.vhd
+  PLIC:
+    requires: []
+    sources:
+      - src/PLIC/soc/plic_consts.vhd
+      - src/PLIC/soc/plic_gateway.vhd
+      - src/PLIC/soc/plic_arbiter.vhd
+      - src/PLIC/soc/plic.vhd
   intc:
     requires: [Common-Components/registers, Common-Components/synchronizer]
     sources:

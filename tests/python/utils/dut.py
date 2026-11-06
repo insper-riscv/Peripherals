@@ -40,6 +40,33 @@ class ClintDut(BusDut, Protocol):
     o_irq_software: LogicObject
 
 
+class PlicDut(BusDut, Protocol):
+    """Signals of the PLIC."""
+
+    i_sources: LogicArrayObject
+    o_meip: LogicObject
+
+
+class PlicGatewayDut(ResettableDut, Protocol):
+    """Signals of the gateway of one PLIC source."""
+
+    i_source: LogicObject
+    i_claim: LogicObject
+    i_complete: LogicObject
+    o_pending: LogicObject
+
+
+class PlicArbiterDut(Protocol):
+    """Signals of the PLIC arbiter."""
+
+    i_pending: LogicArrayObject
+    i_enable: LogicArrayObject
+    i_priorities: LogicArrayObject
+    i_threshold: LogicArrayObject
+    o_id: LogicArrayObject
+    o_valid: LogicObject
+
+
 class ClintMtimeDut(ResettableDut, Protocol):
     """Signals of the CLINT mtime counter."""
 
