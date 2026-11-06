@@ -70,7 +70,7 @@ provides:
     sources:
       - src/UART/jtag/jtag_uart.vhd
   jtag_uart_shell:
-    requires: [jtag_uart]
+    requires: [jtag_uart, Common-Components/virtual_jtag]
     sources:
       - src/UART/jtag/cyclone-v/jtag_uart_shell.vhd
   display:
@@ -79,7 +79,7 @@ provides:
       - src/display/soc/hex_to_seg7.vhd
       - src/display/soc/seg_display.vhd
   display_shell:
-    requires: [display]
+    requires: [display, Common-Components/virtual_jtag]
     sources:
       - src/display/cyclone-v/seg_display_shell.vhd
   flash-controller:

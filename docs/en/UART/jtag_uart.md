@@ -8,7 +8,7 @@ A UART whose other end is a host on JTAG instead of a serial line: the core writ
 | :--- | :--- |
 | Core side | Four word registers, one access per pulse of `we` or `re` (section 2) |
 | Queues | Transmit and receive, 64 bytes each |
-| Host side | The logic behind a Virtual JTAG instance (`sld_virtual_jtag` on the board, driven by the testbench in simulation), on the JTAG clock (section 3) |
+| Host side | The logic behind a Virtual JTAG instance (the Common-Components `virtual_jtag` entity, which instantiates Intel's `sld_virtual_jtag` on the board and is driven by the testbench in simulation), on the JTAG clock (section 3) |
 
 The interconnect that decodes the address and gives the core the `ready` is in Insper-RISC-V (`src/interconnect/`, see its `ext_interconnect.md`).
 
