@@ -324,6 +324,88 @@
             "--std=08"
         ]
     },
+    "ConsoleJtag": {
+        "toplevel": "console",
+        "sources": [
+            "src/UART/jtag/jtag_uart.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd",
+            "src/UART/console/console.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.jtag_uart",
+        "parameters": {
+            "BACKEND": "jtag"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "ConsolePins": {
+        "toplevel": "console",
+        "sources": [
+            "src/UART/jtag/jtag_uart.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd",
+            "src/UART/console/console.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.console_pins",
+        "parameters": {
+            "BACKEND": "pinos",
+            "BAUD_FREQ": "1",
+            "BAUD_LIMIT": "0",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "ConsolePinsInverted": {
+        "toplevel": "console",
+        "sources": [
+            "src/UART/jtag/jtag_uart.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd",
+            "src/UART/console/console.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.console_pins_inverted",
+        "parameters": {
+            "BACKEND": "pinos",
+            "BAUD_FREQ": "1",
+            "BAUD_LIMIT": "0",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4",
+            "TX_INVERT": true,
+            "RX_INVERT": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "ClintMtime": {
         "toplevel": "clint_mtime",
         "sources": [
