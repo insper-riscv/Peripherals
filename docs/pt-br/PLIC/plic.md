@@ -4,7 +4,7 @@
 
 ## 1. Referência
 
-O PLIC implementa a especificação RISC-V Platform-Level Interrupt Controller, versão 1.0.0 (`riscv-plic-1.0.0`), no recorte de um hart e um contexto, o do modo máquina. A especificação define as fontes numeradas a partir de 1, as prioridades, o limiar por contexto, o claim e o complete, e o gateway de cada fonte. A saída `o_meip` é o pedido de interrupção externa de máquina (`MEIP`) do núcleo. O controlador simples `ext_irq_controller` é a alternativa de prioridade fixa, sem prioridades nem limiar.
+O PLIC implementa a especificação RISC-V Platform-Level Interrupt Controller, versão 1.0.0 (`riscv-plic-1.0.0`), no recorte de um hart e um contexto, o do modo máquina. A especificação define as fontes numeradas a partir de 1, as prioridades, o limiar por contexto, o claim e o complete, e o gateway de cada fonte. A saída `o_meip` é o pedido de interrupção externa de máquina (`MEIP`) do núcleo.
 
 ## 2. O que é
 

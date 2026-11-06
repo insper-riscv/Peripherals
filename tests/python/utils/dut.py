@@ -211,12 +211,6 @@ class JtagUartDut(JtagDut, ResettableDut, Protocol):
     o_tdo: LogicObject
 
 
-class ExtIrqControllerDut(BusDut, Protocol):
-    """Signals of the external interrupt controller."""
-
-    i_irq_lines: LogicArrayObject
-    o_irq_external: LogicObject
-
 
 class FlashControllerDut(BusDut, Protocol):
     """Signals of the FLASH controller."""

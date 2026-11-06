@@ -240,22 +240,6 @@
             "--std=08"
         ]
     },
-    "ExtIrqController": {
-        "toplevel": "ext_irq_controller",
-        "sources": [
-            "src/common/src/flip_flop.vhd",
-            "src/common/src/synchronizer.vhd",
-            "src/intc/soc/ext_irq_consts.vhd",
-            "src/intc/soc/ext_irq_controller.vhd"
-        ],
-        "test_module": "tests.python.unittests.intc.ext_irq_controller",
-        "build_args": [
-            "--std=08"
-        ],
-        "test_args": [
-            "--std=08"
-        ]
-    },
     "ClintMtime": {
         "toplevel": "clint_mtime",
         "sources": [

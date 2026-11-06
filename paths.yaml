@@ -93,8 +93,3 @@ provides:
       - src/PLIC/soc/plic_gateway.vhd
       - src/PLIC/soc/plic_arbiter.vhd
       - src/PLIC/soc/plic.vhd
-  intc:
-    requires: [Common-Components/registers, Common-Components/synchronizer]
-    sources:
-      - src/intc/soc/ext_irq_consts.vhd
-      - src/intc/soc/ext_irq_controller.vhd
