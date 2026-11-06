@@ -1,6 +1,7 @@
 """CLINT: mtime, mtimecmp, msip, the MTIP and MSIP outputs."""
 
 import cocotb
+from cocotb.triggers import RisingEdge, Timer
 
 from tests.python.unittests.CLINT.registers import (
     MASK32,
@@ -85,6 +86,21 @@ async def test_mtime_counts_one_per_cycle(dut: ClintDut) -> None:
     values = [await bus.read(dut, MTIME_LO) for _ in range(5)]
     check(values == [0x100 + k for k in range(5)], f"{values}")
     check(await bus.read(dut, MTIME_HI) == HIGH_WORD)
+
+
+@cocotb.test()
+async def test_mtime_output_is_the_64_bit_value(dut: ClintDut) -> None:
+    """The o_mtime output is the whole mtime, also across the low wrap."""
+    await bus.reset(dut)
+    start = 0x0000_0003_FFFF_FFFC
+    await write64(dut, MTIME_LO, start)
+    seen = []
+    for _ in range(8):
+        await Timer(1, unit="ns")
+        seen.append(int(dut.o_mtime.value))
+        await RisingEdge(dut.i_clk)
+    check(all(b - a == 1 for a, b in zip(seen, seen[1:])), f"{seen}")
+    check(seen[0] >> 32 == 3 and seen[-1] >> 32 == 4, f"{seen}")
 
 
 @cocotb.test()
