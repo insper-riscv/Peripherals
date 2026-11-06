@@ -70,12 +70,13 @@ mut_from=""; mut_to=""
 # "Warnings: 0 unique messages, 0 total" of yosys is skipped (a count of zero is not a warning). The files are scanned
 # after the tool ends, in the main shell or in the subshell of prove, so the failure is decided at the end of the
 # run, from warnings.txt.
-# One exception, exact and only for the abc-bmc3 engine: ABC itself prints "Warning:" about the AIGER file that
-# SymbiYosys hands it (the clock input is consumed by the clk2ff step, and ABC announces how many outputs it reads
-# as constraints). They describe the tool's own file format, not the design or the proofs, and cannot be removed
-# from the design; see abc_notes below. Yices, bitwuzla and boolector have no exception, and anything else, in any
+# One exception, exact and only for the abc-bmc3 engine: ABC itself prints "Warning:" when it reads the AIGER
+# file that SymbiYosys hands it, to announce how many outputs it reads as constraints (the assumptions, and the
+# clock of the clk2ff step), or that there are none. They describe the tool's own file format, not the design or
+# the proofs; see abc_notes below. The warnings about the clock as an undriven bit are gone: the script of the
+# proof flattens the design and purges the aliases of the clock before the AIGER file is written. Yices, bitwuzla and boolector have no exception, and anything else, in any
 # engine, still fails the run.
-abc_notes='(aig: Warning: Treating undriven bit props\.\\clk like \$anyseq\.|aig: Warning: Treating a total of [0-9]+ undriven bits in props like \$anyseq\.|engine_0: Warning: (The last (output is|[0-9]+ outputs are) interpreted as (a )?constraints?\.|The network has no constraints\.))$'
+abc_notes='(engine_0: Warning: (The last (output is|[0-9]+ outputs are) interpreted as (a )?constraints?\.|The network has no constraints\.))$'
 scan_warnings() {
   local line ignore='^$^'
   [ "$engine" = abc-bmc3 ] && [[ "$1" == *.log && "$1" != *.ghdl.log ]] && ignore="$abc_notes"
@@ -179,7 +180,7 @@ prove() {
       fi
       engine_lines="abc bmc3"
       options_lines="aigsmt none"
-      script_lines=$'tribuf -formal\nmemory_map\nsetundef -undriven -zero\ntechmap\nopt -fast\nsetundef -anyseq' ;;
+      script_lines=$'flatten\nsetundef -undriven -zero\nopt_clean -purge\ntribuf -formal\nmemory_map\nsetundef -undriven -zero\ntechmap\nopt -fast\nsetundef -anyseq' ;;
     # memory_map turns the small queue memory of the UART into registers: the SMT engines (yices above all) take
     # far longer on a design with an array than on the same design with registers. A queue of 3 words has a read
     # multiplexer for 4 addresses, and the branch of the fourth has no driver (the pointers never reach it), which
@@ -261,16 +262,22 @@ expect "registers follow the bus writes, counter, overflow status, IRQ, PWM and 
 expect "cover: an overflow raises the IRQ, the status read clears it, the counter advances with a tick" PASS "$(prove timer.v "$f/timer_props.sv" cover 20 '-DCOVER' timer_cover)"
 
 echo "clint_mtime"
-mut_expose=()
+mtime_exp=(lo:31 hi:31 carry)
+mut_expose=("${mtime_exp[@]}")
 build clint_mtime mtime "${mtime_srcs[@]}" --
-expect "the value shown is the ideal 64-bit counter: one per increment, a write wins, the carry is never lost (bounded, 12 cycles)" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" bmc 12 '' mtime_safety)"
+expect "the value shown is the ideal 64-bit counter: one per increment, a write wins, the carry is never lost (induction)" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" prove 3 '' mtime_safety)"
+expect "the same property, bounded from reset (bounded, 12 cycles; the only form the abc-bmc3 engine answers)" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" bmc 12 '' mtime_bounded)"
 expect "cover: the carry between the halves and a high write with the low wrap are reachable" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" cover 12 '-DCOVER' mtime_cover)"
 
 echo "clint"
 cgen=(-gtick_cycles=3)
+clint_exp=(msip cmp_lo:31 cmp_hi:31 mtime_lo:31 mtime_hi:31 gen_tick_divided_phase:1)
+mut_expose=("${clint_exp[@]}")
 build clint clint "${clint_srcs[@]}" -- "${cgen[@]}"
-expect "MTIP, MSIP and the read of every address follow the ideal model, with a tick every 3 cycles (bounded, 20 cycles)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3' clint_safety)"
-expect "port write sequence: MTIP never rises in the middle unless the old or the final mtimecmp is reached (bounded, 20 cycles)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3 -DSEQ' clint_sequence)"
+expect "MTIP, MSIP and the read of every address follow the ideal model, with a tick every 3 cycles (induction)" PASS "$(prove clint.v "$f/clint_props.sv" prove 3 '-DTICK=3' clint_safety)"
+expect "port write sequence: MTIP never rises in the middle unless the old or the final mtimecmp is reached (induction)" PASS "$(prove clint.v "$f/clint_props.sv" prove 3 '-DTICK=3 -DSEQ' clint_sequence)"
+expect "the same two properties, bounded from reset (bounded, 20 cycles; the only form the abc-bmc3 engine answers)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3' clint_bounded)"
+expect "the same port write sequence, bounded from reset (bounded, 20 cycles)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3 -DSEQ' clint_sequence_bounded)"
 expect "cover: MTIP rises and falls, MSIP is raised and the high half advances" PASS "$(prove clint.v "$f/clint_props.sv" cover 20 '-DTICK=3 -DCOVER' clint_cover)"
 expect "cover: the port sequence ends with the mtime above the old value" PASS "$(prove clint.v "$f/clint_props.sv" cover 20 '-DTICK=3 -DSEQ -DCOVER' clint_seq_cover)"
 
@@ -346,11 +353,12 @@ mutant timer "$tp" timer '' timer_pwm_inverted "s/pwm_inverted   <= not pwm_alu;
 mutant timer_operation_decoder "$tp" timer '' timer_read_select "s/\"000\" when ADDR_TIMER_LOAD,/\"001\" when ADDR_TIMER_LOAD,/" 8 "${timer_srcs[@]}" --
 mutant timer_operation_decoder "$tp" timer '' timer_write_address "s/o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_TOP /o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_DUTY_CYCLE /" 8 "${timer_srcs[@]}" --
 
-mut_expose=(); mut_open=0
+mut_expose=("${mtime_exp[@]}"); mut_open=0
 mp="$f/clint_mtime_props.sv"
 mutant clint_mtime "$mp" clint_mtime '' mtime_carry_lost "s/lo = LO_ALL_ONES/lo = x\"FFFFFFFE\"/" 12 "${mtime_srcs[@]}" --
 mutant clint_mtime "$mp" clint_mtime '' mtime_hi_incoherent "s/o_hi <= hi_inc when carry = '1' else hi;/o_hi <= hi;/" 12 "${mtime_srcs[@]}" --
 mutant clint_mtime "$mp" clint_mtime '' mtime_write_loses "s/lo_nxt <= i_wdata when i_we_lo = '1' else lo_inc;/lo_nxt <= lo_inc;/" 12 "${mtime_srcs[@]}" --
+mut_expose=("${clint_exp[@]}")
 cp_="$f/clint_props.sv"
 mutant clint "$cp_" clint '-DTICK=3' clint_msip_bit "s/i_d      => i_data_in(0 downto 0),/i_d      => i_data_in(1 downto 1),/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
 mutant clint "$cp_" clint '-DTICK=3' clint_cmp_reset_zero "s/clear_value => '1'/clear_value => '0'/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
