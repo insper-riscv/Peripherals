@@ -6,9 +6,13 @@ module props (input clk);
   (* anyseq *) wire reset, inc, we_lo, we_hi;
   (* anyseq *) wire [31:0] wdata;
   wire [31:0] lo, hi;
+  // Os registradores do contador (metade baixa, metade alta sem o vai-um e o vai-um pendente), expostos pelo
+  // script (expose em formal/run.sh) para a invariante de indução.
+  wire [31:0] dbg_lo, dbg_hi;
+  wire dbg_carry;
 
   clint_mtime dut (.i_clk(clk), .i_rst(reset), .i_inc(inc), .i_we_lo(we_lo), .i_we_hi(we_hi),
-    .i_wdata(wdata), .o_lo(lo), .o_hi(hi));
+    .i_wdata(wdata), .o_lo(lo), .o_hi(hi), .dbg_lo(dbg_lo), .dbg_hi(dbg_hi), .dbg_carry(dbg_carry));
 
   // Os registradores não têm valor inicial: o primeiro clock é um reset, como na placa.
   initial assume (reset);
@@ -31,6 +35,8 @@ module props (input clk);
   end
 
   always @(posedge clk) if (f_past && !reset) begin
+    // 0. Invariante de indução: o modelo é o estado dos registradores, com o vai-um pendente somado à metade alta.
+    assert (model == {dbg_hi + {31'b0, dbg_carry}, dbg_lo});
     // 1. O valor mostrado é o valor ideal de 64 bits, em todo ciclo.
     assert ({hi, lo} == model);
   end
