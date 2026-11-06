@@ -61,6 +61,8 @@ A leitura do claim devolve o identificador da vencedora, ou 0 sem candidata, e l
 
 `o_meip` e a leitura do claim são combinacionais sobre os registradores de pendência, habilitação, prioridade e limiar, sem caminho das entradas `i_sources` até a saída. Uma linha que sobe aparece em `o_meip` um ciclo depois, quando o gateway registra o pedido.
 
+Os registradores de prioridade, habilitação, limiar, pendente e atendimento valem zero ao energizar, além de zerarem no reset síncrono. Assim o PLIC fica definido também nas simulações do núcleo, em que o clock dos estágios fica parado enquanto o reset vale.
+
 ## 8. Verificação
 
 | Verificação | Cobertura |

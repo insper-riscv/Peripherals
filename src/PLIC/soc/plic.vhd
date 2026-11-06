@@ -65,11 +65,11 @@ architecture rtl of plic is
   constant ID_WIDTH : positive := id_bits(n_sources);
 
   -- Prioridades concatenadas, a fonte n nos bits n*priority_bits-1 a (n-1)*priority_bits.
-  signal priorities : std_logic_vector(n_sources * priority_bits - 1 downto 0);
+  signal priorities : std_logic_vector(n_sources * priority_bits - 1 downto 0) := (others => '0');
   -- Habilitação do contexto 0, o bit n é a fonte n.
-  signal enable_reg : std_logic_vector(n_sources downto 1);
+  signal enable_reg : std_logic_vector(n_sources downto 1) := (others => '0');
   -- Limiar do contexto 0.
-  signal threshold  : std_logic_vector(priority_bits - 1 downto 0);
+  signal threshold  : std_logic_vector(priority_bits - 1 downto 0) := (others => '0');
   -- Pendentes vindos dos gateways.
   signal pending    : std_logic_vector(n_sources downto 1);
   -- Fonte vencedora do árbitro.

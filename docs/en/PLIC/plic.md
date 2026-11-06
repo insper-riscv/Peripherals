@@ -61,6 +61,8 @@ Reading the claim returns the identifier of the winner, or 0 with no candidate, 
 
 `o_meip` and the claim read are combinational over the pending, enable, priority and threshold registers, with no path from the `i_sources` inputs to the output. A line that rises shows in `o_meip` one cycle later, when the gateway registers the request.
 
+The priority, enable, threshold, pending and in-service registers are zero at power-up as well as cleared by the synchronous reset. This keeps the PLIC defined in the core simulations too, where the clock of the stages stays stopped while the reset holds.
+
 ## 8. Verification
 
 | Check | Coverage |

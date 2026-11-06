@@ -32,9 +32,9 @@ end entity plic_gateway;
 architecture rtl of plic_gateway is
 
   -- Bit de pendente.
-  signal pending  : std_logic;
+  signal pending  : std_logic := '0';
   -- Fonte em atendimento (mascarada) entre o pedido e o complete.
-  signal inflight : std_logic;
+  signal inflight : std_logic := '0';
 
 begin
 
