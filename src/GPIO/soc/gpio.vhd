@@ -15,8 +15,10 @@ library work;
 
 entity gpio is
     generic (
-        -- Largura do barramento de dados em bits.
-        data_width : natural := 32
+        -- Largura do barramento de dados e número de pinos; zero deixa o módulo sem pino, sem registrador e sem interrupção.
+        data_width : natural := 32;
+        -- Polaridade dos pinos: verdadeiro faz o programa ver e escrever ativo em '1' sobre pinos ativos em nível baixo.
+        active_low : boolean := false
     );
     port (
         -- Clock do módulo.
@@ -110,6 +112,7 @@ begin
     gen_cells : for i in 0 to data_width - 1 generate
     begin
         u_gpio_cell : entity work.gpio_cell
+            generic map (active_low => active_low)
             port map (
                 i_clk      => i_clk,
                 i_rst      => i_rst,

@@ -13,7 +13,9 @@ use ieee.std_logic_1164.all;
 entity gpio_tb is
   generic (
     -- Largura do barramento de dados e número de pinos.
-    data_width : natural := 8
+    data_width : natural := 8;
+    -- Polaridade dos pinos: verdadeiro faz o programa ver os pinos ativos em nível baixo como ativos em '1'.
+    active_low : boolean := false
   );
   port (
     -- Clock do módulo.
@@ -52,7 +54,7 @@ begin
   o_pins <= gpio_pins;
 
   u_dut : entity work.gpio
-    generic map (data_width => data_width)
+    generic map (data_width => data_width, active_low => active_low)
     port map (
       i_clk        => i_clk,
       i_rst        => i_rst,

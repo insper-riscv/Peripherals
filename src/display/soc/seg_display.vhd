@@ -1,18 +1,21 @@
 -- =============================================================================
 -- Registrador do display de sete segmentos com acesso do core e do hospedeiro
 --
--- Guarda 24 bits que os seis displays HEX5 a HEX0 mostram em hexadecimal
--- (HEX5 é o dígito mais significativo). O valor fica no registrador entre dois
+-- Guarda 4 bits por dígito (24 bits para os seis displays HEX5 a HEX0 da placa de
+-- referência) que os displays mostram em hexadecimal (o de maior índice é o dígito
+-- mais significativo). O número de dígitos é o generic digits, de zero a oito, e a
+-- polaridade dos segmentos é o generic active_low; zero dígito deixa o módulo sem
+-- registrador e sem segmento. O valor fica no registrador entre dois
 -- programas, de modo que o display não pisca durante a troca.
 --
 -- Lado do core (clock i_clk), um acesso por pulso de i_we ou i_re:
---   palavra 0  leitura: o valor de 24 bits; escrita: grava os 24 bits baixos
+--   palavra 0  leitura: o valor de 4*digits bits; escrita: grava os 4*digits bits baixos
 --   outras     leitura: 0; escrita: ignorada
 --
 -- Lado do hospedeiro: a lógica de uma instância do Virtual JTAG (tck). A
 -- instrução 1 seleciona um registrador de 25 bits:
---   entrada   [23:0] valor novo; [24] 1 = grava o valor, 0 = só lê
---   saída     [23:0] valor do registrador no início da varredura
+--   entrada   [4*digits-1:0] valor novo; [4*digits] 1 = grava o valor, 0 = só lê
+--   saída     [4*digits-1:0] valor do registrador no início da varredura
 -- A instrução 2 seleciona o registrador de 2 bits da bandeira de falha:
 --   entrada   [0] valor novo; [1] 1 = grava a bandeira, 0 = só lê
 --   saída     [0] valor da bandeira no início da varredura
@@ -29,6 +32,12 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity seg_display is
+	generic (
+		-- Número de dígitos de sete segmentos; zero deixa o módulo sem registrador e sem segmento.
+		digits     : natural range 0 to 8 := 6;
+		-- Segmentos acesos em nível baixo (placas DE) quando verdadeiro; falso acende em nível alto.
+		active_low : boolean := true
+	);
 	port (
 		-- Clock do core.
 		i_clk       : in  std_logic;
@@ -60,19 +69,23 @@ entity seg_display is
 		i_state_udr : in  std_logic;
 		-- Estado Update-IR da cadeia virtual.
 		i_state_uir : in  std_logic;
-		-- Valor guardado no registrador.
-		o_value     : out std_logic_vector(23 downto 0);
+		-- Valor guardado no registrador, quatro bits por dígito.
+		o_value     : out std_logic_vector(4 * digits - 1 downto 0);
 		-- Bandeira de falha gravada pelo hospedeiro ('1' = houve falha).
 		o_fail      : out std_logic;
-		-- Segmentos dos seis displays, HEX0 nos bits 6:0 e HEX5 nos bits 41:36 (nível baixo).
-		o_hex       : out std_logic_vector(41 downto 0)
+		-- Segmentos dos displays, o dígito 0 nos bits 6:0 e o de maior índice nos bits mais altos (polaridade de active_low).
+		o_hex       : out std_logic_vector(7 * digits - 1 downto 0)
 	);
 end entity seg_display;
 
 architecture rtl of seg_display is
 
+	-- Largura do valor guardado, em bits.
+	constant VALUE_BITS : natural := 4 * digits;
 	-- Valor guardado, no domínio de i_clk.
-	signal value    : std_logic_vector(23 downto 0) := (others => '0');
+	signal value    : std_logic_vector(VALUE_BITS - 1 downto 0) := (others => '0');
+	-- Segmentos dos dígitos em nível baixo (aceso em '0'), antes da polaridade do generic.
+	signal seg_low  : std_logic_vector(7 * digits - 1 downto 0);
 	-- Toggle do hospedeiro sincronizado com i_clk.
 	signal tog_sync : std_logic_vector(0 downto 0);
 	-- Último valor do toggle já aplicado em i_clk.
@@ -80,8 +93,8 @@ architecture rtl of seg_display is
 
 	-- Instrução ativa do Virtual JTAG, no domínio de tck.
 	signal ir       : std_logic_vector(1 downto 0) := (others => '0');
-	-- Registrador de deslocamento de 25 bits, no domínio de tck.
-	signal sr       : std_logic_vector(24 downto 0) := (others => '0');
+	-- Registrador de deslocamento de 4*digits+1 bits, no domínio de tck.
+	signal sr       : std_logic_vector(VALUE_BITS downto 0) := (others => '0');
 	-- Registrador de deslocamento de 2 bits da bandeira de falha, no domínio de tck.
 	signal fsr      : std_logic_vector(1 downto 0) := (others => '0');
 	-- Bandeira de falha, no domínio de tck.
@@ -89,7 +102,7 @@ architecture rtl of seg_display is
 	-- Bit de passagem para instruções não usadas.
 	signal bypass   : std_logic := '0';
 	-- Valor da gravação do hospedeiro, parado até a próxima varredura.
-	signal host_val : std_logic_vector(23 downto 0) := (others => '0');
+	signal host_val : std_logic_vector(VALUE_BITS - 1 downto 0) := (others => '0');
 	-- Toggle que sinaliza uma gravação do hospedeiro, no domínio de tck.
 	signal host_tog : std_logic := '0';
 
@@ -110,7 +123,7 @@ begin
 	begin
 		o_rdata <= (others => '0');
 		if to_integer(unsigned(i_addr)) = 0 then
-			o_rdata(23 downto 0) <= value;
+			o_rdata(VALUE_BITS - 1 downto 0) <= value;
 		end if;
 	end process;
 
@@ -122,7 +135,7 @@ begin
 				value    <= (others => '0');
 				tog_seen <= tog_sync(0);
 			elsif i_we = '1' and to_integer(unsigned(i_addr)) = 0 then
-				value <= i_wdata(23 downto 0);
+				value <= i_wdata(VALUE_BITS - 1 downto 0);
 			elsif tog_sync(0) /= tog_seen then
 				tog_seen <= tog_sync(0);
 				value    <= host_val;
@@ -148,10 +161,10 @@ begin
 				sr  <= '0' & value;
 				fsr <= '0' & fail_flag;
 			elsif i_state_sdr = '1' then
-				sr  <= i_tdi & sr(24 downto 1);
+				sr  <= i_tdi & sr(VALUE_BITS downto 1);
 				fsr <= i_tdi & fsr(1);
-			elsif i_state_udr = '1' and ir = "01" and sr(24) = '1' then
-				host_val <= sr(23 downto 0);
+			elsif i_state_udr = '1' and ir = "01" and sr(VALUE_BITS) = '1' then
+				host_val <= sr(VALUE_BITS - 1 downto 0);
 				host_tog <= not host_tog;
 			elsif i_state_udr = '1' and ir = "10" and fsr(1) = '1' then
 				fail_flag <= fsr(0);
@@ -159,12 +172,15 @@ begin
 		end if;
 	end process;
 
-	gen_digits : for n in 0 to 5 generate
+	gen_digits : for n in 0 to digits - 1 generate
 		u_digit : entity work.hex_to_seg7
 			port map (
 				i_digit => value(4 * n + 3 downto 4 * n),
-				o_seg   => o_hex(7 * n + 6 downto 7 * n)
+				o_seg   => seg_low(7 * n + 6 downto 7 * n)
 			);
 	end generate gen_digits;
+
+	-- A polaridade fica só aqui: o conversor acende em nível baixo e o generic escolhe o nível da placa.
+	o_hex <= seg_low when active_low else not seg_low;
 
 end architecture rtl;

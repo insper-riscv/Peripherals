@@ -13,6 +13,10 @@ use ieee.std_logic_1164.all;
 library work;
 
 entity gpio_cell is
+  generic (
+    -- Polaridade do pino: '1' faz o pino valer o oposto do que o programa vê (ativo em nível baixo).
+    active_low : boolean := false
+  );
   port (
     -- Clock do módulo.
     i_clk : in  std_logic;
@@ -74,6 +78,10 @@ architecture rtl of gpio_cell is
   signal irq_clear     : std_logic;
   -- Liga o status de interrupção (borda detectada com a máscara ligada).
   signal irq_set       : std_logic;
+  -- Valor lógico do pino, com a polaridade do generic já aplicada (o que o programa vê).
+  signal pin_logic : std_logic;
+  -- Valor lógico que a célula dirige ao pino, antes da polaridade.
+  signal drive_logic : std_logic;
   -- Operando que liga o bit, em formato de vetor de 1 bit.
   constant SET_VECTOR   : std_logic_vector(0 downto 0) := "1";
   -- Operando que limpa o bit, em formato de vetor de 1 bit.
@@ -84,6 +92,10 @@ architecture rtl of gpio_cell is
   constant ONE_BIT : std_logic_vector(0 downto 0) := "1";
 
 begin
+  -- A polaridade fica só aqui: o programa vê e escreve sempre ativo em '1', e o pino inverte os dois sentidos.
+  pin_logic   <= not io_gpio_pin when active_low else io_gpio_pin;
+  drive_logic <= not out_reg when active_low else out_reg;
+
   load_vector   <= (0 => i_data_in);
   toggle_vector <= (0 => not out_reg);
   out_enable    <= i_wr_signals(1) or (i_wr_signals(2) and i_data_in);
@@ -144,7 +156,7 @@ begin
   -----------------------------------------------------------------------------
   u_gpio_buffer : entity work.tristate_buffer_1bit
     port map (
-      i_d      => out_reg,
+      i_d      => drive_logic,
       i_enable => dir_reg,
       o_d      => io_gpio_pin
     );
@@ -157,7 +169,7 @@ begin
     generic map (stages => 2, data_width => 1)
     port map (
         i_clk  => i_clk,
-        i_d(0) => io_gpio_pin, -- Entrada assíncrona vinda do pino
+        i_d(0) => pin_logic, -- Entrada assíncrona vinda do pino, na polaridade do programa
         o_d(0) => pin_input    -- Saída sincronizada para o processador
     );
 
