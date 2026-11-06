@@ -4,12 +4,13 @@
 repository: Peripherals
 references:
   - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
-  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd]}
+  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/gpio_zero_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd]}
   - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/clint_mtime_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/uart_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}
   - {name: CLINT documents, paths: [docs/pt-br/CLINT/clint.md, docs/en/CLINT/clint.md]}
   - {name: PLIC documents, paths: [docs/pt-br/PLIC/plic.md, docs/en/PLIC/plic.md]}
   - {name: FLASH controller documents, paths: [docs/pt-br/flash-controller/flash_controller.md, docs/en/flash-controller/flash_controller.md]}
   - {name: serial UART documents, paths: [docs/pt-br/UART/serial_uart.md, docs/en/UART/serial_uart.md]}
+  - {name: display documents, paths: [docs/pt-br/display/seg_display.md, docs/en/display/seg_display.md]}
   - {name: GPIO documents, paths: [docs/pt-br/GPIO/gpio.md, docs/en/GPIO/gpio.md]}
   - {name: console documents, paths: [docs/pt-br/UART/console.md, docs/en/UART/console.md]}
   - {name: JTAG UART documents, paths: [docs/pt-br/UART/jtag_uart.md, docs/en/UART/jtag_uart.md, docs/pt-br/bugs/JTAG_UART_RESPOSTA_PERDIDA.md, docs/en/bugs/JTAG_UART_RESPOSTA_PERDIDA.md]}
