@@ -1,6 +1,6 @@
 [project]
 name = "riscv-peripherals"
-version = "0.5.0"
+version = "0.5.1"
 description = "Memory-mapped peripherals of the RV32 SoC (GPIO, TIMER, CLINT and UART) with per-entity cocotb tests."
 license = "Apache-2.0"
 # Same Python as the ci-vhdl image of Infra, which also carries riscv-tools.
@@ -103,6 +103,12 @@ paths = ["tests"]
 max-complexity-allowed = 10
 
 # Pylint reads the whole tree; the VHDL submodules and build output are not Python of this project.
+[tool.codeclone]
+# The runner.py of the src/common submodule (Common-Components) is gated by its
+# own repository. The pattern matches from the right, so it covers both files
+# of a clone between the two runners and nothing else.
+golden_fixture_paths = ["tests/python/runner.py"]
+
 [tool.pylint.main]
 recursive = true
 ignore = [".venv", "build", "sim_build"]
