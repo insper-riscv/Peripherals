@@ -14,6 +14,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 - [docs/en/CLINT/clint.md](docs/en/CLINT/clint.md): the CLINT (64-bit `mtime`, `mtimecmp` and `msip` in the SiFive layout, the `MTIP` and `MSIP` outputs, and the safe `mtimecmp` write).
 - [docs/en/UART/serial_uart.md](docs/en/UART/serial_uart.md): the 8N1 serial UART, its queues, registers, errors, and timing parameters.
 - [docs/en/UART/jtag_uart.md](docs/en/UART/jtag_uart.md): the UART over JTAG (the core registers, the host side and the limits), with the defect that shaped it in [docs/en/bugs/](docs/en/bugs/JTAG_UART_RESPOSTA_PERDIDA.md).
+- [docs/en/intc/ext_irq_controller.md](docs/en/intc/ext_irq_controller.md): the external interrupt controller (the peripherals' lines gathered into one `MEIP`, with pending, enable and source registers).
 - [docs/en/flash-controller/flash_controller.md](docs/en/flash-controller/flash_controller.md): the FLASH controller (command, address, status and page buffer registers).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/en/contracts/02-barramento-e-memoria.md): bus protocol adopted by the peripherals.
 
@@ -32,8 +33,8 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
 | `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,GPIO,intc,TIMER,UART,display,flash_controller}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO |
-| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
-| `docs/pt-br/`, `docs/en/` | UART documents (`UART/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
+| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `clint_mtime`, `ext_irq_controller`, `flash_controller`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
+| `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), UART documents (`UART/`), the external interrupt controller (`intc/`), the FLASH controller (`flash-controller/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
 
 ## 3. Interface
 
