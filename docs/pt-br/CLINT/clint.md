@@ -10,7 +10,7 @@ O CLINT é o temporizador de máquina de um hart, mapeado em memória no leiaute
 | :--- | :--- | :--- |
 | `tick_cycles` | 1 | Ciclos de clock por incremento do `mtime` |
 
-O `TIMER` de uso geral segue como periférico independente. O `mtime` do CLINT é um contador próprio, com a frequência do clock dividida por `tick_cycles`, e não o contador do CSR `time` do núcleo.
+O `TIMER` de uso geral segue como periférico independente. O `mtime` do CLINT é um contador próprio, com a frequência do clock dividida por `tick_cycles`, e o CSR `time` do núcleo é o sombreamento somente leitura dele, pela saída `o_mtime`.
 
 ## 2. Interface
 
