@@ -67,6 +67,9 @@ Reading the claim returns the identifier of the winner, or 0 with no candidate, 
 | :--- | :--- |
 | Entity tests `PLIC`, `PlicOneSource`, `PlicWide` and `PlicMax` | Reset, registers with extreme widths (1 source and 1 bit; 70 sources and 8 bits with a larger window; 1023 sources and 32 bits), priority zero, strict threshold, enable, tie by id, complete rules, independent gateways, claim with no candidate, every source and 3000 random cycles against a reference model |
 | Entity tests `PlicGateway` and `PlicArbiter` | The gateway against the pending and in-service model, and the arbiter over every pending and enable mask, with random thresholds and priorities |
+| Formal proofs `plic_gateway`, `plic_arbiter` and `plic` | The ideal gateway, the arbiter against its definition (highest priority above the threshold, lowest id on a tie), `o_meip` equal to the existence of a candidate, the claim, the complete that unmasks only the source written, and the read of every address against the model, with mutants and covers |
+
+The mutants and the method are in [formal.md](../formal/formal.md).
 
 ---
 
