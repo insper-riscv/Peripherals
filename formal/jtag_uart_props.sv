@@ -1,6 +1,6 @@
 // Propriedades do lado do core do jtag_uart (interrupção), verificadas na netlist Verilog que o GHDL sintetiza do
 // VHDL, com filas de 4 bytes (log2_depth = 2; a lógica é a mesma das de 64). O lado do hospedeiro fica parado
-// (tck, tdi e os estados da cadeia em zero), então a fila de recepção nunca recebe e a de transmissão só esvazia
+// (tdi e os estados da cadeia em zero, e tck ligado ao clock para a netlist ter um só domínio), então a fila de recepção nunca recebe e a de transmissão só esvazia
 // no reset: as propriedades cobrem o registrador CONTROL, a causa de transmissão vazia e a causa de erro. A
 // causa de recepção é coberta pelo teste de entidade, que conduz a cadeia JTAG. O primeiro clock é um reset.
 module props (input clk);
@@ -11,7 +11,7 @@ module props (input clk);
   wire irq, tdo;
 
   jtag_uart dut (.i_clk(clk), .i_rst(rst), .i_addr(adr), .i_wdata(wdata), .i_we(we), .i_re(re), .o_rdata(rdata),
-    .o_irq(irq), .i_tck(1'b0), .i_tdi(1'b0), .o_tdo(tdo), .i_ir_in(2'b00), .i_state_cdr(1'b0),
+    .o_irq(irq), .i_tck(clk), .i_tdi(1'b0), .o_tdo(tdo), .i_ir_in(2'b00), .i_state_cdr(1'b0),
     .i_state_sdr(1'b0), .i_state_udr(1'b0), .i_state_uir(1'b0));
 
   reg f_past = 0;
