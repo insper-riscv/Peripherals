@@ -6,6 +6,8 @@
 -- endereço menor. O mtime de 64 bits soma 1 a cada tick_cycles ciclos de clock.
 -- A saída o_irq_timer (MTIP) vale mtime >= mtimecmp, sem sinal, em 64 bits,
 -- registrada em um ciclo. A saída o_irq_software (MSIP) é o bit 0 do msip.
+-- A saída o_mtime entrega o mtime de 64 bits (a metade alta já com o vai-um pendente), para o CSR time do núcleo,
+-- que é o sombreamento somente leitura dele.
 --
 -- Escrita segura do mtimecmp: a sequência do porte (metade baixa com
 -- 0xFFFFFFFF, metade alta, metade baixa) só cresce o mtimecmp até o valor final,
@@ -48,7 +50,9 @@ entity clint is
     -- Interrupção de timer de máquina (MTIP), ativa em '1'.
     o_irq_timer      : out std_logic;
     -- Interrupção de software de máquina (MSIP), ativa em '1'.
-    o_irq_software   : out std_logic
+    o_irq_software   : out std_logic;
+    -- Valor de 64 bits do mtime (a metade alta com o vai-um pendente), que o CSR time do núcleo espelha.
+    o_mtime          : out std_logic_vector(63 downto 0)
   );
 end entity clint;
 
@@ -171,6 +175,7 @@ begin
     );
 
   mtime    <= mtime_hi & mtime_lo;
+  o_mtime  <= mtime;
   mtimecmp <= cmp_hi & cmp_lo;
 
   u_ge : entity work.alu_ge_unsigned
