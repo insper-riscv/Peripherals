@@ -46,6 +46,10 @@ The `o_irq` interrupt is level, the sum of the three enabled causes, in both bac
 
 The Virtual JTAG is a vendor primitive and is not part of the console. The structural top that uses the `jtag` backend instantiates the `sld_virtual_jtag` and connects its signals to the ports of the node (the `jtag_uart_shell` shell does it for the Cyclone V). The top that uses the `pinos` backend connects `i_rx` and `o_tx` to the pins already normalized by the `board.yaml`. The platform picks the backend through a generic of the top, and the software driver of the chosen backend lives in the `stdio` of the platform.
 
+### 4.1. Console over RS-232
+
+A board with an RS-232 port, such as the DE2-115 (DB9 connector behind the ZT3232 transceiver), uses the `pinos` backend with no adaptation in the peripheral. The transceiver of the board converts the 3.3 V levels to RS-232 levels and inverts the polarity, so the FPGA pin has the line idle high, as the peripheral expects, and `tx_invert` and `rx_invert` stay `false`. The default `baud_freq` and `baud_limit` generate 115200 baud with the 50 MHz clock (test `uart_default_baud.py`), and another clock needs new constants in the same ratio $\text{baud\_freq} / \text{baud\_limit} \approx 16 \, f_{baud} / f_{clk}$. The frame is 8N1 and flow control (`CTS` and `RTS`) is not used. Only an adapter with no level converter that inverts the signal needs `tx_invert` or `rx_invert` set to `true`.
+
 ## 5. Verification
 
 | Proof | Where | What it shows |
