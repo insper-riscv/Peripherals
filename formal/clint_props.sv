@@ -16,13 +16,14 @@ module props (input clk);
   (* anyseq *) wire [13:0] addr;
   wire [31:0] dout;
   wire irq_timer, irq_software;
+  wire [63:0] mtime_out;
   // Os registradores do CLINT, expostos pelo script (expose em formal/run.sh) para a invariante de indução.
   wire dbg_msip;
   wire [31:0] dbg_cmp_lo, dbg_cmp_hi, dbg_mtime_lo, dbg_mtime_hi;
   wire [1:0] dbg_gen_tick_divided_phase;
 
   clint dut (.i_clk(clk), .i_rst(reset), .i_data_in(data), .i_address(addr), .i_write(write), .i_read(read),
-    .o_data_out(dout), .o_irq_timer(irq_timer), .o_irq_software(irq_software),
+    .o_data_out(dout), .o_irq_timer(irq_timer), .o_irq_software(irq_software), .o_mtime(mtime_out),
     .dbg_msip(dbg_msip), .dbg_cmp_lo(dbg_cmp_lo), .dbg_cmp_hi(dbg_cmp_hi), .dbg_mtime_lo(dbg_mtime_lo),
     .dbg_mtime_hi(dbg_mtime_hi), .dbg_gen_tick_divided_phase(dbg_gen_tick_divided_phase));
 
@@ -69,6 +70,8 @@ module props (input clk);
   // invariante vale nos ciclos sem reset.
   always @(*) if (f_past && !reset) begin
     assert (dbg_msip == m_msip);
+    // A saída o_mtime é o mtime ideal, o mesmo valor que a leitura em duas metades devolve.
+    assert (mtime_out == m_mtime);
     assert ({dbg_cmp_hi, dbg_cmp_lo} == m_cmp);
     assert ({dbg_mtime_hi, dbg_mtime_lo} == m_mtime);
     assert (m_phase == {6'b0, dbg_gen_tick_divided_phase});

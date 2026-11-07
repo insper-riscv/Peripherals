@@ -38,6 +38,7 @@ class ClintDut(BusDut, Protocol):
 
     o_irq_timer: LogicObject
     o_irq_software: LogicObject
+    o_mtime: LogicArrayObject
 
 
 class PlicDut(BusDut, Protocol):

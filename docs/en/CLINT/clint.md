@@ -10,7 +10,7 @@ The CLINT is the machine timer of one hart, memory-mapped in the layout of the S
 | :--- | :--- | :--- |
 | `tick_cycles` | 1 | Clock cycles per `mtime` increment |
 
-The general-purpose `TIMER` remains an independent peripheral. The `mtime` of the CLINT is its own counter, at the clock frequency divided by `tick_cycles`, and not the counter of the `time` CSR of the core.
+The general-purpose `TIMER` remains an independent peripheral. The `mtime` of the CLINT is its own counter, at the clock frequency divided by `tick_cycles`, and the `time` CSR of the core is its read-only shadow, through the `o_mtime` output.
 
 ## 2. Interface
 
