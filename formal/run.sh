@@ -471,6 +471,7 @@ mutant uartRx "$up" uart '-DRXF' uart_rx_late_sample "s/count16 = \"0111\"/count
 mutant uartRx "$up" uart '-DRXF' uart_rx_msb_first "s/dataBuf <= inSync(1) \& dataBuf(7 downto 1);/dataBuf <= dataBuf(6 downto 0) \& inSync(1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 
 mut_expose=()
+cp_="$f/console_props.sv"
 mutant console "$cp_" console_equiv '' console_tx_polarity "s/o_tx    <= not uart_tx when tx_invert else uart_tx;/o_tx    <= uart_tx;/" 200 "${console_srcs[@]}" -- "${cgen_inv[@]}"
 mutant console "$cp_" console_equiv '' console_rx_polarity "s/uart_rx <= not i_rx when rx_invert else i_rx;/uart_rx <= i_rx;/" 200 "${console_srcs[@]}" -- "${cgen_inv[@]}"
 mutant console "$cp_" console_equiv '' console_address_bits "s/i_address  => i_addr(1 downto 0),/i_address  => i_addr(2 downto 1),/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
