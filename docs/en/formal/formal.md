@@ -65,6 +65,8 @@ make formal FORMAL_ENGINE=yices      # another engine
 
 `abc-bmc3` skips the induction proofs and the covers, which it does not do, and answers for the bounded proofs and the mutants.
 
+`yices` skips four bounded proofs of the console, of 200 cycles over the whole UART, which it does not close within `FORMAL_TIMEOUT` (900 s by default): the pins backend, the inverted pins backend and the mutants `console_rx_polarity` and `console_read_strobe`. `bitwuzla`, `boolector` and `abc-bmc3` answer all four, and the aggregator `formal/aggregate.sh` still demands a verdict from at least one engine for each proof, so the `yices` skip hides none of them.
+
 ## 5. Warnings are errors
 
 A warning from GHDL, Yosys or SymbiYosys flags code that is out of the norm or at its limit, and the cause is fixed in the code or in the proof. No option hides a warning (`formal/run.sh` has no `-Wno-*`).

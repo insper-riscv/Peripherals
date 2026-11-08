@@ -65,6 +65,8 @@ make formal FORMAL_ENGINE=yices      # outro engine
 
 O `abc-bmc3` pula as provas de indução e os covers, que não faz, e responde pelas provas limitadas e pelos mutantes.
 
+O `yices` pula quatro provas limitadas do console, de 200 ciclos sobre a UART inteira, que ele não fecha dentro do `FORMAL_TIMEOUT` (900 s por padrão): o backend pinos, o backend pinos invertido e os mutantes `console_rx_polarity` e `console_read_strobe`. O `bitwuzla`, o `boolector` e o `abc-bmc3` respondem às quatro, e o agregador `formal/aggregate.sh` continua exigindo veredito de pelo menos um engine para cada prova, de modo que o pulo do `yices` não esconde nenhuma delas.
+
 ## 5. Avisos são erros
 
 Um aviso do GHDL, do Yosys ou do SymbiYosys indica código fora da norma ou no limite dela, e a causa se corrige no código ou na prova. Nenhuma opção esconde um aviso (`-Wno-*` não existe no `formal/run.sh`).
