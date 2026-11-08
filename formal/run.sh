@@ -46,8 +46,7 @@ expect() {
 common=(utils_pkg flip_flop generic_register clearable_register synchronizer adder mux_2x1 mux_4x1 mux_8x1 tristate_buffer_1bit)
 timer_srcs=(alu_ge_unsigned counter_overflow clock_prescaler timer_operation_decoder timer)
 gpio_srcs=(gpio_operation_decoder gpio_cell gpio)
-mtime_srcs=(clint_mtime)
-clint_srcs=(alu_ge_unsigned clint_consts clint_mtime clint)
+clint_srcs=(alu_ge_unsigned clint_consts config_pkg counter64 clint)
 fifo_srcs=(uart_fifo)
 flash_srcs=(flash_controller)
 uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart)
@@ -56,7 +55,9 @@ for n in "${common[@]}"; do path_of[$n]="$root/src/common/src/$n.vhd"; done
 for n in "${timer_srcs[@]}"; do path_of[$n]="$root/src/TIMER/soc/$n.vhd"; done
 for n in "${gpio_srcs[@]}"; do path_of[$n]="$root/src/GPIO/soc/$n.vhd"; done
 for n in baudGen uartRx uartTx uart2BusTop_pkg uartTop; do path_of[$n]="$root/src/UART/serial/vendor/opencores_uart2bus/$n.vhd"; done
-for n in clint_consts clint_mtime clint; do path_of[$n]="$root/src/CLINT/soc/$n.vhd"; done
+for n in clint_consts clint; do path_of[$n]="$root/src/CLINT/soc/$n.vhd"; done
+# The mtime counter of the CLINT is the counter64 of Common-Components, proved there on its own.
+for n in config_pkg counter64; do path_of[$n]="$root/src/common/src/$n.vhd"; done
 path_of[uart]="$root/src/UART/serial/uart.vhd"
 path_of[uart_fifo]="$root/src/UART/serial/uart_fifo.vhd"
 path_of[flash_controller]="$root/src/flash-controller/soc/flash_controller.vhd"
@@ -269,14 +270,6 @@ build timer timer "${timer_srcs[@]}" --
 expect "registers follow the bus writes, counter, overflow status, IRQ, PWM and readback (induction)" PASS "$(prove timer.v "$f/timer_props.sv" prove 3 '' timer_safety)"
 expect "cover: an overflow raises the IRQ, the status read clears it, the counter advances with a tick" PASS "$(prove timer.v "$f/timer_props.sv" cover 20 '-DCOVER' timer_cover)"
 
-echo "clint_mtime"
-mtime_exp=(lo:31 hi:31 carry)
-mut_expose=("${mtime_exp[@]}")
-build clint_mtime mtime "${mtime_srcs[@]}" --
-expect "the value shown is the ideal 64-bit counter: one per increment, a write wins, the carry is never lost (induction)" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" prove 3 '' mtime_safety)"
-expect "the same property, bounded from reset (bounded, 12 cycles; the only form the abc-bmc3 engine answers)" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" bmc 12 '' mtime_bounded)"
-expect "cover: the carry between the halves and a high write with the low wrap are reachable" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" cover 12 '-DCOVER' mtime_cover)"
-
 echo "clint"
 cgen=(-gtick_cycles=3)
 clint_exp=(msip cmp_lo:31 cmp_hi:31 mtime_lo:31 mtime_hi:31 gen_tick_divided_phase:1)
@@ -390,11 +383,6 @@ mutant timer "$tp" timer '' timer_pwm_inverted "s/pwm_inverted   <= not pwm_alu;
 mutant timer_operation_decoder "$tp" timer '' timer_read_select "s/\"000\" when ADDR_TIMER_LOAD,/\"001\" when ADDR_TIMER_LOAD,/" 8 "${timer_srcs[@]}" --
 mutant timer_operation_decoder "$tp" timer '' timer_write_address "s/o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_TOP /o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_DUTY_CYCLE /" 8 "${timer_srcs[@]}" --
 
-mut_expose=("${mtime_exp[@]}"); mut_open=0
-mp="$f/clint_mtime_props.sv"
-mutant clint_mtime "$mp" clint_mtime '' mtime_carry_lost "s/lo = LO_ALL_ONES/lo = x\"FFFFFFFE\"/" 12 "${mtime_srcs[@]}" --
-mutant clint_mtime "$mp" clint_mtime '' mtime_hi_incoherent "s/o_hi <= hi_inc when carry = '1' else hi;/o_hi <= hi;/" 12 "${mtime_srcs[@]}" --
-mutant clint_mtime "$mp" clint_mtime '' mtime_write_loses "s/lo_nxt <= i_wdata when i_we_lo = '1' else lo_inc;/lo_nxt <= lo_inc;/" 12 "${mtime_srcs[@]}" --
 mut_expose=("${clint_exp[@]}")
 cp_="$f/clint_props.sv"
 mutant clint "$cp_" clint '-DTICK=3' clint_msip_bit "s/i_d      => i_data_in(0 downto 0),/i_d      => i_data_in(1 downto 1),/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
@@ -404,6 +392,9 @@ mutant clint "$cp_" clint '-DTICK=3' clint_mtip_unregistered "s/o_irq_timer    <
 mutant clint "$cp_" clint '-DTICK=3' clint_read_swapped "s/mtime_lo                   when ADDR_MTIME_LO,/mtime_hi                   when ADDR_MTIME_LO,/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
 mutant clint "$cp_" clint '-DTICK=3' clint_tick_early "s/tick <= '1' when phase = tick_cycles - 1/tick <= '1' when phase = 0/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
 mutant clint "$cp_" clint '-DTICK=3' clint_mtime_hi_address "s/wr_mtime_hi <= i_write when i_address = ADDR_MTIME_HI /wr_mtime_hi <= i_write when i_address = ADDR_MTIME_LO /" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant counter64 "$cp_" clint '-DTICK=3' mtime_carry_lost "s/lo = LO_ALL_ONES/lo(lo'high) = '1'/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant counter64 "$cp_" clint '-DTICK=3' mtime_hi_incoherent "s/unsigned(hi_inc), word_t'length)) when carry = '1' else/unsigned(hi), word_t'length)) when carry = '1' else/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
+mutant counter64 "$cp_" clint '-DTICK=3' mtime_write_loses "s/lo_nxt <= i_wdata(LO_WIDTH - 1 downto 0) when i_we_lo = '1' else lo_inc;/lo_nxt <= lo_inc;/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
 mutant alu_ge_unsigned "$cp_" clint '-DTICK=3' clint_strict_compare "s/c(0)  <= '1';/c(0)  <= '0';/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
 mutant clint "$cp_" clint '-DTICK=3 -DSEQ' clint_seq_cmp_clear_not_ones "s/clear_value => '1'/clear_value => '0'/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
 

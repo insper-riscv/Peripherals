@@ -10,7 +10,7 @@ O CLINT é o temporizador de máquina de um hart, mapeado em memória no leiaute
 | :--- | :--- | :--- |
 | `tick_cycles` | 1 | Ciclos de clock por incremento do `mtime` |
 
-O `TIMER` de uso geral segue como periférico independente. O `mtime` do CLINT é um contador próprio, com a frequência do clock dividida por `tick_cycles`, e o CSR `time` do núcleo é o sombreamento somente leitura dele, pela saída `o_mtime`.
+O `TIMER` de uso geral segue como periférico independente. O `mtime` do CLINT é um contador próprio, com a frequência do clock dividida por `tick_cycles`, e o CSR `time` do núcleo é o sombreamento somente leitura dele, pela saída `o_mtime`. O contador de 64 bits é o `counter64` do Common-Components, instanciado com `width` igual a 64 e com a saída de estouro desligada.
 
 ## 2. Interface
 
@@ -67,8 +67,8 @@ Cada estado intermediário é maior ou igual ao valor antigo ou ao final, e com 
 
 | Verificação | Cobertura |
 | :--- | :--- |
-| Testes de entidade `CLINT`, `ClintTick` e `ClintMtime` | Reset, contagem, vai-um com leitura em três passos, comparação de 64 bits, igualdade, sequência de escrita do porte sem `MTIP` espúrio, queda do `MTIP` pendente, `msip`, endereços fora do mapa, divisor de ciclos e contador contra um modelo aleatório |
-| Provas formais `clint` e `clint_mtime` | As saídas e a leitura de cada endereço seguem o modelo ideal; na sequência de escrita do porte o `MTIP` só vale se o valor antigo ou o final já foi alcançado; covers de subida e descida do `MTIP`, do `MSIP` e do vai-um |
+| Testes de entidade `CLINT` e `ClintTick` | Reset, contagem, vai-um com leitura em três passos, comparação de 64 bits, igualdade, sequência de escrita do porte sem `MTIP` espúrio, queda do `MTIP` pendente, `msip`, endereços fora do mapa, divisor de ciclos e contador contra um modelo aleatório |
+| Prova formal `clint` | As saídas e a leitura de cada endereço seguem o modelo ideal; na sequência de escrita do porte o `MTIP` só vale se o valor antigo ou o final já foi alcançado; covers de subida e descida do `MTIP`, do `MSIP` e do vai-um |
 
 Os mutantes e o método estão em [formal.md](../formal/formal.md).
 

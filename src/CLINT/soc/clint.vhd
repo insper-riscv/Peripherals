@@ -121,7 +121,10 @@ begin
     tick <= '1' when phase = tick_cycles - 1 else '0';
   end generate gen_tick_divided;
 
-  u_mtime : entity work.clint_mtime
+  u_mtime : entity work.counter64
+    generic map (
+      width => 64
+    )
     port map (
       i_clk   => i_clk,
       i_rst   => i_rst,
@@ -130,7 +133,8 @@ begin
       i_we_hi => wr_mtime_hi,
       i_wdata => i_data_in,
       o_lo    => mtime_lo,
-      o_hi    => mtime_hi
+      o_hi    => mtime_hi,
+      o_wrap  => open
     );
 
   u_msip : entity work.generic_register

@@ -68,17 +68,6 @@ class PlicArbiterDut(Protocol):
     o_valid: LogicObject
 
 
-class ClintMtimeDut(ResettableDut, Protocol):
-    """Signals of the CLINT mtime counter."""
-
-    i_inc: LogicObject
-    i_we_lo: LogicObject
-    i_we_hi: LogicObject
-    i_wdata: LogicArrayObject
-    o_lo: LogicArrayObject
-    o_hi: LogicArrayObject
-
-
 class GpioDut(IrqDut, Protocol):
     """Signals of the GPIO testbench."""
 

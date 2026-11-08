@@ -34,7 +34,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
 | `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,GPIO,PLIC,TIMER,UART,display,flash_controller}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO |
-| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `clint_mtime`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
+| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
 | `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), UART documents (`UART/`), the FLASH controller (`flash-controller/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
 
 ## 3. Interface
