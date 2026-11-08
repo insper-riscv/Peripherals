@@ -19,13 +19,11 @@ entity seg_display_shell is
 		-- Reset, ativo em '1'.
 		i_rst   : in  std_logic;
 		-- Endereço do acesso.
-		i_addr  : in  std_logic_vector(7 downto 0);
+		i_address : in  std_logic_vector(7 downto 0);
 		-- Dado de escrita.
-		i_wdata : in  std_logic_vector(31 downto 0);
-		-- Escrita ('1') ou leitura ('0').
-		i_we    : in  std_logic;
-		-- Leitura ('1').
-		i_re    : in  std_logic;
+		i_data_in : in  std_logic_vector(31 downto 0);
+		-- Pulso de escrita ('1' = escreve).
+		i_write   : in  std_logic;
 		-- Dado lido.
 		o_rdata : out std_logic_vector(31 downto 0);
 		-- Segmentos dos seis displays, HEX0 nos bits 6:0 e HEX5 nos bits 41:36 (nível baixo).
@@ -71,8 +69,8 @@ begin
 
 	u_display : entity work.seg_display
 		port map (
-			i_clk => i_clk, i_rst => i_rst, i_addr => i_addr, i_wdata => i_wdata,
-			i_we => i_we, i_re => i_re, o_rdata => o_rdata,
+			i_clk => i_clk, i_rst => i_rst, i_address => i_address, i_data_in => i_data_in,
+			i_write => i_write, o_rdata => o_rdata,
 			i_tck => tck, i_tdi => tdi, o_tdo => tdo, i_ir_in => ir_in,
 			i_state_cdr => st_cdr, i_state_sdr => st_sdr, i_state_udr => st_udr, i_state_uir => st_uir,
 			o_value => o_value, o_fail => o_fail, o_hex => o_hex

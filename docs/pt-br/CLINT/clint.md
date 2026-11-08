@@ -14,13 +14,13 @@ O `TIMER` de uso geral segue como periférico independente. O `mtime` do CLINT �
 
 ## 2. Interface
 
-Além das portas comuns dos periféricos, o CLINT tem duas saídas de interrupção. O endereço tem 14 bits de palavra, o que cobre os 64 KiB do mapa. O sinal `i_read` faz parte da assinatura do barramento, mas a leitura não tem efeito colateral.
+Além das portas comuns dos periféricos, o CLINT tem duas saídas de interrupção. O endereço tem 14 bits de palavra, o que cobre os 64 KiB do mapa. O CLINT não tem `i_read`, porque a leitura não tem efeito colateral e `o_data_out` é combinacional no endereço.
 
 | Porta | Sentido | Função |
 | :--- | :--- | :--- |
 | `i_clk`, `i_rst` | entrada | Clock e reset, ativo em 1 |
 | `i_data_in`, `i_address` | entrada | Dado de escrita de 32 bits e endereço de palavra de 14 bits |
-| `i_write`, `i_read` | entrada | Pulsos de escrita e de leitura |
+| `i_write` | entrada | Pulso de escrita |
 | `o_data_out` | saída | Dado de leitura, combinacional no endereço |
 | `o_irq_timer` | saída | `MTIP` |
 | `o_irq_software` | saída | `MSIP` |

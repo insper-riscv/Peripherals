@@ -15,15 +15,32 @@ A register that holds 4 bits per digit and shows them in hexadecimal on the seve
 
 The polarity is only on the `o_hex` output. The converter lights at the low level and the generic picks the pin level, so the rest of the module does not depend on the board.
 
-## 3. Core side
+## 3. Interface
 
-One access per pulse of `i_we` or `i_re`. Word 0 reads the `4 * digits`-bit value and the write stores the low `4 * digits` bits. The other words read zero and ignore the write.
+The ports follow the bus of the other peripherals, with `o_rdata` as the read output. The read is combinational on the address, so there is no read pulse.
 
-## 4. Host side
+| Interface | Port | Direction | Function |
+| :--- | :--- | :--- | :--- |
+| Control | `i_clk`, `i_rst` | input | Core clock and synchronous reset, active at 1 |
+| Bus | `i_address` | input | 8-bit word offset inside the window |
+| Bus | `i_data_in`, `i_write` | input | 32-bit write data and write pulse |
+| Bus | `o_rdata` | output | 32-bit read data, combinational on the address |
+| JTAG | `i_tck`, `i_tdi`, `o_tdo` | input, input, output | Clock and serial data of the Virtual JTAG chain |
+| JTAG | `i_ir_in` | input | 2-bit instruction register |
+| JTAG | `i_state_cdr`, `i_state_sdr`, `i_state_udr`, `i_state_uir` | input | Capture-DR, Shift-DR, Update-DR and Update-IR states |
+| Board | `o_value` | output | Stored value, `4 * digits` bits |
+| Board | `o_fail` | output | Failure flag written by the host |
+| Board | `o_hex` | output | Segments, `7 * digits` bits, with the polarity of `active_low` |
+
+## 4. Core side
+
+One access per pulse of `i_write`. Word 0 reads the `4 * digits`-bit value and the write stores the low `4 * digits` bits. The other words read zero and ignore the write.
+
+## 5. Host side
 
 Virtual JTAG instruction 1 selects a register of `4 * digits + 1` bits. The low bits are the new value and the top bit stores the value when it is 1. The output carries the register value at the start of the scan. Instruction 2 selects the 2-bit failure flag register, which only the host and the FPGA reconfiguration change. The host write crosses to the core clock through a toggle and two flip-flops, and the core wins when both write in the same cycle.
 
-## 5. Verification
+## 6. Verification
 
 The entity tests cover the pattern of each digit, the core and host access, the three-digit variant with active-high segments (12-bit register and 13-bit scan) and the zero-digit module, which stores nothing and reads zero.
 

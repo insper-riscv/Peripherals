@@ -11,7 +11,7 @@ module props (input clk);
   localparam T = `TICK;
   localparam [13:0] A_MSIP = 14'h0000, A_CMP_LO = 14'h1000, A_CMP_HI = 14'h1001,
                     A_MT_LO = 14'h2FFE, A_MT_HI = 14'h2FFF;
-  (* anyseq *) wire reset, write, read;
+  (* anyseq *) wire reset, write;
   (* anyseq *) wire [31:0] data;
   (* anyseq *) wire [13:0] addr;
   wire [31:0] dout;
@@ -22,7 +22,7 @@ module props (input clk);
   wire [31:0] dbg_cmp_lo, dbg_cmp_hi, dbg_mtime_lo, dbg_mtime_hi;
   wire [1:0] dbg_gen_tick_divided_phase;
 
-  clint dut (.i_clk(clk), .i_rst(reset), .i_data_in(data), .i_address(addr), .i_write(write), .i_read(read),
+  clint dut (.i_clk(clk), .i_rst(reset), .i_data_in(data), .i_address(addr), .i_write(write),
     .o_data_out(dout), .o_irq_timer(irq_timer), .o_irq_software(irq_software), .o_mtime(mtime_out),
     .dbg_msip(dbg_msip), .dbg_cmp_lo(dbg_cmp_lo), .dbg_cmp_hi(dbg_cmp_hi), .dbg_mtime_lo(dbg_mtime_lo),
     .dbg_mtime_hi(dbg_mtime_hi), .dbg_gen_tick_divided_phase(dbg_gen_tick_divided_phase));

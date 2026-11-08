@@ -8,7 +8,7 @@
 -- registrador e sem segmento. O valor fica no registrador entre dois
 -- programas, de modo que o display não pisca durante a troca.
 --
--- Lado do core (clock i_clk), um acesso por pulso de i_we ou i_re:
+-- Lado do core (clock i_clk), um acesso por pulso de i_write; a leitura é combinacional:
 --   palavra 0  leitura: o valor de 4*digits bits; escrita: grava os 4*digits bits baixos
 --   outras     leitura: 0; escrita: ignorada
 --
@@ -44,13 +44,11 @@ entity seg_display is
 		-- Reset síncrono, ativo em nível alto.
 		i_rst       : in  std_logic;
 		-- Deslocamento de palavra dentro da janela do periférico.
-		i_addr      : in  std_logic_vector(7 downto 0);
+		i_address   : in  std_logic_vector(7 downto 0);
 		-- Dado escrito pelo core.
-		i_wdata     : in  std_logic_vector(31 downto 0);
+		i_data_in   : in  std_logic_vector(31 downto 0);
 		-- Pulso de escrita do core ('1' = escreve).
-		i_we        : in  std_logic;
-		-- Pulso de leitura do core ('1' = lê).
-		i_re        : in  std_logic;
+		i_write     : in  std_logic;
 		-- Dado lido pelo core, válido no ciclo do pulso.
 		o_rdata     : out std_logic_vector(31 downto 0);
 		-- Clock da cadeia JTAG.
@@ -82,6 +80,8 @@ architecture rtl of seg_display is
 
 	-- Largura do valor guardado, em bits.
 	constant VALUE_BITS : natural := 4 * digits;
+	-- Palavra do registrador do valor, a única com conteúdo.
+	constant VALUE_ADDRESS : natural := 0;
 	-- Valor guardado, no domínio de i_clk.
 	signal value    : std_logic_vector(VALUE_BITS - 1 downto 0) := (others => '0');
 	-- Segmentos dos dígitos em nível baixo (aceso em '0'), antes da polaridade do generic.
@@ -119,10 +119,10 @@ begin
 	o_value <= value;
 
 	-- Leitura do core: só a palavra 0 tem conteúdo.
-	process (i_addr, value)
+	process (i_address, value)
 	begin
 		o_rdata <= (others => '0');
-		if to_integer(unsigned(i_addr)) = 0 then
+		if to_integer(unsigned(i_address)) = VALUE_ADDRESS then
 			o_rdata(VALUE_BITS - 1 downto 0) <= value;
 		end if;
 	end process;
@@ -134,8 +134,8 @@ begin
 			if i_rst = '1' then
 				value    <= (others => '0');
 				tog_seen <= tog_sync(0);
-			elsif i_we = '1' and to_integer(unsigned(i_addr)) = 0 then
-				value <= i_wdata(VALUE_BITS - 1 downto 0);
+			elsif i_write = '1' and to_integer(unsigned(i_address)) = VALUE_ADDRESS then
+				value <= i_data_in(VALUE_BITS - 1 downto 0);
 			elsif tog_sync(0) /= tog_seen then
 				tog_seen <= tog_sync(0);
 				value    <= host_val;

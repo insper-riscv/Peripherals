@@ -12,6 +12,22 @@ from cocotb.triggers import RisingEdge, Timer
 from tests.python.utils.dut import BusDut, DecoderDut, ResettableDut
 
 
+def _set_read(dut: BusDut, value: int) -> None:
+    """Drive the read strobe when the peripheral has one.
+
+    The CLINT has no read strobe, because a read has no side effect.
+
+    Parameters
+    ----------
+    dut : BusDut
+        The design under test.
+    value : int
+        Value of the read strobe.
+    """
+    if hasattr(dut, "i_read"):
+        dut.i_read.value = value
+
+
 async def hold_reset(
     dut: ResettableDut, hold: int = 3, period_ns: int = 10
 ) -> None:
@@ -51,7 +67,7 @@ async def reset(dut: BusDut, hold: int = 3, period_ns: int = 10) -> None:
     cocotb.start_soon(Clock(dut.i_clk, period_ns, unit="ns").start())
     dut.i_rst.value = 1
     dut.i_write.value = 0
-    dut.i_read.value = 0
+    _set_read(dut, 0)
     dut.i_address.value = 0
     dut.i_data_in.value = 0
     for _ in range(hold):
@@ -120,12 +136,12 @@ async def read(dut: BusDut, address: int) -> int:
         The value sampled before the clock edge.
     """
     dut.i_address.value = address
-    dut.i_read.value = 1
+    _set_read(dut, 1)
     await Timer(1, unit="ns")
     value = int(dut.o_data_out.value)
     await RisingEdge(dut.i_clk)
     await Timer(1, unit="ns")
-    dut.i_read.value = 0
+    _set_read(dut, 0)
     return value
 
 

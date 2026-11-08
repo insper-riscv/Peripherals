@@ -45,16 +45,15 @@ async def reset_pulse(dut: Dut):
 async def start(dut: Dut):
     """Start the clock and reset the DUT."""
     for sig in (
-        dut.i_we,
-        dut.i_re,
+        dut.i_write,
         dut.i_state_cdr,
         dut.i_state_sdr,
         dut.i_state_udr,
         dut.i_state_uir,
     ):
         sig.value = 0
-    dut.i_addr.value = 0
-    dut.i_wdata.value = 0
+    dut.i_address.value = 0
+    dut.i_data_in.value = 0
     dut.i_tck.value = 0
     dut.i_tdi.value = 0
     dut.i_ir_in.value = 0
@@ -69,22 +68,20 @@ async def start(dut: Dut):
 
 async def core_write(dut: Dut, value: int, addr: int = 0):
     """Write a value from the core side."""
-    dut.i_addr.value = addr
-    dut.i_wdata.value = value
-    dut.i_we.value = 1
+    dut.i_address.value = addr
+    dut.i_data_in.value = value
+    dut.i_write.value = 1
     await post_edge(dut)
-    dut.i_we.value = 0
+    dut.i_write.value = 0
     await post_edge(dut)
 
 
 async def core_read(dut: Dut, addr: int = 0):
     """Read a value from the core side."""
-    dut.i_addr.value = addr
-    dut.i_re.value = 1
+    dut.i_address.value = addr
     await Timer(1, unit="ns")
     value = int(dut.o_rdata.value)
     await post_edge(dut)
-    dut.i_re.value = 0
     return value
 
 

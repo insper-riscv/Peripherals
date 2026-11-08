@@ -313,7 +313,7 @@ expect "command pulse, registers, status read and page buffer follow the referen
 expect "cover: a program command, a status with busy and refused, a write at the last word and a buffer read are reachable" PASS "$(prove flashc.v "$f/flash_controller_props.sv" cover 14 '-DCOVER' flashc_cover)"
 
 echo "jtag_uart"
-jtag_srcs=(jtag_uart)
+jtag_srcs=(synchronizer jtag_uart)
 path_of[jtag_uart]="$root/src/UART/jtag/jtag_uart.vhd"
 mut_expose=(); mut_open=0
 build jtag_uart jtagu "${jtag_srcs[@]}" -- -glog2_depth=2
@@ -337,7 +337,7 @@ expect "cover: a frame of A5 is received" PASS "$(prove uart.v "$f/uart_props.sv
 echo "console"
 path_of[console]="$root/src/UART/console/console.vhd"
 path_of[console_equiv]="$root/tests/vhdl/console_equiv.vhd"
-console_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart jtag_uart console console_equiv)
+console_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart synchronizer jtag_uart console console_equiv)
 cp_="$f/console_props.sv"
 mut_expose=(); mut_open=0
 cgen_pins=(-gbackend=pinos -gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3)

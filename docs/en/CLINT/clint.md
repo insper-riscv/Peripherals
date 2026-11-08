@@ -14,13 +14,13 @@ The general-purpose `TIMER` remains an independent peripheral. The `mtime` of th
 
 ## 2. Interface
 
-Besides the common peripheral ports, the CLINT has two interrupt outputs. The address is 14 word bits, which covers the 64 KiB of the map. The `i_read` signal belongs to the bus signature, but a read has no side effect.
+Besides the common peripheral ports, the CLINT has two interrupt outputs. The address is 14 word bits, which covers the 64 KiB of the map. The CLINT has no `i_read`, because a read has no side effect and `o_data_out` is combinational on the address.
 
 | Port | Direction | Function |
 | :--- | :--- | :--- |
 | `i_clk`, `i_rst` | input | Clock and reset, active at 1 |
 | `i_data_in`, `i_address` | input | 32-bit write data and 14-bit word address |
-| `i_write`, `i_read` | input | Write and read pulses |
+| `i_write` | input | Write pulse |
 | `o_data_out` | output | Read data, combinational on the address |
 | `o_irq_timer` | output | `MTIP` |
 | `o_irq_software` | output | `MSIP` |
