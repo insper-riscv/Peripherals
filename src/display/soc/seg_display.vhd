@@ -8,7 +8,7 @@
 -- registrador e sem segmento. O valor fica no registrador entre dois
 -- programas, de modo que o display não pisca durante a troca.
 --
--- Lado do core (clock i_clk), um acesso por pulso de i_write; a leitura é combinacional no endereço:
+-- Lado do core (clock i_clk), um acesso por pulso de i_write; a leitura é combinacional:
 --   palavra 0  leitura: o valor de 4*digits bits; escrita: grava os 4*digits bits baixos
 --   outras     leitura: 0; escrita: ignorada
 --
