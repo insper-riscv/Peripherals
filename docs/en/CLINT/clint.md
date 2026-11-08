@@ -10,7 +10,7 @@ The CLINT is the machine timer of one hart, memory-mapped in the layout of the S
 | :--- | :--- | :--- |
 | `tick_cycles` | 1 | Clock cycles per `mtime` increment |
 
-The general-purpose `TIMER` remains an independent peripheral. The `mtime` of the CLINT is its own counter, at the clock frequency divided by `tick_cycles`, and the `time` CSR of the core is its read-only shadow, through the `o_mtime` output.
+The general-purpose `TIMER` remains an independent peripheral. The `mtime` of the CLINT is its own counter, at the clock frequency divided by `tick_cycles`, and the `time` CSR of the core is its read-only shadow, through the `o_mtime` output. The 64-bit counter is the `counter64` of Common-Components, instantiated with `width` equal to 64 and with the overflow output left open.
 
 ## 2. Interface
 
@@ -67,8 +67,8 @@ Each intermediate state is greater than or equal to the old value or the final o
 
 | Check | Coverage |
 | :--- | :--- |
-| Entity tests `CLINT`, `ClintTick` and `ClintMtime` | Reset, counting, carry with the three-step read, 64-bit comparison, equality, the port write sequence with no spurious `MTIP`, drop of a pending `MTIP`, `msip`, unmapped addresses, the cycle divider and the counter against a random model |
-| Formal proofs `clint` and `clint_mtime` | The outputs and the read of every address follow the ideal model; in the port write sequence `MTIP` holds only if the old or the final value was reached; covers of `MTIP` rising and falling, of `MSIP` and of the carry |
+| Entity tests `CLINT` and `ClintTick` | Reset, counting, carry with the three-step read, 64-bit comparison, equality, the port write sequence with no spurious `MTIP`, drop of a pending `MTIP`, `msip`, unmapped addresses, the cycle divider and the counter against a random model |
+| Formal proof `clint` | The outputs and the read of every address follow the ideal model; in the port write sequence `MTIP` holds only if the old or the final value was reached; covers of `MTIP` rising and falling, of `MSIP` and of the carry |
 
 The mutants and the method are in [formal.md](../formal/formal.md).
 
