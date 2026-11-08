@@ -17,9 +17,9 @@ entity seg_display_zero_tb is
     -- Reset síncrono, ativo em '1'.
     i_rst      : in  std_logic;
     -- Dado escrito pelo core.
-    i_wdata    : in  std_logic_vector(31 downto 0);
+    i_data_in  : in  std_logic_vector(31 downto 0);
     -- Pulso de escrita do core.
-    i_we       : in  std_logic;
+    i_write    : in  std_logic;
     -- Dado lido pelo core.
     o_rdata    : out std_logic_vector(31 downto 0);
     -- Comprimento dos segmentos, que deve ser zero.
@@ -40,10 +40,9 @@ begin
     port map (
       i_clk       => i_clk,
       i_rst       => i_rst,
-      i_addr      => (others => '0'),
-      i_wdata     => i_wdata,
-      i_we        => i_we,
-      i_re        => '0',
+      i_address   => (others => '0'),
+      i_data_in   => i_data_in,
+      i_write     => i_write,
       o_rdata     => o_rdata,
       i_tck       => '0',
       i_tdi       => '0',

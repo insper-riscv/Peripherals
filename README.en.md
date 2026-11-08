@@ -39,7 +39,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 
 ## 3. Interface
 
-Every peripheral shares the same set of ports, following the bus of the Core contract: `i_clk`, `i_rst`, `i_data_in`, `i_address` (word offset inside the peripheral), `i_write`, `i_read`, `o_data_out`, and `o_irq`. The register maps are in the `*_operation_decoder` entities and in `tests/python/unittests/*/*_operation_decoder.py`.
+Every peripheral shares the same set of ports, following the bus of the Core contract: `i_clk`, `i_rst`, `i_data_in`, `i_address` (word offset inside the peripheral), `i_write`, `i_read`, `o_data_out`, and `o_irq`; the CLINT has no `i_read`, because a read has no side effect. The register maps are in the `*_operation_decoder` entities and in `tests/python/unittests/*/*_operation_decoder.py`.
 
 ### 3.1. GPIO Registers
 

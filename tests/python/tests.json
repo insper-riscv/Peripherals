@@ -314,6 +314,7 @@
     "JtagUart": {
         "toplevel": "jtag_uart",
         "sources": [
+            "src/common/src/synchronizer.vhd",
             "src/UART/jtag/jtag_uart.vhd"
         ],
         "test_module": "tests.python.unittests.UART.jtag_uart",
@@ -327,6 +328,7 @@
     "ConsoleJtag": {
         "toplevel": "console",
         "sources": [
+            "src/common/src/synchronizer.vhd",
             "src/UART/jtag/jtag_uart.vhd",
             "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
             "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
@@ -351,6 +353,7 @@
     "ConsolePins": {
         "toplevel": "console",
         "sources": [
+            "src/common/src/synchronizer.vhd",
             "src/UART/jtag/jtag_uart.vhd",
             "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
             "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
@@ -379,6 +382,7 @@
     "ConsolePinsInverted": {
         "toplevel": "console",
         "sources": [
+            "src/common/src/synchronizer.vhd",
             "src/UART/jtag/jtag_uart.vhd",
             "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
             "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",

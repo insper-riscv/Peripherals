@@ -19,15 +19,15 @@ async def test_zero_digit_display_stores_nothing(dut: Dut):
     """A write is lost, the read is zero and the ports have no bit."""
     cocotb.start_soon(Clock(dut.i_clk, 10, unit="ns").start())
     dut.i_rst.value = 1
-    dut.i_we.value = 0
-    dut.i_wdata.value = 0
+    dut.i_write.value = 0
+    dut.i_data_in.value = 0
     for _ in range(CYCLES):
         await RisingEdge(dut.i_clk)
     dut.i_rst.value = 0
-    dut.i_wdata.value = 0xFFFFFFFF
-    dut.i_we.value = 1
+    dut.i_data_in.value = 0xFFFFFFFF
+    dut.i_write.value = 1
     await RisingEdge(dut.i_clk)
-    dut.i_we.value = 0
+    dut.i_write.value = 0
     await Timer(1, unit="ns")
     check_equal(int(dut.o_rdata.value), 0, "the read answers zero")
     check_equal(int(dut.o_hex_len.value), 0, "no segment")

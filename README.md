@@ -39,7 +39,7 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 
 ## 3. Interface
 
-Todo periférico compartilha o mesmo conjunto de portas, conforme o barramento do contrato do Core: `i_clk`, `i_rst`, `i_data_in`, `i_address` (deslocamento em palavras dentro do periférico), `i_write`, `i_read`, `o_data_out` e `o_irq`. Os mapas de registradores estão nas entidades `*_operation_decoder` e em `tests/python/unittests/*/*_operation_decoder.py`.
+Todo periférico compartilha o mesmo conjunto de portas, conforme o barramento do contrato do Core: `i_clk`, `i_rst`, `i_data_in`, `i_address` (deslocamento em palavras dentro do periférico), `i_write`, `i_read`, `o_data_out` e `o_irq`; o CLINT não tem `i_read`, porque a leitura não tem efeito colateral. Os mapas de registradores estão nas entidades `*_operation_decoder` e em `tests/python/unittests/*/*_operation_decoder.py`.
 
 ### 3.1. Registradores da GPIO
 

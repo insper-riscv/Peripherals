@@ -98,6 +98,14 @@ architecture rtl of jtag_uart is
 
   -- Profundidade de cada fila de bytes.
   constant DEPTH : natural := 2 ** log2_depth;
+  -- Palavra do registrador TXDATA.
+  constant TXDATA_ADDRESS  : natural := 0;
+  -- Palavra do registrador RXDATA.
+  constant RXDATA_ADDRESS  : natural := 1;
+  -- Palavra do registrador STATUS.
+  constant STATUS_ADDRESS  : natural := 2;
+  -- Palavra do registrador CONTROL.
+  constant CONTROL_ADDRESS : natural := 3;
   -- Memória de uma fila de bytes.
   type fifo_t is array (0 to DEPTH - 1) of std_logic_vector(7 downto 0);
 
@@ -127,8 +135,8 @@ architecture rtl of jtag_uart is
   signal tx_irq_enable  : std_logic := '0';
   -- Habilitação da interrupção por byte descartado.
   signal err_irq_enable : std_logic := '0';
-  -- Sincronizador de dois estágios do toggle de comando.
-  signal cmd_s     : std_logic_vector(1 downto 0) := "00";
+  -- Toggle de comando sincronizado com clk (saída de u_sync_cmd).
+  signal cmd_s     : std_logic_vector(0 downto 0);
   -- Toggle de conclusão (registrado).
   signal done_i    : std_logic := '0';
   -- Resposta ao último comando (lado clk).
@@ -146,8 +154,8 @@ architecture rtl of jtag_uart is
   signal bypass    : std_logic := '0';
   -- Toggle de comando ao lado clk (registrado).
   signal cmd_i     : std_logic := '0';
-  -- Sincronizador de dois estágios do toggle de conclusão em tck.
-  signal done_s    : std_logic_vector(1 downto 0) := "00";
+  -- Toggle de conclusão sincronizado com tck (saída de u_sync_done).
+  signal done_s    : std_logic_vector(0 downto 0);
   -- A resposta anterior já foi mostrada.
   signal seen      : std_logic := '0';
   -- Resposta guardada para a próxima varredura.
@@ -169,9 +177,27 @@ begin
            or (tx_empty and tx_irq_enable)
            or (lost and err_irq_enable);
 
+  -- Leva o toggle de comando do domínio de tck ao de clk (dois estágios).
+  u_sync_cmd : entity work.synchronizer
+    generic map (stages => 2, data_width => 1)
+    port map (
+      i_clk  => i_clk,
+      i_d(0) => cmd_i,
+      o_d    => cmd_s
+    );
+
+  -- Leva o toggle de conclusão do domínio de clk ao de tck (dois estágios).
+  u_sync_done : entity work.synchronizer
+    generic map (stages => 2, data_width => 1)
+    port map (
+      i_clk  => i_tck,
+      i_d(0) => done_i,
+      o_d    => done_s
+    );
+
   tx_level <= tx_w - tx_r;
   rx_level <= rx_w - rx_r;
-  busy     <= '1' when cmd_i /= done_s(1) else '0';
+  busy     <= '1' when cmd_i /= done_s(0) else '0';
   o_tdo      <= sr(0) when ir = "01" else bypass;
 
   -- os registradores lidos pelo core
@@ -182,18 +208,18 @@ begin
   begin
     o_rdata <= (others => '0');
     case to_integer(unsigned(i_addr)) is
-      when 1 =>
+      when RXDATA_ADDRESS =>
         if rx_level /= 0 then
           o_rdata(8) <= '1';
           o_rdata(7 downto 0) <= rx_mem(to_integer(rx_r(log2_depth - 1 downto 0)));
         end if;
-      when 2 =>
+      when STATUS_ADDRESS =>
         free := to_unsigned(DEPTH, 16) - resize(tx_level, 16);
         o_rdata(7 downto 0)  <= std_logic_vector(free(7 downto 0));
         o_rdata(15 downto 8) <= std_logic_vector(resize(rx_level, 8));
         o_rdata(16)          <= lost;
         o_rdata(17)          <= attached;
-      when 3 =>
+      when CONTROL_ADDRESS =>
         o_rdata(0) <= rx_irq_enable;
         o_rdata(1) <= tx_irq_enable;
         o_rdata(2) <= err_irq_enable;
@@ -215,8 +241,6 @@ begin
     variable left   : unsigned(log2_depth downto 0);
   begin
     if rising_edge(i_clk) then
-      cmd_s <= cmd_s(0) & cmd_i;
-
       if i_rst = '1' then
         tx_w <= (others => '0');
         tx_r <= (others => '0');
@@ -227,11 +251,11 @@ begin
         rx_irq_enable  <= '0';
         tx_irq_enable  <= '0';
         err_irq_enable <= '0';
-        done_i <= cmd_s(1);   -- um comando pendente antes do reset não é executado
+        done_i <= cmd_s(0);   -- um comando pendente antes do reset não é executado
         resp <= (others => '0');
       else
         -- o core
-        if i_we = '1' and to_integer(unsigned(i_addr)) = 0 then
+        if i_we = '1' and to_integer(unsigned(i_addr)) = TXDATA_ADDRESS then
           if tx_level = DEPTH then
             lost <= '1';
           else
@@ -239,21 +263,21 @@ begin
             tx_w <= tx_w + 1;
           end if;
         end if;
-        if i_we = '1' and to_integer(unsigned(i_addr)) = 3 then
+        if i_we = '1' and to_integer(unsigned(i_addr)) = CONTROL_ADDRESS then
           rx_irq_enable  <= i_wdata(0);
           tx_irq_enable  <= i_wdata(1);
           err_irq_enable <= i_wdata(2);
         end if;
         if i_re = '1' then
-          if to_integer(unsigned(i_addr)) = 1 and rx_level /= 0 then
+          if to_integer(unsigned(i_addr)) = RXDATA_ADDRESS and rx_level /= 0 then
             rx_r <= rx_r + 1;
-          elsif to_integer(unsigned(i_addr)) = 2 then
+          elsif to_integer(unsigned(i_addr)) = STATUS_ADDRESS then
             lost <= '0';
           end if;
         end if;
 
         -- um comando do hospedeiro
-        if cmd_s(1) /= done_i then
+        if cmd_s(0) /= done_i then
           attached <= '1';
           if tx_level > 4 then
             n := 4;
@@ -292,8 +316,6 @@ begin
   process (i_tck)
   begin
     if rising_edge(i_tck) then
-      done_s <= done_s(0) & done_i;
-
       if i_state_uir = '1' then
         ir <= i_ir_in;
       end if;
@@ -314,9 +336,9 @@ begin
         if ir = "01" then
           -- a resposta do comando anterior já está no registrador do outro clock de vez (o
           -- deslocamento durou muitas bordas de tck): guarda-a para a próxima captura
-          if done_s(1) /= seen then
+          if done_s(0) /= seen then
             held <= resp;
-            seen <= done_s(1);
+            seen <= done_s(0);
           end if;
           if busy = '1' then
             overrun <= '1';

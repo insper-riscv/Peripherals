@@ -43,8 +43,6 @@ entity clint is
     i_address        : in  std_logic_vector(CLINT_ADDR_WIDTH - 1 downto 0);
     -- Pulso de escrita do processador ('1' = escreve).
     i_write          : in  std_logic;
-    -- Pulso de leitura do processador (sem efeito colateral no CLINT).
-    i_read           : in  std_logic;
     -- Dado de leitura para o processador.
     o_data_out       : out std_logic_vector(31 downto 0);
     -- Interrupção de timer de máquina (MTIP), ativa em '1'.

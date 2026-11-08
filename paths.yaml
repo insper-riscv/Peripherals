@@ -68,7 +68,7 @@ provides:
       - src/UART/serial/uart_fifo.vhd
       - src/UART/serial/uart.vhd
   jtag_uart:
-    requires: []
+    requires: [Common-Components/synchronizer]
     sources:
       - src/UART/jtag/jtag_uart.vhd
   console:
