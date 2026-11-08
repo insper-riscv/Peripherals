@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formal verification of the CLINT, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO and the UART with SymbiYosys. Needs
+# Formal verification of the CLINT, the PLIC, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART and the console with SymbiYosys. Needs
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
@@ -70,12 +70,13 @@ mut_from=""; mut_to=""
 # "Warnings: 0 unique messages, 0 total" of yosys is skipped (a count of zero is not a warning). The files are scanned
 # after the tool ends, in the main shell or in the subshell of prove, so the failure is decided at the end of the
 # run, from warnings.txt.
-# One exception, exact and only for the abc-bmc3 engine: ABC itself prints "Warning:" about the AIGER file that
-# SymbiYosys hands it (the clock input is consumed by the clk2ff step, and ABC announces how many outputs it reads
-# as constraints). They describe the tool's own file format, not the design or the proofs, and cannot be removed
-# from the design; see abc_notes below. Yices, bitwuzla and boolector have no exception, and anything else, in any
+# One exception, exact and only for the abc-bmc3 engine: ABC itself prints "Warning:" when it reads the AIGER
+# file that SymbiYosys hands it, to announce how many outputs it reads as constraints (the assumptions, and the
+# clock of the clk2ff step), or that there are none. They describe the tool's own file format, not the design or
+# the proofs; see abc_notes below. The warnings about the clock as an undriven bit are gone: the script of the
+# proof flattens the design and purges the aliases of the clock before the AIGER file is written. Yices, bitwuzla and boolector have no exception, and anything else, in any
 # engine, still fails the run.
-abc_notes='(aig: Warning: Treating undriven bit props\.\\clk like \$anyseq\.|aig: Warning: Treating a total of [0-9]+ undriven bits in props like \$anyseq\.|engine_0: Warning: (The last (output is|[0-9]+ outputs are) interpreted as (a )?constraints?\.|The network has no constraints\.))$'
+abc_notes='(engine_0: Warning: (The last (output is|[0-9]+ outputs are) interpreted as (a )?constraints?\.|The network has no constraints\.))$'
 scan_warnings() {
   local line ignore='^$^'
   [ "$engine" = abc-bmc3 ] && [[ "$1" == *.log && "$1" != *.ghdl.log ]] && ignore="$abc_notes"
@@ -169,8 +170,16 @@ open_pin() {
 # abc-bmc3 engine only checks bounded properties of designs with registers, so it answers SKIP for a proof by
 # induction, for a cover and for a combinational design.
 # The verdict, the exit code and the milliseconds go to <tag>.res, and the tag to .last, for expect.
+# Four bounded proofs of the console (200 cycles over the whole UART) do not close in FORMAL_TIMEOUT with yices, while
+# bitwuzla, boolector and abc-bmc3 answer them: yices is structurally slow on a design this deep. The yices run skips
+# exactly these tags, as it skips what abc-bmc3 does not do, and formal/aggregate.sh still demands an answer from the
+# other engines for each of them.
+yices_slow=" console_pins console_inv mut_console_rx_polarity mut_console_read_strobe "
 prove() {
   echo "$6" > "$out/.last"
+  if [ "$engine" = yices ] && [[ "$yices_slow" == *" $6 "* ]]; then
+    printf 'skip\t-\t0\n' > "$6.res"; echo "SKIP yices does not close this proof within FORMAL_TIMEOUT"; return
+  fi
   local engine_lines script_lines options_lines="" rc=0 verdict began ended
   case "$engine" in
     abc-bmc3)
@@ -179,7 +188,7 @@ prove() {
       fi
       engine_lines="abc bmc3"
       options_lines="aigsmt none"
-      script_lines=$'tribuf -formal\nmemory_map\nsetundef -undriven -zero\ntechmap\nopt -fast\nsetundef -anyseq' ;;
+      script_lines=$'flatten\nsetundef -undriven -zero\nopt_clean -purge\ntribuf -formal\nmemory_map\nsetundef -undriven -zero\ntechmap\nopt -fast\nsetundef -anyseq' ;;
     # memory_map turns the small queue memory of the UART into registers: the SMT engines (yices above all) take
     # far longer on a design with an array than on the same design with registers. A queue of 3 words has a read
     # multiplexer for 4 addresses, and the branch of the fourth has no driver (the pointers never reach it), which
@@ -261,16 +270,22 @@ expect "registers follow the bus writes, counter, overflow status, IRQ, PWM and 
 expect "cover: an overflow raises the IRQ, the status read clears it, the counter advances with a tick" PASS "$(prove timer.v "$f/timer_props.sv" cover 20 '-DCOVER' timer_cover)"
 
 echo "clint_mtime"
-mut_expose=()
+mtime_exp=(lo:31 hi:31 carry)
+mut_expose=("${mtime_exp[@]}")
 build clint_mtime mtime "${mtime_srcs[@]}" --
-expect "the value shown is the ideal 64-bit counter: one per increment, a write wins, the carry is never lost (bounded, 12 cycles)" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" bmc 12 '' mtime_safety)"
+expect "the value shown is the ideal 64-bit counter: one per increment, a write wins, the carry is never lost (induction)" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" prove 3 '' mtime_safety)"
+expect "the same property, bounded from reset (bounded, 12 cycles; the only form the abc-bmc3 engine answers)" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" bmc 12 '' mtime_bounded)"
 expect "cover: the carry between the halves and a high write with the low wrap are reachable" PASS "$(prove mtime.v "$f/clint_mtime_props.sv" cover 12 '-DCOVER' mtime_cover)"
 
 echo "clint"
 cgen=(-gtick_cycles=3)
+clint_exp=(msip cmp_lo:31 cmp_hi:31 mtime_lo:31 mtime_hi:31 gen_tick_divided_phase:1)
+mut_expose=("${clint_exp[@]}")
 build clint clint "${clint_srcs[@]}" -- "${cgen[@]}"
-expect "MTIP, MSIP and the read of every address follow the ideal model, with a tick every 3 cycles (bounded, 20 cycles)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3' clint_safety)"
-expect "port write sequence: MTIP never rises in the middle unless the old or the final mtimecmp is reached (bounded, 20 cycles)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3 -DSEQ' clint_sequence)"
+expect "MTIP, MSIP and the read of every address follow the ideal model, with a tick every 3 cycles (induction)" PASS "$(prove clint.v "$f/clint_props.sv" prove 3 '-DTICK=3' clint_safety)"
+expect "port write sequence: MTIP never rises in the middle unless the old or the final mtimecmp is reached (induction)" PASS "$(prove clint.v "$f/clint_props.sv" prove 3 '-DTICK=3 -DSEQ' clint_sequence)"
+expect "the same two properties, bounded from reset (bounded, 20 cycles; the only form the abc-bmc3 engine answers)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3' clint_bounded)"
+expect "the same port write sequence, bounded from reset (bounded, 20 cycles)" PASS "$(prove clint.v "$f/clint_props.sv" bmc 20 '-DTICK=3 -DSEQ' clint_sequence_bounded)"
 expect "cover: MTIP rises and falls, MSIP is raised and the high half advances" PASS "$(prove clint.v "$f/clint_props.sv" cover 20 '-DTICK=3 -DCOVER' clint_cover)"
 expect "cover: the port sequence ends with the mtime above the old value" PASS "$(prove clint.v "$f/clint_props.sv" cover 20 '-DTICK=3 -DSEQ -DCOVER' clint_seq_cover)"
 
@@ -279,6 +294,9 @@ mut_expose=(); mut_open=1
 build gpio_cell cell gpio_cell -- 
 expect "direction, output and masks change only by writes; pin read is the synchronized pin; status (bounded, 16 cycles)" PASS "$(prove cell.v "$f/gpio_cell_props.sv" bmc 16 '' cell_safety)"
 expect "cover: a rise and a fall interrupt and a stable output are reachable" PASS "$(prove cell.v "$f/gpio_cell_props.sv" cover 14 '-DCOVER' cell_cover)"
+build gpio_cell cell_low gpio_cell -- -gactive_low=true
+expect "active low: the pin read is the inverted pin and the cell drives the inverted output (bounded, 16 cycles)" PASS "$(prove cell_low.v "$f/gpio_cell_props.sv" bmc 16 '-DACTIVE_LOW' cell_low_safety)"
+expect "active low cover: a rise and a fall interrupt and a stable output are reachable" PASS "$(prove cell_low.v "$f/gpio_cell_props.sv" cover 14 '-DACTIVE_LOW -DCOVER' cell_low_cover)"
 mut_open=0
 
 echo "uart_fifo"
@@ -294,8 +312,16 @@ build flash_controller flashc "${flash_srcs[@]}" -- -gpage_bytes=16
 expect "command pulse, registers, status read and page buffer follow the reference (bounded, 14 cycles, 4 words)" PASS "$(prove flashc.v "$f/flash_controller_props.sv" bmc 14 '' flashc_safety)"
 expect "cover: a program command, a status with busy and refused, a write at the last word and a buffer read are reachable" PASS "$(prove flashc.v "$f/flash_controller_props.sv" cover 14 '-DCOVER' flashc_cover)"
 
+echo "jtag_uart"
+jtag_srcs=(jtag_uart)
+path_of[jtag_uart]="$root/src/UART/jtag/jtag_uart.vhd"
+mut_expose=(); mut_open=0
+build jtag_uart jtagu "${jtag_srcs[@]}" -- -glog2_depth=2
+expect "CONTROL reads back its three bits; the interrupt is transmit-empty or error, each with its enable (bounded, 14 cycles, 4-byte queues)" PASS "$(prove jtagu.v "$f/jtag_uart_props.sv" bmc 14 '' jtagu_safety)"
+expect "cover: a transmit-empty and an error interrupt, and a queue with bytes that holds the line low, are reachable" PASS "$(prove jtagu.v "$f/jtag_uart_props.sv" cover 14 '-DCOVER' jtagu_cover)"
+
 echo "uart"
-uart_exp=(rx_overrun tx_dropped rx_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7 phy_tx_data:7 rx_fifo_data:7 rx_fifo_level:1 tx_fifo_level:1)
+uart_exp=(rx_overrun tx_dropped rx_irq_enable tx_irq_enable err_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7 phy_tx_data:7 rx_fifo_data:7 rx_fifo_level:1 tx_fifo_level:1)
 mut_expose=("${uart_exp[@]}")
 ugen=(-gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3)
 build uart uart "${uart_srcs[@]}" -- "${ugen[@]}"
@@ -307,6 +333,24 @@ expect "transmit frame: start, 8 data bits LSB first, stop, 16 cycles per bit (b
 expect "cover: a frame of 5A is transmitted" PASS "$(prove uart.v "$f/uart_props.sv" cover 100 '-DTXF -DCOVER' uart_tx_cover)"
 expect "receive: the byte is sampled mid-bit despite noise at the edges, once, none lost (bounded, 200 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 200 '-DRXF' uart_rx)"
 expect "cover: a frame of A5 is received" PASS "$(prove uart.v "$f/uart_props.sv" cover 200 '-DRXF -DCOVER' uart_rx_cover)"
+
+echo "console"
+path_of[console]="$root/src/UART/console/console.vhd"
+path_of[console_equiv]="$root/tests/vhdl/console_equiv.vhd"
+console_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart jtag_uart console console_equiv)
+cp_="$f/console_props.sv"
+mut_expose=(); mut_open=0
+cgen_pins=(-gbackend=pinos -gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3)
+cgen_inv=(-gbackend=pinos -gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3 -gtx_invert=true -grx_invert=true)
+cgen_jtag=(-gbackend=jtag -glog2_depth=2)
+build console_equiv console_pins "${console_srcs[@]}" -- "${cgen_pins[@]}"
+expect "backend pinos: data read, interrupt, line and JTAG output equal those of the uart on the same inputs (bounded, 200 cycles)" PASS "$(prove console_pins.v "$cp_" bmc 200 '' console_pins)"
+expect "cover: the pinos console returns data and raises the interrupt" PASS "$(prove console_pins.v "$cp_" cover 30 '-DCOVER' console_pins_cover)"
+build console_equiv console_inv "${console_srcs[@]}" -- "${cgen_inv[@]}"
+expect "backend pinos with TX and RX inverted: equal to the uart with an explicit inversion on each pin (bounded, 200 cycles)" PASS "$(prove console_inv.v "$cp_" bmc 200 '' console_inv)"
+build console_equiv console_jtag "${console_srcs[@]}" -- "${cgen_jtag[@]}"
+expect "backend jtag: data read, interrupt, line and JTAG output equal those of the jtag_uart on the same inputs (bounded, 30 cycles)" PASS "$(prove console_jtag.v "$cp_" bmc 30 '' console_jtag)"
+expect "cover: the jtag console returns data and raises the interrupt" PASS "$(prove console_jtag.v "$cp_" cover 30 '-DCOVER' console_jtag_cover)"
 
 # Mutants of the VHDL: each defect must make a proof fail.
 # mutant <source name> <props> <entity> <defines> <name> <sed expression> <bmc depth> <sources...> -- [generics]
@@ -346,11 +390,12 @@ mutant timer "$tp" timer '' timer_pwm_inverted "s/pwm_inverted   <= not pwm_alu;
 mutant timer_operation_decoder "$tp" timer '' timer_read_select "s/\"000\" when ADDR_TIMER_LOAD,/\"001\" when ADDR_TIMER_LOAD,/" 8 "${timer_srcs[@]}" --
 mutant timer_operation_decoder "$tp" timer '' timer_write_address "s/o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_TOP /o_wr_en(WR_LOAD_TOP_I)   <= i_write when i_address = ADDR_DUTY_CYCLE /" 8 "${timer_srcs[@]}" --
 
-mut_expose=(); mut_open=0
+mut_expose=("${mtime_exp[@]}"); mut_open=0
 mp="$f/clint_mtime_props.sv"
 mutant clint_mtime "$mp" clint_mtime '' mtime_carry_lost "s/lo = LO_ALL_ONES/lo = x\"FFFFFFFE\"/" 12 "${mtime_srcs[@]}" --
 mutant clint_mtime "$mp" clint_mtime '' mtime_hi_incoherent "s/o_hi <= hi_inc when carry = '1' else hi;/o_hi <= hi;/" 12 "${mtime_srcs[@]}" --
 mutant clint_mtime "$mp" clint_mtime '' mtime_write_loses "s/lo_nxt <= i_wdata when i_we_lo = '1' else lo_inc;/lo_nxt <= lo_inc;/" 12 "${mtime_srcs[@]}" --
+mut_expose=("${clint_exp[@]}")
 cp_="$f/clint_props.sv"
 mutant clint "$cp_" clint '-DTICK=3' clint_msip_bit "s/i_d      => i_data_in(0 downto 0),/i_d      => i_data_in(1 downto 1),/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
 mutant clint "$cp_" clint '-DTICK=3' clint_cmp_reset_zero "s/clear_value => '1'/clear_value => '0'/" 20 "${clint_srcs[@]}" -- "${cgen[@]}"
@@ -372,6 +417,11 @@ mutant flash_controller "$fp" flash_controller '' flashc_op_shifted "s/o_cmd_op 
 mutant flash_controller "$fp" flash_controller '' flashc_word_misplaced "s/page(to_integer(ptr)) <= i_data_in;/page(to_integer(ptr + 1)) <= i_data_in;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 mutant flash_controller "$fp" flash_controller '' flashc_read_ungated "s/if i_read = '1' then/if true then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 mutant flash_controller "$fp" flash_controller '' flashc_ptr_write_ignored "s/if i_write = '1' and i_address = REG_BUF_PTR then/if false then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_done_on_busy_rising "s/ev_done    <= busy_prev and not i_busy;/ev_done    <= i_busy and not busy_prev;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_refused_level "s/ev_refused <= i_refused and not refused_prev;/ev_refused <= i_refused;/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_irq_mask_ignored "s/o_irq      <= '1' when (irq_status and irq_enable) \/= \"00\" else '0';/o_irq      <= '1' when irq_status \/= \"00\" else '0';/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_w1c_clears_all "s/irq_status <= irq_status and not i_data_in(1 downto 0);/irq_status <= (others => '0');/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+mutant flash_controller "$fp" flash_controller '' flashc_event_loses_to_clear "s/        if ev_done = '1' then/        if ev_done = '1' and not (i_write = '1' and i_address = REG_IRQ_STATUS) then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 mutant flash_controller "$fp" flash_controller '' flashc_status_bit_lost "s/o_data_out(2) <= i_refused;/o_data_out(2) <= '0';/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 
 mut_expose=(); mut_open=1
@@ -382,6 +432,11 @@ mutant gpio_cell "$gp" gpio_cell '' cell_toggle_is_load "s/i_d3  => toggle_vecto
 mutant gpio_cell "$gp" gpio_cell '' cell_mask_ignored "s/irq_set       <= interrupt_logic and irq_mask;/irq_set       <= interrupt_logic;/" 10 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '' cell_fall_uses_rise "s/(irq_fall_mask and (not pin_input and prev_pin_input))/(irq_rise_mask and (not pin_input and prev_pin_input))/" 10 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '' cell_status_not_cleared "s/irq_clear     <= i_rst or i_wr_signals(6);/irq_clear     <= i_rst;/" 10 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_level_ignored "s/interrupt_logic <= level_logic when irq_level_mode = '1' else edge_logic;/interrupt_logic <= edge_logic;/" 16 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_level_fall_is_high "s/(irq_fall_mask and not pin_input)/(irq_fall_mask and pin_input)/" 16 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '' cell_level_mode_write "s/i_enable => i_wr_signals(7),/i_enable => i_wr_signals(3),/" 16 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '-DACTIVE_LOW' cell_low_drive_not_inverted "s/drive_logic <= not out_reg when active_low else out_reg;/drive_logic <= out_reg;/" 10 gpio_cell -- -gactive_low=true
+mutant gpio_cell "$gp" gpio_cell '-DACTIVE_LOW' cell_low_input_not_inverted "s/pin_logic   <= not io_gpio_pin when active_low else io_gpio_pin;/pin_logic   <= io_gpio_pin;/" 10 gpio_cell -- -gactive_low=true
 mutant gpio_cell "$gp" gpio_cell '' cell_pin_not_driven "s/i_enable => dir_reg,/i_enable => '0',/" 10 gpio_cell --
 mut_open=0
 
@@ -396,6 +451,11 @@ mutant uart_fifo "$fp" uart_fifo '' fifo_pop_keeps_head "s/read_pointer <= next_
 mutant uart_fifo "$fp" uart_fifo '' fifo_empty_shows_data "s/else (others => '0');/else memory(read_pointer);/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
 mutant uart_fifo "$fp" uart_fifo '' fifo_pop_when_empty "s/i_pop = '1' and count > 0/i_pop = '1'/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
 
+mut_expose=(); jp="$f/jtag_uart_props.sv"
+mutant jtag_uart "$jp" jtag_uart '' jtagu_tx_empty_inverted "s/(tx_empty and tx_irq_enable)/((not tx_empty) and tx_irq_enable)/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2
+mutant jtag_uart "$jp" jtag_uart '' jtagu_error_mask_ignored "s/(lost and err_irq_enable)/lost/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2
+mutant jtag_uart "$jp" jtag_uart '' jtagu_control_bit_swapped "s/tx_irq_enable  <= i_wdata(1);/tx_irq_enable  <= i_wdata(2);/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2
+mutant jtag_uart "$jp" jtag_uart '' jtagu_lost_stays "s/            lost <= '0';/            null;/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2
 mut_expose=("${uart_exp[@]}")
 up="$f/uart_props.sv"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_overrun_ignored "s/rx_overrun <= '1';/null;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
@@ -403,7 +463,11 @@ mutant uart "$up" uart '-DREGS -DANYSTATE' uart_drop_not_flagged "s/tx_dropped <
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_w1c_wrong_bit "s/if i_data_in(2) = '1' then/if i_data_in(3) = '1' then/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_tx_pops_when_busy "s/when phy_tx_busy = '0' and tx_fifo_empty = '0'/when tx_fifo_empty = '0'/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_rx_pops_on_any_read "s/when i_read = '1' and i_address = RX_DATA_ADDRESS/when i_read = '1'/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_mask_ignored "s/o_irq <= (not rx_fifo_empty) and rx_irq_enable;/o_irq <= not rx_fifo_empty;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_mask_ignored "s/((not rx_fifo_empty) and rx_irq_enable)/(not rx_fifo_empty)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_tx_empty_inverted "s/or (tx_fifo_empty and tx_irq_enable)/or ((not tx_fifo_empty) and tx_irq_enable)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_error_ignores_drop "s/((rx_overrun or tx_dropped) and err_irq_enable)/(rx_overrun and err_irq_enable)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_irq_error_mask_ignored "s/((rx_overrun or tx_dropped) and err_irq_enable)/(rx_overrun or tx_dropped)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_control_bit_swapped "s/tx_irq_enable  <= i_data_in(1);/tx_irq_enable  <= i_data_in(2);/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_status_ready_inverted "s/value(1) := not tx_fifo_full;/value(1) := tx_fifo_full;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_idle_ignores_phy "s/value(6) := tx_fifo_empty and not phy_tx_busy;/value(6) := tx_fifo_empty;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_levels_swapped "s/to_unsigned(rx_fifo_level, 8)/to_unsigned(tx_fifo_level, 8)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
@@ -414,8 +478,17 @@ mutant uartRx "$up" uart '-DRXF' uart_rx_early_sample "s/count16 = \"0111\"/coun
 mutant uartRx "$up" uart '-DRXF' uart_rx_late_sample "s/count16 = \"0111\"/count16 = \"1110\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_msb_first "s/dataBuf <= inSync(1) \& dataBuf(7 downto 1);/dataBuf <= dataBuf(6 downto 0) \& inSync(1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 
-# External interrupt controller (own file, so the proofs of the other blocks stay untouched).
-source "$root/formal/ext_irq_controller.sh"
+mut_expose=()
+cp_="$f/console_props.sv"
+mutant console "$cp_" console_equiv '' console_tx_polarity "s/o_tx    <= not uart_tx when tx_invert else uart_tx;/o_tx    <= uart_tx;/" 200 "${console_srcs[@]}" -- "${cgen_inv[@]}"
+mutant console "$cp_" console_equiv '' console_rx_polarity "s/uart_rx <= not i_rx when rx_invert else i_rx;/uart_rx <= i_rx;/" 200 "${console_srcs[@]}" -- "${cgen_inv[@]}"
+mutant console "$cp_" console_equiv '' console_address_bits "s/i_address  => i_addr(1 downto 0),/i_address  => i_addr(2 downto 1),/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
+mutant console "$cp_" console_equiv '' console_read_strobe "s/i_read     => i_re,/i_read     => i_we,/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
+mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        => i_we,/i_we        => i_re,/" 30 "${console_srcs[@]}" -- "${cgen_jtag[@]}"
+
+
+# PLIC (own file, like the external interrupt controller).
+source "$root/formal/plic.sh"
 
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }

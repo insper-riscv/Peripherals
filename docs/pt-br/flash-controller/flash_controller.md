@@ -24,7 +24,9 @@ O endereço é o deslocamento em palavras dentro do periférico.
 | 2 | `STATUS` | Bit 0 ocupado, bit 1 latch de escrita armado, bit 2 último apagar ou gravar recusado | Ignorada |
 | 3 | `BUF_PTR` | Índice da palavra do buffer que o próximo `BUF_DATA` escreve | Define o índice (bits baixos do dado) |
 | 4 | `BUF_DATA` | Zero | Escreve a palavra no buffer em `BUF_PTR` e soma um a `BUF_PTR`, que dá a volta no fim da página |
-| 5 a 7 | Reservados | Zero | Ignorada |
+| 5 | `IRQ_ENABLE` | Bit 0 conclusão, bit 1 recusa | Define os dois bits; zero no reset |
+| 6 | `IRQ_STATUS` | Bit 0 `DONE`, bit 1 `REFUSED` | Um em um bit o limpa (W1C) |
+| 7 | Reservado | Zero | Ignorada |
 
 Códigos de `CMD`:
 
@@ -57,6 +59,17 @@ O chip lê o buffer por `i_buf_idx`, e `o_buf_data` traz a palavra uma borda dep
 3. Para cada página do setor, escrever `ADDR`, encher o buffer, escrever `CMD` com 1 e depois com 3, e esperar o fim.
 4. Ler `STATUS` e conferir que o bit 2 está em zero.
 
+### 3.4. Interrupção
+
+Dois eventos do chip ligam bits de `IRQ_STATUS`, mesmo com a habilitação desligada.
+
+| Bit | Evento | Detecção |
+| ---: | :--- | :--- |
+| 0 `DONE` | O chip terminou um apagar ou gravar aceito | Queda de `i_busy` |
+| 1 `REFUSED` | O chip recusou um apagar ou gravar | Subida de `i_refused`, que só cai com um novo habilitar escrita |
+
+A saída `o_irq` vale um enquanto algum bit pendente estiver habilitado. O software limpa o evento escrevendo um no bit. Um evento no mesmo ciclo da limpeza vence e mantém o bit ativo.
+
 ## 4. Interface
 
 ### 4.1. Generics
@@ -76,6 +89,7 @@ O chip lê o buffer por `i_buf_idx`, e `o_buf_data` traz a palavra uma borda dep
 | `i_write` | entrada | 1 | Pulso de escrita |
 | `i_read` | entrada | 1 | Pulso de leitura |
 | `o_data_out` | saída | 32 | Dado de leitura, zero sem `i_read` |
+| `o_irq` | saída | 1 | Interrupção de nível, `(IRQ_STATUS and IRQ_ENABLE) /= 0` |
 | `o_cmd_valid` | saída | 1 | Pulso que entrega um comando ao chip |
 | `o_cmd_op` | saída | 3 | Código do comando |
 | `o_cmd_addr` | saída | 32 | Endereço de byte do comando |

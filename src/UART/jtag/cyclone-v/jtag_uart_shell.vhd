@@ -10,8 +10,6 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-library altera_mf;
-use altera_mf.altera_mf_components.all;
 
 entity jtag_uart_shell is
   port (
@@ -28,7 +26,9 @@ entity jtag_uart_shell is
     -- Leitura ('1').
     i_re      : in  std_logic;
     -- Dado lido.
-    o_rdata   : out std_logic_vector(31 downto 0)
+    o_rdata   : out std_logic_vector(31 downto 0);
+    -- Requisição de interrupção de nível da UART.
+    o_irq     : out std_logic
   );
 end entity jtag_uart_shell;
 
@@ -50,40 +50,23 @@ architecture rtl of jtag_uart_shell is
   signal st_udr : std_logic;
   -- Estado Update-IR da cadeia virtual.
   signal st_uir : std_logic;
-  -- Estado Exit1-DR, não usado.
-  signal unused_e1dr : std_logic;
-  -- Estado Pause-DR, não usado.
-  signal unused_pdr : std_logic;
-  -- Estado Exit2-DR, não usado.
-  signal unused_e2dr : std_logic;
-  -- Estado Capture-IR, não usado.
-  signal unused_cir : std_logic;
 
 begin
 
-  u_vjtag : sld_virtual_jtag
+  u_vjtag : entity work.virtual_jtag
     generic map (
-      lpm_type => "sld_virtual_jtag",
-      lpm_hint => "sld_instance_index=1",
-      sld_auto_instance_index => "NO",
-      sld_instance_index => 1,
-      sld_ir_width => 2,
-      sld_sim_n_scan => 0,
-      sld_sim_total_length => 0,
-      sld_sim_action => ""
+      instance_index => 1,
+      auto_instance_index => "NO",
+      ir_width => 2
     )
     port map (
-      tdo => tdo, ir_out => (others => '0'),
-      tck => tck, tdi => tdi, ir_in => ir_in,
-      virtual_state_cdr => st_cdr, virtual_state_sdr => st_sdr,
-      virtual_state_e1dr => unused_e1dr, virtual_state_pdr => unused_pdr,
-      virtual_state_e2dr => unused_e2dr, virtual_state_udr => st_udr,
-      virtual_state_cir => unused_cir, virtual_state_uir => st_uir
+      o_tck => tck, o_tdi => tdi, i_tdo => tdo, o_ir_in => ir_in,
+      o_state_cdr => st_cdr, o_state_sdr => st_sdr, o_state_udr => st_udr, o_state_uir => st_uir
     );
 
   u_uart : entity work.jtag_uart
     port map (
-      i_clk => i_clk, i_rst => i_rst, i_addr => i_addr, i_wdata => i_wdata, i_we => i_we, i_re => i_re, o_rdata => o_rdata,
+      i_clk => i_clk, i_rst => i_rst, i_addr => i_addr, i_wdata => i_wdata, i_we => i_we, i_re => i_re, o_rdata => o_rdata, o_irq => o_irq,
       i_tck => tck, i_tdi => tdi, o_tdo => tdo, i_ir_in => ir_in,
       i_state_cdr => st_cdr, i_state_sdr => st_sdr, i_state_udr => st_udr, i_state_uir => st_uir
     );

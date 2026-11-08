@@ -28,7 +28,7 @@ Every received frame adds one byte to the tail of RX. A read of `RX_DATA` return
 | 0 | `TX_DATA` | Zero | Queues bits 7:0 in TX |
 | 1 | `RX_DATA` | Bits 7:0 of the oldest byte, removed at the end of the access | Ignored |
 | 2 | `STATUS` | State, errors, and levels described below | A one in an error bit clears it |
-| 3 | `CONTROL` | Bit 0 is `RX_IRQ_ENABLE` | Bit 0 enables the RX interrupt |
+| 3 | `CONTROL` | Bit 0 `RX_IRQ_ENABLE`, bit 1 `TX_EMPTY_IRQ_ENABLE`, bit 2 `ERROR_IRQ_ENABLE` | The three bits enable the interrupt causes |
 
 | `STATUS` bits | Name | Meaning |
 | :--- | :--- | :--- |
@@ -50,7 +50,15 @@ Every received frame adds one byte to the tail of RX. A read of `RX_DATA` return
 
 When RX is full, the new byte is dropped and every old byte stays in order. When TX is full, the new write is dropped without changing the bytes already waiting.
 
-The interrupt is one while `RX_IRQ_ENABLE` is active and RX is not empty. It remains active until software removes the last byte or disables it.
+The `o_irq` output is a level and is the sum of three causes, each with its own enable, all cleared by reset.
+
+| Cause | Condition | Stops holding when |
+| :--- | :--- | :--- |
+| Receive (`RX_IRQ_ENABLE`) | RX is not empty | Software removes the last byte |
+| Transmitter empty (`TX_EMPTY_IRQ_ENABLE`) | TX is empty | Software writes `TX_DATA` |
+| Error (`ERROR_IRQ_ENABLE`) | `RX_OVERRUN` or `TX_DROPPED` set | Software clears the bit in `STATUS` |
+
+With TX empty the transmitter-empty cause holds as soon as it is enabled, so software enables it only when it has bytes to send and disables it when done.
 
 ## 5. Verification
 

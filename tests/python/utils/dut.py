@@ -38,6 +38,34 @@ class ClintDut(BusDut, Protocol):
 
     o_irq_timer: LogicObject
     o_irq_software: LogicObject
+    o_mtime: LogicArrayObject
+
+
+class PlicDut(BusDut, Protocol):
+    """Signals of the PLIC."""
+
+    i_sources: LogicArrayObject
+    o_meip: LogicObject
+
+
+class PlicGatewayDut(ResettableDut, Protocol):
+    """Signals of the gateway of one PLIC source."""
+
+    i_source: LogicObject
+    i_claim: LogicObject
+    i_complete: LogicObject
+    o_pending: LogicObject
+
+
+class PlicArbiterDut(Protocol):
+    """Signals of the PLIC arbiter."""
+
+    i_pending: LogicArrayObject
+    i_enable: LogicArrayObject
+    i_priorities: LogicArrayObject
+    i_threshold: LogicArrayObject
+    o_id: LogicArrayObject
+    o_valid: LogicObject
 
 
 class ClintMtimeDut(ResettableDut, Protocol):
@@ -104,6 +132,7 @@ class GpioDecoderDut(DecoderDut, Protocol):
     """Signals of the GPIO operation decoder."""
 
     o_wr_op: LogicArrayObject
+    o_rd_level: LogicObject
 
 
 class TimerDecoderDut(DecoderDut, Protocol):
@@ -170,6 +199,13 @@ class JtagDut(Protocol):
     i_state_uir: LogicObject
 
 
+class JtagScanDut(JtagDut, Protocol):
+    """Serial data pins of a Virtual JTAG scan."""
+
+    i_tdi: LogicObject
+    o_tdo: LogicObject
+
+
 class JtagUartDut(JtagDut, ResettableDut, Protocol):
     """Signals of the UART over JTAG."""
 
@@ -178,20 +214,28 @@ class JtagUartDut(JtagDut, ResettableDut, Protocol):
     i_we: LogicObject
     i_re: LogicObject
     o_rdata: LogicArrayObject
+    o_irq: LogicObject
     i_tdi: LogicObject
     o_tdo: LogicObject
 
 
-class ExtIrqControllerDut(BusDut, Protocol):
-    """Signals of the external interrupt controller."""
+class ConsolePinsDut(ResettableDut, Protocol):
+    """Signals of the console with the pins backend."""
 
-    i_irq_lines: LogicArrayObject
-    o_irq_external: LogicObject
+    i_rx: LogicObject
+    o_tx: LogicObject
+    i_addr: LogicArrayObject
+    i_wdata: LogicArrayObject
+    i_we: LogicObject
+    i_re: LogicObject
+    o_rdata: LogicArrayObject
+    o_irq: LogicObject
 
 
 class FlashControllerDut(BusDut, Protocol):
     """Signals of the FLASH controller."""
 
+    o_irq: LogicObject
     o_cmd_valid: LogicObject
     o_cmd_op: LogicArrayObject
     o_cmd_addr: LogicArrayObject

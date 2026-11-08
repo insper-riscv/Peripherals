@@ -9,6 +9,10 @@ from tests.python.unittests.flash_controller.registers import (
     BUF_PTR,
     CMD,
     ERASE,
+    IRQ_DONE,
+    IRQ_ENABLE,
+    IRQ_REFUSED,
+    IRQ_STATUS,
     PROGRAM,
     RESERVED,
     STATUS,
@@ -230,3 +234,95 @@ async def test_reset_clears_the_registers(dut: FlashControllerDut) -> None:
     check(await bus.read(dut, ADDR) == 0)
     check(await bus.read(dut, BUF_PTR) == 0)
     check(await chip_read(dut, KEPT_INDEX) == KEPT_WORD)
+
+
+async def pulse_busy(dut: FlashControllerDut, cycles: int) -> None:
+    """Hold the chip busy for a few cycles, as a command would.
+
+    Parameters
+    ----------
+    dut : FlashControllerDut
+        The design under test.
+    cycles : int
+        How many cycles busy stays high.
+    """
+    dut.i_busy.value = 1
+    await bus.cycles(dut, cycles)
+    dut.i_busy.value = 0
+    await bus.cycles(dut, 1)
+
+
+@cocotb.test()
+async def test_irq_registers_reset_and_read_back(
+    dut: FlashControllerDut,
+) -> None:
+    """The enable holds two bits, the status starts clear."""
+    await start(dut)
+    check(await bus.read(dut, IRQ_ENABLE) == 0)
+    check(await bus.read(dut, IRQ_STATUS) == 0)
+    await bus.write(dut, IRQ_ENABLE, ONES)
+    check(await bus.read(dut, IRQ_ENABLE) == IRQ_DONE | IRQ_REFUSED)
+    check(int(dut.o_irq.value) == 0, "enabled, nothing happened")
+    await bus.write(dut, IRQ_ENABLE, IRQ_REFUSED)
+    check(await bus.read(dut, IRQ_ENABLE) == IRQ_REFUSED)
+
+
+@cocotb.test()
+async def test_done_interrupt_on_busy_falling_and_w1c(
+    dut: FlashControllerDut,
+) -> None:
+    """The end of a command raises DONE; writing 1 clears it."""
+    await start(dut)
+    await bus.write(dut, IRQ_ENABLE, IRQ_DONE)
+    dut.i_busy.value = 1
+    await bus.cycles(dut, 3)
+    check(int(dut.o_irq.value) == 0, "still busy")
+    check(await bus.read(dut, IRQ_STATUS) == 0)
+    dut.i_busy.value = 0
+    await bus.cycles(dut, 2)
+    check(int(dut.o_irq.value) == 1, "command finished")
+    check(await bus.read(dut, IRQ_STATUS) == IRQ_DONE)
+    check(await bus.read(dut, IRQ_STATUS) == IRQ_DONE, "read does not clear")
+    await bus.write(dut, IRQ_STATUS, IRQ_REFUSED)
+    check(await bus.read(dut, IRQ_STATUS) == IRQ_DONE, "0 and other bits keep")
+    await bus.write(dut, IRQ_STATUS, IRQ_DONE)
+    check(await bus.read(dut, IRQ_STATUS) == 0)
+    check(int(dut.o_irq.value) == 0)
+
+
+@cocotb.test()
+async def test_refused_interrupt_on_rising_edge(
+    dut: FlashControllerDut,
+) -> None:
+    """A refusal raises REFUSED once; the enable reaches o_irq."""
+    await start(dut)
+    dut.i_refused.value = 1
+    await bus.cycles(dut, 3)
+    check(await bus.read(dut, IRQ_STATUS) == IRQ_REFUSED, "pending anyway")
+    check(int(dut.o_irq.value) == 0, "not enabled")
+    await bus.write(dut, IRQ_ENABLE, IRQ_REFUSED)
+    check(int(dut.o_irq.value) == 1)
+    await bus.write(dut, IRQ_STATUS, IRQ_REFUSED)
+    await bus.cycles(dut, 3)
+    check(int(dut.o_irq.value) == 0, "level stays at one, no new edge")
+    dut.i_refused.value = 0
+    await bus.cycles(dut, 2)
+    dut.i_refused.value = 1
+    await bus.cycles(dut, 2)
+    check(int(dut.o_irq.value) == 1, "a new refusal")
+
+
+@cocotb.test()
+async def test_irq_mask_and_independent_causes(
+    dut: FlashControllerDut,
+) -> None:
+    """Each enable only lets its own cause through."""
+    await start(dut)
+    await bus.write(dut, IRQ_ENABLE, IRQ_REFUSED)
+    await pulse_busy(dut, 3)
+    check(int(dut.o_irq.value) == 0, "DONE pending but not enabled")
+    check(await bus.read(dut, IRQ_STATUS) == IRQ_DONE)
+    await bus.write(dut, IRQ_ENABLE, IRQ_DONE)
+    check(int(dut.o_irq.value) == 1)
+    await bus.write(dut, IRQ_ENABLE, 0)
+    check(int(dut.o_irq.value) == 0)

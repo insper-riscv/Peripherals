@@ -13,7 +13,14 @@
 --   2 STATUS    R/W1C  bits 0 RX_VALID, 1 TX_READY, 2 RX_OVERRUN,
 --                      3 TX_DROPPED, 4 RX_FULL, 5 TX_EMPTY, 6 TX_IDLE,
 --                      15:8 RX_LEVEL e 23:16 TX_LEVEL
---   3 CONTROL   R/W    bit 0 RX_IRQ_ENABLE
+--   3 CONTROL   R/W    bit 0 RX_IRQ_ENABLE, 1 TX_EMPTY_IRQ_ENABLE,
+--                      2 ERROR_IRQ_ENABLE
+--
+-- A saída o_irq é de nível e vale a soma de três causas, cada uma com a sua
+-- habilitação (zero no reset): fila de recepção não vazia (RX_VALID), fila de
+-- transmissão vazia (TX_EMPTY) e erro (RX_OVERRUN ou TX_DROPPED, que o
+-- software limpa escrevendo 1 no bit em STATUS). As duas primeiras param
+-- quando a condição some (leitura de RX_DATA, escrita em TX_DATA).
 -- ==========================================================================
 
 library ieee;
@@ -48,7 +55,7 @@ entity uart is
     i_read     : in  std_logic;
     -- Dado de leitura devolvido ao processador.
     o_data_out : out std_logic_vector(data_width - 1 downto 0);
-    -- Requisição de interrupção de recepção.
+    -- Requisição de interrupção de nível (recepção, transmissor vazio ou erro).
     o_irq      : out std_logic;
     -- Linha serial de recepção.
     i_uart_rx  : in  std_logic;
@@ -123,6 +130,10 @@ architecture rtl of uart is
   signal tx_dropped    : std_logic;
   -- Habilitação da interrupção por recepção pendente.
   signal rx_irq_enable : std_logic;
+  -- Habilitação da interrupção por fila de transmissão vazia.
+  signal tx_irq_enable : std_logic;
+  -- Habilitação da interrupção por erro (overrun de recepção ou descarte de transmissão).
+  signal err_irq_enable : std_logic;
 begin
   assert data_width >= 24
     report "UART data_width must be at least 24"
@@ -159,7 +170,9 @@ begin
   phy_tx_data     <= tx_fifo_data;
   phy_new_tx_data <= tx_fifo_pop_accepted;
 
-  o_irq <= (not rx_fifo_empty) and rx_irq_enable;
+  o_irq <= ((not rx_fifo_empty) and rx_irq_enable)
+           or (tx_fifo_empty and tx_irq_enable)
+           or ((rx_overrun or tx_dropped) and err_irq_enable);
 
   u_tx_fifo : entity work.uart_fifo
     generic map (
@@ -221,9 +234,13 @@ begin
       rx_overrun    <= '0';
       tx_dropped    <= '0';
       rx_irq_enable <= '0';
+      tx_irq_enable <= '0';
+      err_irq_enable <= '0';
     elsif rising_edge(i_clk) then
       if i_write = '1' and i_address = CONTROL_ADDRESS then
-        rx_irq_enable <= i_data_in(0);
+        rx_irq_enable  <= i_data_in(0);
+        tx_irq_enable  <= i_data_in(1);
+        err_irq_enable <= i_data_in(2);
       end if;
 
       -- Os eventos novos têm prioridade sobre uma limpeza simultânea.
@@ -258,7 +275,9 @@ begin
     phy_tx_busy,
     rx_overrun,
     tx_dropped,
-    rx_irq_enable
+    rx_irq_enable,
+    tx_irq_enable,
+    err_irq_enable
   )
     -- Valor montado para o registrador selecionado.
     variable value : std_logic_vector(data_width - 1 downto 0);
@@ -287,6 +306,8 @@ begin
 
       when CONTROL_ADDRESS =>
         value(0) := rx_irq_enable;
+        value(1) := tx_irq_enable;
+        value(2) := err_irq_enable;
 
       when others =>
         null;

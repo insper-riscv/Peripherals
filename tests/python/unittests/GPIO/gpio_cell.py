@@ -9,9 +9,11 @@ from tests.python.utils.dut import GpioCellDut
 
 SYNC_CYCLES = 4
 # write-enable bits, in the order of the decoder bit map
-DIR, LOAD, BIT_OUT, IRQ_MASK, RISE, FALL, IRQ_CLR = (1 << n for n in range(7))
+DIR, LOAD, BIT_OUT, IRQ_MASK, RISE, FALL, IRQ_CLR, LEVEL = (
+    1 << n for n in range(8)
+)
 # read bits of o_data_out
-R_DIR, R_OUT, R_PIN, R_MASK, R_RISE, R_FALL, R_STAT = range(7)
+R_DIR, R_OUT, R_PIN, R_MASK, R_RISE, R_FALL, R_STAT, R_LEVEL = range(8)
 OP_LOAD, OP_SET, OP_CLEAR, OP_TOGGLE = 0b00, 0b01, 0b10, 0b11
 
 
@@ -201,3 +203,49 @@ async def test_status_needs_the_global_mask(dut: GpioCellDut) -> None:
     dut.i_pin_drive.value = 0
     await bus.cycles(dut, SYNC_CYCLES)
     check(_bit(dut, R_STAT) == 0, "no status with the global mask off")
+
+
+@cocotb.test()
+async def test_level_mode_follows_the_pin_level(dut: GpioCellDut) -> None:
+    """In level mode the rise mask is high level, the fall mask low."""
+    await _setup(dut)
+    await _write(dut, IRQ_MASK, 1)
+    await _write(dut, LEVEL, 1)
+    check(_bit(dut, R_LEVEL) == 1, "level mode reads back")
+    await _write(dut, RISE, 1)
+    await bus.cycles(dut, SYNC_CYCLES)
+    check(_bit(dut, R_STAT) == 0, "pin low, high-level not met")
+    dut.i_pin_drive.value = 1
+    await bus.cycles(dut, SYNC_CYCLES)
+    check(_bit(dut, R_STAT) == 1, "high level raises the status")
+    await _write(dut, IRQ_CLR, 0)
+    await bus.cycles(dut, SYNC_CYCLES)
+    check(_bit(dut, R_STAT) == 1, "the level still holds: it rises again")
+    dut.i_pin_drive.value = 0
+    await bus.cycles(dut, SYNC_CYCLES)
+    await _write(dut, IRQ_CLR, 0)
+    await bus.cycles(dut, SYNC_CYCLES)
+    check(_bit(dut, R_STAT) == 0, "level gone, the clear holds")
+
+
+@cocotb.test()
+async def test_level_mode_low_level_and_global_mask(dut: GpioCellDut) -> None:
+    """The fall mask asks for a low level, and the global one gates."""
+    await _setup(dut)
+    await _write(dut, LEVEL, 1)
+    await _write(dut, FALL, 1)
+    await bus.cycles(dut, SYNC_CYCLES)
+    check(_bit(dut, R_STAT) == 0, "global mask off")
+    await _write(dut, IRQ_MASK, 1)
+    await bus.cycles(dut, SYNC_CYCLES)
+    check(_bit(dut, R_STAT) == 1, "pin low with the global mask on")
+    dut.i_pin_drive.value = 1
+    await bus.cycles(dut, SYNC_CYCLES)
+    await _write(dut, IRQ_CLR, 0)
+    await bus.cycles(dut, SYNC_CYCLES)
+    check(_bit(dut, R_STAT) == 0, "pin high, no low level")
+    await _write(dut, LEVEL, 0)
+    await _write(dut, RISE, 1)
+    dut.i_pin_drive.value = 0
+    await bus.cycles(dut, SYNC_CYCLES)
+    check(_bit(dut, R_STAT) == 1, "edge mode: the falling edge still counts")

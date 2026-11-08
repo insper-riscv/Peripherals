@@ -13,6 +13,10 @@ use ieee.std_logic_1164.all;
 library work;
 
 entity gpio_cell is
+  generic (
+    -- Polaridade do pino: '1' faz o pino valer o oposto do que o programa vê (ativo em nível baixo).
+    active_low : boolean := false
+  );
   port (
     -- Clock do módulo.
     i_clk : in  std_logic;
@@ -22,10 +26,10 @@ entity gpio_cell is
     -- Dado de 1 bit vindo do processador.
     i_data_in  : in  std_logic;
     -- Estado interno lido pelo processador, um bit por registrador.
-    o_data_out : out std_logic_vector (6 downto 0);
+    o_data_out : out std_logic_vector (7 downto 0);
 
     -- Habilitações de escrita dos registradores, na ordem do mapa de bits do decodificador.
-    i_wr_signals : in std_logic_vector(6 downto 0);
+    i_wr_signals : in std_logic_vector(7 downto 0);
     -- Operação de saída: 00 carrega, 01 liga, 10 limpa, 11 inverte.
     i_wr_op  : in std_logic_vector(1 downto 0);
 
@@ -50,6 +54,12 @@ architecture rtl of gpio_cell is
   signal irq_rise_mask : std_logic;
   -- Máscara de interrupção por borda de descida.
   signal irq_fall_mask : std_logic;
+  -- Modo de nível: a máscara de subida vale nível alto e a de descida, nível baixo.
+  signal irq_level_mode : std_logic;
+  -- Uma condição de nível habilitada vale neste ciclo.
+  signal level_logic : std_logic;
+  -- Uma borda habilitada foi detectada neste ciclo (modo de borda).
+  signal edge_logic : std_logic;
   -- Registrador de status de interrupção.
   signal irq_status : std_logic;
   -- Valor anterior do pino, para detectar bordas.
@@ -68,6 +78,10 @@ architecture rtl of gpio_cell is
   signal irq_clear     : std_logic;
   -- Liga o status de interrupção (borda detectada com a máscara ligada).
   signal irq_set       : std_logic;
+  -- Valor lógico do pino, com a polaridade do generic já aplicada (o que o programa vê).
+  signal pin_logic : std_logic;
+  -- Valor lógico que a célula dirige ao pino, antes da polaridade.
+  signal drive_logic : std_logic;
   -- Operando que liga o bit, em formato de vetor de 1 bit.
   constant SET_VECTOR   : std_logic_vector(0 downto 0) := "1";
   -- Operando que limpa o bit, em formato de vetor de 1 bit.
@@ -78,6 +92,10 @@ architecture rtl of gpio_cell is
   constant ONE_BIT : std_logic_vector(0 downto 0) := "1";
 
 begin
+  -- A polaridade fica só aqui: o programa vê e escreve sempre ativo em '1', e o pino inverte os dois sentidos.
+  pin_logic   <= not io_gpio_pin when active_low else io_gpio_pin;
+  drive_logic <= not out_reg when active_low else out_reg;
+
   load_vector   <= (0 => i_data_in);
   toggle_vector <= (0 => not out_reg);
   out_enable    <= i_wr_signals(1) or (i_wr_signals(2) and i_data_in);
@@ -138,7 +156,7 @@ begin
   -----------------------------------------------------------------------------
   u_gpio_buffer : entity work.tristate_buffer_1bit
     port map (
-      i_d      => out_reg,
+      i_d      => drive_logic,
       i_enable => dir_reg,
       o_d      => io_gpio_pin
     );
@@ -151,7 +169,7 @@ begin
     generic map (stages => 2, data_width => 1)
     port map (
         i_clk  => i_clk,
-        i_d(0) => io_gpio_pin, -- Entrada assíncrona vinda do pino
+        i_d(0) => pin_logic, -- Entrada assíncrona vinda do pino, na polaridade do programa
         o_d(0) => pin_input    -- Saída sincronizada para o processador
     );
 
@@ -213,8 +231,26 @@ begin
   -- Borda de subida: pin_input passa de 0 a 1 (prev_pin_input = 0, pin_input = 1)
   -- Borda de descida: pin_input passa de 1 a 0 (prev_pin_input = 1, pin_input = 0)
   -----------------------------------------------------------------------------
-  interrupt_logic <= (irq_rise_mask and (pin_input and not prev_pin_input)) or
-                     (irq_fall_mask and (not pin_input and prev_pin_input)); -- Detecção de borda
+  edge_logic <= (irq_rise_mask and (pin_input and not prev_pin_input)) or
+                (irq_fall_mask and (not pin_input and prev_pin_input)); -- Detecção de borda
+
+  -----------------------------------------------------------------------------
+  -- Modo de nível: com irq_level_mode = '1' a máscara de subida habilita a
+  -- interrupção enquanto o pino está em nível alto, e a de descida enquanto
+  -- está em nível baixo. O status religa a cada ciclo enquanto a condição vale.
+  -----------------------------------------------------------------------------
+  u_irq_level : entity work.flip_flop
+    port map (
+        i_clk    => i_clk,
+        i_rst    => i_rst,
+        i_enable => i_wr_signals(7), -- Habilita a escrita do modo de nível
+        i_d      => i_data_in,
+        o_d      => irq_level_mode
+    );
+
+  level_logic <= (irq_rise_mask and pin_input) or (irq_fall_mask and not pin_input);
+
+  interrupt_logic <= level_logic when irq_level_mode = '1' else edge_logic;
 
   ----------------------------------------------------------------------------
   -- Registrador de status de interrupção desta célula.
@@ -243,4 +279,5 @@ begin
   o_data_out(4) <= irq_rise_mask; -- Lê a máscara de borda de subida
   o_data_out(5) <= irq_fall_mask; -- Lê a máscara de borda de descida
   o_data_out(6) <= irq_status; -- Lê o status de interrupção
+  o_data_out(7) <= irq_level_mode; -- Lê o modo de nível
 end architecture;
