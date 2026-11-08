@@ -6,7 +6,6 @@ patterns.
 """
 
 import cocotb
-from cocotb.triggers import Timer
 
 from tests.python.unittests.checks import check_equal
 from tests.python.unittests.display.patterns import PATTERNS
@@ -33,16 +32,9 @@ def expected_hex(value: int) -> int:
 
 
 async def scan(dut: Dut, value: int | None = None) -> int:
-    """One scan of the register: writes `value` if given, returns the read."""
+    """One scan of the register: writes `value` if given, reads."""
     word = 0 if value is None else (1 << VALUE_BITS) | value
-    await jtag.tck(dut, "cdr")
-    out = 0
-    for i in range(VALUE_BITS + 1):
-        dut.i_tdi.value = (word >> i) & 1
-        await Timer(1, unit="ns")
-        out |= int(dut.o_tdo.value) << i
-        await jtag.tck(dut, "sdr")
-    await jtag.tck(dut, "udr")
+    out = await jtag.scan(dut, word, VALUE_BITS + 1)
     return out & ((1 << VALUE_BITS) - 1)
 
 

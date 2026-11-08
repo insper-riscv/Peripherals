@@ -253,7 +253,9 @@ async def pulse_busy(dut: FlashControllerDut, cycles: int) -> None:
 
 
 @cocotb.test()
-async def test_irq_registers_reset_and_read_back(dut: FlashControllerDut) -> None:
+async def test_irq_registers_reset_and_read_back(
+    dut: FlashControllerDut,
+) -> None:
     """The enable holds two bits, the status starts clear."""
     await start(dut)
     check(await bus.read(dut, IRQ_ENABLE) == 0)
@@ -289,8 +291,10 @@ async def test_done_interrupt_on_busy_falling_and_w1c(
 
 
 @cocotb.test()
-async def test_refused_interrupt_on_rising_edge(dut: FlashControllerDut) -> None:
-    """A refusal raises REFUSED once; it needs the enable to reach o_irq."""
+async def test_refused_interrupt_on_rising_edge(
+    dut: FlashControllerDut,
+) -> None:
+    """A refusal raises REFUSED once; the enable reaches o_irq."""
     await start(dut)
     dut.i_refused.value = 1
     await bus.cycles(dut, 3)
@@ -309,7 +313,9 @@ async def test_refused_interrupt_on_rising_edge(dut: FlashControllerDut) -> None
 
 
 @cocotb.test()
-async def test_irq_mask_and_independent_causes(dut: FlashControllerDut) -> None:
+async def test_irq_mask_and_independent_causes(
+    dut: FlashControllerDut,
+) -> None:
     """Each enable only lets its own cause through."""
     await start(dut)
     await bus.write(dut, IRQ_ENABLE, IRQ_REFUSED)

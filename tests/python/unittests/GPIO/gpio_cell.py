@@ -207,7 +207,7 @@ async def test_status_needs_the_global_mask(dut: GpioCellDut) -> None:
 
 @cocotb.test()
 async def test_level_mode_follows_the_pin_level(dut: GpioCellDut) -> None:
-    """In level mode the rise mask means high level, the fall mask low."""
+    """In level mode the rise mask is high level, the fall mask low."""
     await _setup(dut)
     await _write(dut, IRQ_MASK, 1)
     await _write(dut, LEVEL, 1)
@@ -230,7 +230,7 @@ async def test_level_mode_follows_the_pin_level(dut: GpioCellDut) -> None:
 
 @cocotb.test()
 async def test_level_mode_low_level_and_global_mask(dut: GpioCellDut) -> None:
-    """The fall mask asks for a low level, and the global mask still gates."""
+    """The fall mask asks for a low level, and the global one gates."""
     await _setup(dut)
     await _write(dut, LEVEL, 1)
     await _write(dut, FALL, 1)

@@ -347,8 +347,10 @@ async def test_tx_read_and_rx_write_are_side_effect_free(
 
 
 @cocotb.test()
-async def test_tx_empty_interrupt_follows_queue_and_enable(dut: UartDut) -> None:
-    """A interrupção de transmissor vazio é de nível e segue a fila TX."""
+async def test_tx_empty_interrupt_follows_queue_and_enable(
+    dut: UartDut,
+) -> None:
+    """A interrupção de transmissor vazio é de nível e segue a TX."""
     await setup(dut)
     check(int(dut.o_irq.value) == 0, "desabilitada, não sobe com a fila vazia")
 

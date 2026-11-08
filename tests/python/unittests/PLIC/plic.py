@@ -1,6 +1,4 @@
-"""PLIC: priority, threshold, enable, claim and complete, gateway, tie, extremes."""
-
-import random
+"""PLIC: priority, threshold, enable, claim, complete, gateway."""
 
 import cocotb
 from cocotb.triggers import RisingEdge, Timer
@@ -17,9 +15,18 @@ from tests.python.unittests.PLIC.registers import (
 from tests.python.utils import bus
 from tests.python.utils.check import check
 from tests.python.utils.dut import PlicDut
+from tests.python.utils.rng import seeded
 
 RANDOM_STEPS = 3000
 SEED = 0x91C
+WORD_SOURCES = 32
+MIN_SOURCES_TIE = 3
+MIN_BITS_TIE = 2
+MIN_SOURCES_PAIR = 2
+MIN_BITS_PAIR = 2
+LINE_TOGGLE_PROB = 0.15
+WRITE_BELOW = 0.3
+READ_BELOW = 0.6
 
 
 def eq(actual: int, expected: int, message: str = "") -> None:
@@ -38,7 +45,7 @@ def eq(actual: int, expected: int, message: str = "") -> None:
 
 
 def sources_of(dut: PlicDut) -> int:
-    """Return the number of sources of the instance from the width of the port.
+    """Return the number of sources from the width of the port.
 
     Parameters
     ----------
@@ -54,7 +61,7 @@ def sources_of(dut: PlicDut) -> int:
 
 
 async def prio_bits_of(dut: PlicDut) -> int:
-    """Return the priority width of the instance, from the threshold register.
+    """Return the priority width, from the threshold register.
 
     Parameters
     ----------
@@ -91,8 +98,10 @@ async def start(dut: PlicDut) -> tuple[int, int]:
     return sources_of(dut), bits
 
 
-async def program(dut: PlicDut, source: int, level: int, enabled: bool = True) -> None:
-    """Set the priority and the enable bit of a source, keeping the others.
+async def program(
+    dut: PlicDut, source: int, level: int, enabled: bool = True
+) -> None:
+    """Set the priority and the enable bit of a source.
 
     Parameters
     ----------
@@ -145,10 +154,10 @@ async def test_reset_state(dut: PlicDut) -> None:
 
 @cocotb.test()
 async def test_registers(dut: PlicDut) -> None:
-    """Priority and threshold keep priority_bits bits; source 0 and the gaps read zero."""
+    """Priority and threshold keep priority_bits; gaps read zero."""
     count, bits = await start(dut)
     top = (1 << bits) - 1
-    for source in {1, count, (count + 1) // 2}:
+    for source in (1, count, (count + 1) // 2):
         await bus.write(dut, priority(source), MASK32)
         eq(await bus.read(dut, priority(source)), top, f"priority {source}")
         await bus.write(dut, priority(source), 0)
@@ -157,13 +166,18 @@ async def test_registers(dut: PlicDut) -> None:
     await bus.write(dut, THRESHOLD, MASK32)
     eq(await bus.read(dut, THRESHOLD), top, "threshold")
     await bus.write(dut, THRESHOLD, 0)
-    # The enable word keeps only the bits of existing sources; bit 0 is the missing source 0.
+    # The enable word keeps only existing sources; bit 0 is source 0.
     await bus.write(dut, enable_word(0), MASK32)
-    expected = sum(1 << s for s in range(1, count + 1) if s < 32)
+    expected = sum(1 << s for s in range(1, count + 1) if s < WORD_SOURCES)
     eq(await bus.read(dut, enable_word(0)), expected, "enable word 0")
     await bus.write(dut, enable_word(0), 0)
     # Addresses outside the map read zero and ignore writes.
-    for address in (priority(count + 1), pending_word(count) + 0x40, 0x7FFFF, CLAIM + 1):
+    for address in (
+        priority(count + 1),
+        pending_word(count) + 0x40,
+        0x7FFFF,
+        CLAIM + 1,
+    ):
         if address < (1 << len(dut.i_address)):
             await bus.write(dut, address, MASK32)
             eq(await bus.read(dut, address), 0, f"gap {address:#x}")
@@ -173,13 +187,17 @@ async def test_registers(dut: PlicDut) -> None:
 
 @cocotb.test()
 async def test_claim_complete_flow(dut: PlicDut) -> None:
-    """One source: pending, MEIP, claim clears it, the gateway holds it until complete."""
+    """One source: pending, MEIP, claim clears it, complete unmasks."""
     count, _ = await start(dut)
     source = count
     await program(dut, source, 1)
     await line(dut, source, 1)
     eq(int(dut.o_meip.value), 1, "meip after the line rises")
-    eq(await bus.read(dut, pending_word(source)), 1 << (source % 32), "pending bit")
+    eq(
+        await bus.read(dut, pending_word(source)),
+        1 << (source % 32),
+        "pending bit",
+    )
     eq(await bus.read(dut, CLAIM), source, "claim")
     eq(int(dut.o_meip.value), 0, "meip after claim")
     eq(await bus.read(dut, pending_word(source)), 0, "pending after claim")
@@ -189,7 +207,11 @@ async def test_claim_complete_flow(dut: PlicDut) -> None:
     eq(await bus.read(dut, CLAIM), 0, "claim while masked")
     await bus.write(dut, CLAIM, source)
     await bus.cycles(dut, 1)
-    eq(int(dut.o_meip.value), 1, "level still high: a new request after complete")
+    eq(
+        int(dut.o_meip.value),
+        1,
+        "level still high: a new request after complete",
+    )
     eq(await bus.read(dut, CLAIM), source, "second claim")
     await line(dut, source, 0)
     await bus.write(dut, CLAIM, source)
@@ -199,7 +221,7 @@ async def test_claim_complete_flow(dut: PlicDut) -> None:
 
 @cocotb.test()
 async def test_pending_survives_line_drop(dut: PlicDut) -> None:
-    """A request stays pending after the line falls; only the claim clears it."""
+    """A request stays pending after the line falls until the claim."""
     count, _ = await start(dut)
     await program(dut, 1, 1)
     await line(dut, 1, 1)
@@ -212,7 +234,7 @@ async def test_pending_survives_line_drop(dut: PlicDut) -> None:
 
 @cocotb.test()
 async def test_priority_zero_never_interrupts(dut: PlicDut) -> None:
-    """Priority 0 is pending but never raises MEIP nor wins the claim."""
+    """Priority 0 is pending but never raises MEIP or wins a claim."""
     count, _ = await start(dut)
     await program(dut, count, 0)
     await line(dut, count, 1)
@@ -259,9 +281,9 @@ async def test_enable(dut: PlicDut) -> None:
 
 @cocotb.test()
 async def test_priority_and_tie(dut: PlicDut) -> None:
-    """The highest priority wins; equal priorities go to the lowest id."""
+    """The highest priority wins; a tie goes to the lowest id."""
     count, bits = await start(dut)
-    if count < 3 or bits < 2:
+    if count < MIN_SOURCES_TIE or bits < MIN_BITS_TIE:
         return
     top = (1 << bits) - 1
     for source in (1, 2, 3):
@@ -276,7 +298,7 @@ async def test_priority_and_tie(dut: PlicDut) -> None:
 
 @cocotb.test()
 async def test_masked_source_and_complete_rules(dut: PlicDut) -> None:
-    """A complete of another id, of id 0, of an id out of range or not enabled does not unmask."""
+    """A complete of a wrong or disabled id does not unmask."""
     count, _ = await start(dut)
     source = min(2, count)
     await program(dut, source, 1)
@@ -287,7 +309,7 @@ async def test_masked_source_and_complete_rules(dut: PlicDut) -> None:
         await bus.write(dut, CLAIM, wrong)
         await bus.cycles(dut, 2)
         eq(int(dut.o_meip.value), 0, f"complete {wrong:#x} does not unmask")
-    # Complete of a disabled source is ignored too: it stays masked even after the enable.
+    # Complete of a disabled source is ignored: it stays masked.
     await program(dut, source, 1, enabled=False)
     await bus.write(dut, CLAIM, source)
     await program(dut, source, 1, enabled=True)
@@ -300,9 +322,9 @@ async def test_masked_source_and_complete_rules(dut: PlicDut) -> None:
 
 @cocotb.test()
 async def test_independent_gateways(dut: PlicDut) -> None:
-    """Completing one source does not unmask another that is in flight."""
+    """Completing one source does not unmask another in flight."""
     count, bits = await start(dut)
-    if count < 2 or bits < 2:
+    if count < MIN_SOURCES_PAIR or bits < MIN_BITS_PAIR:
         return
     await program(dut, 1, 1)
     await program(dut, 2, 2)
@@ -318,7 +340,7 @@ async def test_independent_gateways(dut: PlicDut) -> None:
 
 @cocotb.test()
 async def test_claim_read_without_candidate_is_inert(dut: PlicDut) -> None:
-    """Reading the claim with no candidate returns 0 and changes nothing."""
+    """A claim read with no candidate returns 0 and changes nothing."""
     count, _ = await start(dut)
     await program(dut, 1, 1, enabled=False)
     await line(dut, 1, 1)
@@ -330,7 +352,7 @@ async def test_claim_read_without_candidate_is_inert(dut: PlicDut) -> None:
 
 @cocotb.test()
 async def test_every_source(dut: PlicDut) -> None:
-    """Each source, the highest ids included, is claimed with its own id."""
+    """Each source, the highest ids included, is claimed by its id."""
     count, _ = await start(dut)
     step = max(1, count // 40)
     for source in sorted({1, count} | set(range(1, count + 1, step))):
@@ -347,6 +369,15 @@ class Model:
     """Reference model of the PLIC, one step per clock edge."""
 
     def __init__(self, count: int, bits: int) -> None:
+        """Create the model with every source idle.
+
+        Parameters
+        ----------
+        count : int
+            Number of sources.
+        bits : int
+            Priority width in bits.
+        """
         self.count = count
         self.bits = bits
         self.prio = [0] * (count + 1)
@@ -372,23 +403,35 @@ class Model:
             return self.winner()
         if 1 <= address <= self.count:
             return self.prio[address] & mask
-        for base, state in ((PENDING_BASE, self.pend), (enable_word(0), self.enable)):
+        for base, state in (
+            (PENDING_BASE, self.pend),
+            (enable_word(0), self.enable),
+        ):
             if base <= address <= base + self.count // 32:
                 word = address - base
                 return sum(
                     1 << (n % 32)
-                    for n in range(max(1, word * 32), min(self.count, word * 32 + 31) + 1)
+                    for n in range(
+                        max(1, word * 32), min(self.count, word * 32 + 31) + 1
+                    )
                     if state[n]
                 )
         return 0
 
-    def step(self, lines: int, write: bool, read: bool, address: int, data: int) -> None:
+    def step(
+        self, lines: int, write: bool, read: bool, address: int, data: int
+    ) -> None:
         """Advance the model by one clock edge."""
         mask = (1 << self.bits) - 1
         claimed = self.winner() if (read and address == CLAIM) else 0
         done = 0
         wr = write
-        if wr and address == CLAIM and 1 <= data <= self.count and self.enable[data]:
+        if (
+            wr
+            and address == CLAIM
+            and 1 <= data <= self.count
+            and self.enable[data]
+        ):
             done = data
         if wr and address == THRESHOLD:
             self.thr = data & mask
@@ -410,9 +453,9 @@ class Model:
 
 @cocotb.test()
 async def test_random_against_model(dut: PlicDut) -> None:
-    """Random traffic: every read, MEIP and pending bit follow the reference model."""
+    """Random traffic: reads, MEIP and pending follow the model."""
     count, bits = await start(dut)
-    rng = random.Random(SEED + count)
+    rng = seeded(SEED + count)
     model = Model(count, bits)
     lines = 0
     address_limit = 1 << len(dut.i_address)
@@ -423,12 +466,18 @@ async def test_random_against_model(dut: PlicDut) -> None:
     registers += [rng.randrange(address_limit) for _ in range(4)]
     for _ in range(RANDOM_STEPS):
         for n in range(count):
-            if rng.random() < 0.15:
+            if rng.random() < LINE_TOGGLE_PROB:
                 lines ^= 1 << n
         address = rng.choice(registers)
         op = rng.random()
-        write, read = op < 0.3, 0.3 <= op < 0.6
-        data = rng.choice([rng.getrandbits(32), rng.randrange(count + 2), rng.getrandbits(bits)])
+        write, read = op < WRITE_BELOW, WRITE_BELOW <= op < READ_BELOW
+        data = rng.choice(
+            [
+                rng.getrandbits(32),
+                rng.randrange(count + 2),
+                rng.getrandbits(bits),
+            ]
+        )
         dut.i_sources.value = lines
         dut.i_address.value = address
         dut.i_data_in.value = data
@@ -436,7 +485,11 @@ async def test_random_against_model(dut: PlicDut) -> None:
         dut.i_read.value = int(read)
         await Timer(1, unit="ns")
         eq(int(dut.o_meip.value), int(model.winner() != 0), "meip")
-        eq(int(dut.o_data_out.value), model.read(address), f"read {address:#x}")
+        eq(
+            int(dut.o_data_out.value),
+            model.read(address),
+            f"read {address:#x}",
+        )
         model.step(lines, write, read, address, data)
         await RisingEdge(dut.i_clk)
         await Timer(1, unit="ns")

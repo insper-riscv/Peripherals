@@ -8,8 +8,8 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
-from tests.python.utils.check import check
 from tests.python.unittests.dut import Dut
+from tests.python.utils.check import check
 
 CYCLES = 6
 

@@ -1,9 +1,9 @@
-"""Console com o backend "pinos": a UART serial atrás da interface comum.
+"""Console com o backend "pinos": a UART serial atrás da interface.
 
 O mesmo teste roda com a polaridade normal e com TX e RX invertidos; o
-sinal ``LINE_IDLE`` lê o nível de repouso que a configuração produz. A
-configuração usa ``BAUD_FREQ=1`` e ``BAUD_LIMIT=0``, então cada bit serial
-dura 16 ciclos.
+sinal ``LINE_IDLE`` lê o nível de repouso que a configuração produz.
+A configuração usa ``BAUD_FREQ=1`` e ``BAUD_LIMIT=0``, então cada bit
+serial dura 16 ciclos.
 """
 
 import os
@@ -13,6 +13,7 @@ from cocotb.clock import Clock
 from cocotb.triggers import FallingEdge, RisingEdge, Timer, with_timeout
 
 from tests.python.utils.check import check
+from tests.python.utils.dut import ConsolePinsDut
 
 TX_DATA, RX_DATA, STATUS, CONTROL = range(4)
 RX_VALID = 1 << 0
@@ -25,17 +26,17 @@ STOP_MARGIN_CYCLES = 4
 POLL_LIMIT = BIT_CYCLES * 12
 BYTE_TX = 0xA5
 BYTE_RX = 0x3C
-# Inversão de TX e RX da configuração em teste (0 ou 1, vinda do ambiente).
+# Inversão de TX e RX em teste (0 ou 1, vinda do ambiente).
 INVERTED = os.environ.get("CONSOLE_INVERTED", "0") == "1"
 LINE_IDLE = 0 if INVERTED else 1
 
 
-async def cycles(dut, count: int) -> None:
+async def cycles(dut: ConsolePinsDut, count: int) -> None:
     """Espere um número de bordas de subida do clock.
 
     Parameters
     ----------
-    dut : object
+    dut : ConsolePinsDut
         Console exercitado pelo teste.
     count : int
         Quantidade de bordas.
@@ -45,12 +46,12 @@ async def cycles(dut, count: int) -> None:
     await Timer(1, unit="ns")
 
 
-async def setup(dut) -> None:
+async def setup(dut: ConsolePinsDut) -> None:
     """Deixe a linha serial ociosa e reinicie o console.
 
     Parameters
     ----------
-    dut : object
+    dut : ConsolePinsDut
         Console exercitado pelo teste.
     """
     dut.i_rx.value = LINE_IDLE
@@ -65,12 +66,12 @@ async def setup(dut) -> None:
     await cycles(dut, 1)
 
 
-async def write(dut, address: int, value: int) -> None:
+async def write(dut: ConsolePinsDut, address: int, value: int) -> None:
     """Escreva um registrador em um ciclo.
 
     Parameters
     ----------
-    dut : object
+    dut : ConsolePinsDut
         Console exercitado pelo teste.
     address : int
         Endereço de palavra.
@@ -84,12 +85,12 @@ async def write(dut, address: int, value: int) -> None:
     dut.i_we.value = 0
 
 
-async def read(dut, address: int) -> int:
+async def read(dut: ConsolePinsDut, address: int) -> int:
     """Leia um registrador em um ciclo.
 
     Parameters
     ----------
-    dut : object
+    dut : ConsolePinsDut
         Console exercitado pelo teste.
     address : int
         Endereço de palavra.
@@ -108,12 +109,12 @@ async def read(dut, address: int) -> int:
     return value
 
 
-async def send_byte(dut, value: int) -> None:
+async def send_byte(dut: ConsolePinsDut, value: int) -> None:
     """Envie um byte 8N1 pela entrada serial, do bit 0 ao bit 7.
 
     Parameters
     ----------
-    dut : object
+    dut : ConsolePinsDut
         Console exercitado pelo teste.
     value : int
         Byte enviado.
@@ -129,12 +130,12 @@ async def send_byte(dut, value: int) -> None:
     await cycles(dut, BIT_CYCLES + STOP_MARGIN_CYCLES)
 
 
-async def receive_byte(dut) -> int:
+async def receive_byte(dut: ConsolePinsDut) -> int:
     """Decodifique um byte 8N1 produzido pela saída serial.
 
     Parameters
     ----------
-    dut : object
+    dut : ConsolePinsDut
         Console exercitado pelo teste.
 
     Returns
@@ -157,7 +158,7 @@ async def receive_byte(dut) -> int:
 
 
 @cocotb.test()
-async def test_reset_state_and_idle_line(dut) -> None:
+async def test_reset_state_and_idle_line(dut: ConsolePinsDut) -> None:
     """Após o reset a linha está em repouso e o controle em zero."""
     await setup(dut)
     check(int(dut.o_tx.value) == LINE_IDLE, "linha de transmissão em repouso")
@@ -168,7 +169,7 @@ async def test_reset_state_and_idle_line(dut) -> None:
 
 
 @cocotb.test()
-async def test_transmit_frame_reaches_the_pin(dut) -> None:
+async def test_transmit_frame_reaches_the_pin(dut: ConsolePinsDut) -> None:
     """Um byte escrito na palavra 0 sai no pino em um quadro 8N1."""
     await setup(dut)
     receiver = cocotb.start_soon(receive_byte(dut))
@@ -177,18 +178,20 @@ async def test_transmit_frame_reaches_the_pin(dut) -> None:
 
 
 @cocotb.test()
-async def test_received_frame_is_read_from_word_1(dut) -> None:
+async def test_received_frame_is_read_from_word_1(dut: ConsolePinsDut) -> None:
     """Um quadro no pino de entrada vira um byte na palavra 1."""
     await setup(dut)
     await send_byte(dut, BYTE_RX)
     check(await read(dut, STATUS) & RX_VALID != 0, "byte pendente")
     check(await read(dut, RX_DATA) & 0xFF == BYTE_RX, "byte recebido")
-    check(await read(dut, STATUS) & RX_VALID == 0, "fila vazia depois da leitura")
+    check(
+        await read(dut, STATUS) & RX_VALID == 0, "fila vazia depois da leitura"
+    )
 
 
 @cocotb.test()
-async def test_irq_follows_the_control_enables(dut) -> None:
-    """A interrupção de recepção só sobe com a habilitação do controle."""
+async def test_irq_follows_the_control_enables(dut: ConsolePinsDut) -> None:
+    """A interrupção de recepção só sobe com a habilitação."""
     await setup(dut)
     await send_byte(dut, BYTE_RX)
     check(int(dut.o_irq.value) == 0, "sem habilitação")

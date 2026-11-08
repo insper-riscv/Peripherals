@@ -95,14 +95,7 @@ async def scan(dut: Dut, value: int | None = None):
 
     """
     word = 0 if value is None else (1 << 24) | value
-    await jtag.tck(dut, "cdr")
-    out = 0
-    for i in range(25):
-        dut.i_tdi.value = (word >> i) & 1
-        await Timer(1, unit="ns")
-        out |= int(dut.o_tdo.value) << i
-        await jtag.tck(dut, "sdr")
-    await jtag.tck(dut, "udr")
+    out = await jtag.scan(dut, word, 25)
     return out & 0xFFFFFF
 
 
@@ -114,14 +107,7 @@ async def scan_fail(dut: Dut, value: int | None = None):
     """
     await jtag.tck(dut, ir=2)
     word = 0 if value is None else 2 | int(value)
-    await jtag.tck(dut, "cdr")
-    out = 0
-    for i in range(2):
-        dut.i_tdi.value = (word >> i) & 1
-        await Timer(1, unit="ns")
-        out |= int(dut.o_tdo.value) << i
-        await jtag.tck(dut, "sdr")
-    await jtag.tck(dut, "udr")
+    out = await jtag.scan(dut, word, 2)
     await jtag.tck(dut, ir=1)
     return out & 1
 

@@ -1,21 +1,23 @@
-"""PLIC_GATEWAY: one pending request at a time, masked between claim and complete."""
-
-import random
+"""PLIC_GATEWAY: one pending request, masked until complete."""
 
 import cocotb
 
 from tests.python.utils import bus
 from tests.python.utils.check import check
 from tests.python.utils.dut import PlicGatewayDut
+from tests.python.utils.rng import seeded
 
 RANDOM_STEPS = 2000
 SEED = 0x6A7E
+SOURCE_PROB = 0.5
+CLAIM_PROB = 0.3
+COMPLETE_PROB = 0.3
 
 
 async def step(
     dut: PlicGatewayDut, source: int = 0, claim: int = 0, complete: int = 0
 ) -> int:
-    """Drive the inputs for one cycle and return the pending bit after the edge.
+    """Drive the inputs for one cycle and return the pending bit.
 
     Parameters
     ----------
@@ -63,7 +65,7 @@ async def test_reset(dut: PlicGatewayDut) -> None:
 
 @cocotb.test()
 async def test_level_to_pending(dut: PlicGatewayDut) -> None:
-    """A high line becomes pending, and the pending outlives the line."""
+    """A high line becomes pending and the pending outlives it."""
     await start(dut)
     check(await step(dut, source=1) == 1)
     check(await step(dut, source=0) == 1, "pending kept after the line falls")
@@ -71,7 +73,7 @@ async def test_level_to_pending(dut: PlicGatewayDut) -> None:
 
 @cocotb.test()
 async def test_claim_clears_and_masks(dut: PlicGatewayDut) -> None:
-    """The claim clears the pending, the line stays masked until the complete."""
+    """The claim clears the pending; the line stays masked."""
     await start(dut)
     await step(dut, source=1)
     check(await step(dut, source=1, claim=1) == 0, "claim clears")
@@ -94,10 +96,13 @@ async def test_complete_with_line_low(dut: PlicGatewayDut) -> None:
 
 @cocotb.test()
 async def test_complete_without_claim(dut: PlicGatewayDut) -> None:
-    """A complete in flight before the claim unmasks, but the pending request stays."""
+    """A complete before the claim unmasks; the pending stays."""
     await start(dut)
     await step(dut, source=1)
-    check(await step(dut, source=0, complete=1) == 1, "pending untouched by a complete")
+    check(
+        await step(dut, source=0, complete=1) == 1,
+        "pending untouched by a complete",
+    )
     check(await step(dut, source=1) == 1, "no duplicate")
 
 
@@ -106,19 +111,22 @@ async def test_complete_alone_is_harmless(dut: PlicGatewayDut) -> None:
     """A complete on an idle gateway changes nothing."""
     await start(dut)
     check(await step(dut, complete=1) == 0)
-    check(await step(dut, source=1, complete=1) == 1, "the line wins over an idle complete")
+    check(
+        await step(dut, source=1, complete=1) == 1,
+        "the line wins over an idle complete",
+    )
 
 
 @cocotb.test()
 async def test_random_against_model(dut: PlicGatewayDut) -> None:
     """Random inputs: the pending bit follows the reference."""
     await start(dut)
-    rng = random.Random(SEED)
+    rng = seeded(SEED)
     pending = inflight = False
     for _ in range(RANDOM_STEPS):
-        source = int(rng.random() < 0.5)
-        claim = int(rng.random() < 0.3)
-        complete = int(rng.random() < 0.3)
+        source = int(rng.random() < SOURCE_PROB)
+        claim = int(rng.random() < CLAIM_PROB)
+        complete = int(rng.random() < COMPLETE_PROB)
         old_inflight = inflight
         if claim:
             pending = False

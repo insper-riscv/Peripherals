@@ -1,4 +1,4 @@
-"""The display register without digits (seg_display_zero_tb, digits zero).
+"""The display register without digits (seg_display_zero_tb).
 
 The module has no register and no segment: a write is lost and the read
 answers zero.

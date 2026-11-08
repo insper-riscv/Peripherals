@@ -19,6 +19,7 @@ EDGE_CYCLES = 4
 PHYSICAL = 0x3C
 LOGICAL = 0xC3
 RISING_PIN = 0b100
+OUT_PATTERN = 0b10100101
 
 
 async def setup(dut: GpioDut) -> None:
@@ -53,7 +54,7 @@ async def test_output_drives_the_inverted_level(dut: GpioDut) -> None:
     await bus.write(dut, DIR, ALL_PINS)
     pins = str(dut.o_pins.value)
     check(pins == "01011010", f"pins {pins}")
-    check(await bus.read(dut, OUT_LOAD) == 0b10100101, "the register keeps")
+    check(await bus.read(dut, OUT_LOAD) == OUT_PATTERN, "the register keeps")
     await bus.write(dut, DIR, 0x00)
     check(str(dut.o_pins.value) == "Z" * 8, "released as input")
 

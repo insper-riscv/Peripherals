@@ -199,6 +199,13 @@ class JtagDut(Protocol):
     i_state_uir: LogicObject
 
 
+class JtagScanDut(JtagDut, Protocol):
+    """Serial data pins of a Virtual JTAG scan."""
+
+    i_tdi: LogicObject
+    o_tdo: LogicObject
+
+
 class JtagUartDut(JtagDut, ResettableDut, Protocol):
     """Signals of the UART over JTAG."""
 
@@ -211,6 +218,18 @@ class JtagUartDut(JtagDut, ResettableDut, Protocol):
     i_tdi: LogicObject
     o_tdo: LogicObject
 
+
+class ConsolePinsDut(ResettableDut, Protocol):
+    """Signals of the console with the pins backend."""
+
+    i_rx: LogicObject
+    o_tx: LogicObject
+    i_addr: LogicArrayObject
+    i_wdata: LogicArrayObject
+    i_we: LogicObject
+    i_re: LogicObject
+    o_rdata: LogicArrayObject
+    o_irq: LogicObject
 
 
 class FlashControllerDut(BusDut, Protocol):

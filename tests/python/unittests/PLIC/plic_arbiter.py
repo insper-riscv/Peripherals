@@ -1,13 +1,13 @@
-"""PLIC_ARBITER: highest priority above the threshold, lowest id on a tie."""
+"""PLIC_ARBITER: highest priority over the threshold, lowest id."""
 
 import itertools
-import random
 
 import cocotb
 from cocotb.triggers import Timer
 
 from tests.python.utils.check import check
 from tests.python.utils.dut import PlicArbiterDut
+from tests.python.utils.rng import seeded
 
 SOURCES = 6
 BITS = 3
@@ -15,7 +15,9 @@ RANDOM_STEPS = 3000
 SEED = 0xA2B1
 
 
-def expected(pending: int, enable: int, levels: list[int], threshold: int) -> int:
+def expected(
+    pending: int, enable: int, levels: list[int], threshold: int
+) -> int:
     """Return the id the arbiter must choose.
 
     Parameters
@@ -43,7 +45,11 @@ def expected(pending: int, enable: int, levels: list[int], threshold: int) -> in
 
 
 async def apply(
-    dut: PlicArbiterDut, pending: int, enable: int, levels: list[int], threshold: int
+    dut: PlicArbiterDut,
+    pending: int,
+    enable: int,
+    levels: list[int],
+    threshold: int,
 ) -> tuple[int, int]:
     """Drive the arbiter and return its answer.
 
@@ -75,11 +81,14 @@ async def apply(
 
 @cocotb.test()
 async def test_no_candidate(dut: PlicArbiterDut) -> None:
-    """Nothing pending, nothing enabled or priority 0: id 0 and not valid."""
+    """Nothing pending, enabled or priority 0: id 0, not valid."""
     levels = [1] * SOURCES
     check(await apply(dut, 0, 0x3F, levels, 0) == (0, 0), "nothing pending")
     check(await apply(dut, 0x3F, 0, levels, 0) == (0, 0), "nothing enabled")
-    check(await apply(dut, 0x3F, 0x3F, [0] * SOURCES, 0) == (0, 0), "priority zero")
+    check(
+        await apply(dut, 0x3F, 0x3F, [0] * SOURCES, 0) == (0, 0),
+        "priority zero",
+    )
 
 
 @cocotb.test()
@@ -92,7 +101,7 @@ async def test_threshold_is_strict(dut: PlicArbiterDut) -> None:
 
 @cocotb.test()
 async def test_tie_lowest_id(dut: PlicArbiterDut) -> None:
-    """On equal priority the lowest id wins; a higher priority beats the id."""
+    """On a tie the lowest id wins; a higher priority beats the id."""
     levels = [2] * SOURCES
     check(await apply(dut, 0b101100, 0x3F, levels, 0) == (3, 1))
     levels[5] = 7
@@ -107,13 +116,16 @@ async def test_exhaustive_masks(dut: PlicArbiterDut) -> None:
         for threshold in (0, 5):
             got = await apply(dut, pending, enable, levels, threshold)
             want = expected(pending, enable, levels, threshold)
-            check(got == (want, int(want != 0)), f"{pending:b} {enable:b} {threshold}: {got} != {want}")
+            check(
+                got == (want, int(want != 0)),
+                f"{pending:b} {enable:b} {threshold}: {got} != {want}",
+            )
 
 
 @cocotb.test()
 async def test_random(dut: PlicArbiterDut) -> None:
     """Random priorities and thresholds follow the reference."""
-    rng = random.Random(SEED)
+    rng = seeded(SEED)
     for _ in range(RANDOM_STEPS):
         pending = rng.getrandbits(SOURCES)
         enable = rng.getrandbits(SOURCES)

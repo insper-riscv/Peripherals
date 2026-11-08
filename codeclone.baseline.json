@@ -2,36 +2,39 @@
   "meta": {
     "generator": {
       "name": "codeclone",
-      "version": "2.0.2"
+      "version": "2.0.3"
     },
     "schema_version": "2.1",
     "fingerprint_version": "1",
     "python_tag": "cp314",
-    "created_at": "2026-11-01T22:37:42Z",
-    "payload_sha256": "d3a113fc905467dfd8178d41e918502722f11b66f6e9c36e46a68e053e1c921a",
-    "metrics_payload_sha256": "d26a1f46a21aa8a06b444144bfd4bd136a6cf8eb12556eae9b5fb6f99553832a"
+    "created_at": "2026-11-08T10:05:56Z",
+    "payload_sha256": "ceb5e44fee9d70da9dc6fc4ef40ebb44a82787e51ce3341dbc585cbca5c93498",
+    "metrics_payload_sha256": "6cebee150eb84c3122695f396ef00835c92ad54c23ccea0919970a131ba53b56"
   },
   "clones": {
     "functions": [],
     "blocks": [
-      "6d03479693de15c6beb4c4ce40d6eba020c3d882|d212c948f28f7f1d26c93a7ab5de0e3fdc350ca7|28d0f12c705c6f2de92c278948a90425f972c4db|0d5eacd43f67c254a50f521478fc6d96c8a0c4a4"
+      "67a3c08aaeb95fd665055d20575b6ef35a2dc89a|6d03479693de15c6beb4c4ce40d6eba020c3d882|d212c948f28f7f1d26c93a7ab5de0e3fdc350ca7|28d0f12c705c6f2de92c278948a90425f972c4db",
+      "67a3c08aaeb95fd665055d20575b6ef35a2dc89a|db9761fe5e260bd2e3e37b1caf13add9f1eda270|5a32400e721abe73f110e3954e5a9a379736e376|5a32400e721abe73f110e3954e5a9a379736e376",
+      "6d03479693de15c6beb4c4ce40d6eba020c3d882|d212c948f28f7f1d26c93a7ab5de0e3fdc350ca7|28d0f12c705c6f2de92c278948a90425f972c4db|0d5eacd43f67c254a50f521478fc6d96c8a0c4a4",
+      "d212c948f28f7f1d26c93a7ab5de0e3fdc350ca7|d212c948f28f7f1d26c93a7ab5de0e3fdc350ca7|d212c948f28f7f1d26c93a7ab5de0e3fdc350ca7|a1133eb55faf5bd59fd05cc7f4d00976ac3bc887"
     ]
   },
   "metrics": {
-    "max_complexity": 6,
+    "max_complexity": 17,
     "high_risk_functions": [],
-    "max_coupling": 1,
+    "max_coupling": 2,
     "high_coupling_classes": [],
     "max_cohesion": 1,
     "low_cohesion_classes": [],
     "dependency_cycles": [],
-    "dependency_max_depth": 2,
+    "dependency_max_depth": 3,
     "dead_code_items": [],
-    "health_score": 94,
+    "health_score": 91,
     "health_grade": "A",
     "typing_param_permille": 1000,
-    "typing_return_permille": 1000,
+    "typing_return_permille": 934,
     "docstring_permille": 1000,
-    "typing_any_count": 0
+    "typing_any_count": 4
   }
 }
