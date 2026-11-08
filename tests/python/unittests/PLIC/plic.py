@@ -418,28 +418,24 @@ class Model:
                 )
         return 0
 
-    def step(
-        self, lines: int, write: bool, read: bool, address: int, data: int
-    ) -> None:
-        """Advance the model by one clock edge."""
+    def _complete_target(self, write: bool, address: int, data: int) -> int:
+        """Return the source a write to CLAIM completes, or 0."""
+        valid = 1 <= data <= self.count and self.enable[data]
+        return data if (write and address == CLAIM and valid) else 0
+
+    def _write_registers(self, address: int, data: int) -> None:
+        """Apply a write to the threshold, priority and enable words."""
         mask = (1 << self.bits) - 1
-        claimed = self.winner() if (read and address == CLAIM) else 0
-        done = 0
-        wr = write
-        if (
-            wr
-            and address == CLAIM
-            and 1 <= data <= self.count
-            and self.enable[data]
-        ):
-            done = data
-        if wr and address == THRESHOLD:
+        if address == THRESHOLD:
             self.thr = data & mask
         for n in range(1, self.count + 1):
-            if wr and address == n:
+            if address == n:
                 self.prio[n] = data & mask
-            if wr and address == enable_word(n):
+            if address == enable_word(n):
                 self.enable[n] = bool((data >> (n % 32)) & 1)
+
+    def _update_gateways(self, lines: int, claimed: int, done: int) -> None:
+        """Advance the pending and in-flight flags of every gateway."""
         for n in range(1, self.count + 1):
             old_fly = self.fly[n]
             if claimed == n:
@@ -449,6 +445,16 @@ class Model:
             if (lines >> (n - 1)) & 1 and not old_fly:
                 self.pend[n] = True
                 self.fly[n] = True
+
+    def step(
+        self, lines: int, write: bool, read: bool, address: int, data: int
+    ) -> None:
+        """Advance the model by one clock edge."""
+        claimed = self.winner() if (read and address == CLAIM) else 0
+        done = self._complete_target(write, address, data)
+        if write:
+            self._write_registers(address, data)
+        self._update_gateways(lines, claimed, done)
 
 
 @cocotb.test()
