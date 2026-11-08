@@ -35,6 +35,55 @@
             "--std=08"
         ]
     },
+    "GPIOActiveLow": {
+        "toplevel": "gpio_tb",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio.vhd",
+            "tests/vhdl/gpio_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_active_low",
+        "parameters": {
+            "ACTIVE_LOW": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GPIOZeroWidth": {
+        "toplevel": "gpio_zero_tb",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio.vhd",
+            "tests/vhdl/gpio_zero_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_zero",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "TimerOperationDecoder": {
         "toplevel": "timer_operation_decoder",
         "sources": [
@@ -149,6 +198,41 @@
             "--std=08"
         ]
     },
+    "SegDisplayThreeDigits": {
+        "toplevel": "seg_display",
+        "sources": [
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.seg_display_variant",
+        "parameters": {
+            "DIGITS": 3,
+            "ACTIVE_LOW": false
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayZeroDigits": {
+        "toplevel": "seg_display_zero_tb",
+        "sources": [
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_zero_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.seg_display_zero",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "AluGeUnsigned": {
         "toplevel": "alu_ge_unsigned",
         "sources": [
@@ -233,6 +317,88 @@
             "src/UART/jtag/jtag_uart.vhd"
         ],
         "test_module": "tests.python.unittests.UART.jtag_uart",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "ConsoleJtag": {
+        "toplevel": "console",
+        "sources": [
+            "src/UART/jtag/jtag_uart.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd",
+            "src/UART/console/console.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.jtag_uart",
+        "parameters": {
+            "BACKEND": "jtag"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "ConsolePins": {
+        "toplevel": "console",
+        "sources": [
+            "src/UART/jtag/jtag_uart.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd",
+            "src/UART/console/console.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.console_pins",
+        "parameters": {
+            "BACKEND": "pinos",
+            "BAUD_FREQ": "1",
+            "BAUD_LIMIT": "0",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "ConsolePinsInverted": {
+        "toplevel": "console",
+        "sources": [
+            "src/UART/jtag/jtag_uart.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd",
+            "src/UART/console/console.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.console_pins_inverted",
+        "parameters": {
+            "BACKEND": "pinos",
+            "BAUD_FREQ": "1",
+            "BAUD_LIMIT": "0",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4",
+            "TX_INVERT": true,
+            "RX_INVERT": true
+        },
         "build_args": [
             "--std=08"
         ],

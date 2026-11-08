@@ -4,7 +4,7 @@
 
 ## 1. What it is
 
-A general-purpose I/O block with `data_width` bidirectional pins. Each pin is a `gpio_cell` with direction, output, synchronized input and per-pin interrupt configuration. The `gpio_operation_decoder` turns the word address into the write enables and the read selector.
+A general-purpose I/O block with `data_width` bidirectional pins; `data_width` zero is allowed and leaves the block with no pin, no register and no interrupt. Each pin is a `gpio_cell` with direction, output, synchronized input and per-pin interrupt configuration. The `gpio_operation_decoder` turns the word address into the write enables and the read selector.
 
 ## 2. Registers
 
@@ -39,9 +39,13 @@ Each pin has its pending bit in `IRQ_STAT`, which sets when the pin condition ho
 
 In level mode the pending bit sets again every cycle while the level holds, so reading `IRQ_STAT` does not end the cause. Software disables the pin mask or removes the level at its source. Every mask register and the mode are zero after reset, which keeps the edge behavior of the earlier maps.
 
-## 4. Verification
+## 4. Polarity
 
-Entity tests of the decoder, the cell and the block cover the map, the edges, the per-pin level mode and the zero read of addresses outside the map. The formal proof of the cell (`gpio_cell_props.sv`) includes the level mode and its mutants.
+The `active_low` generic (default false) inverts both directions of the pin inside the `gpio_cell`. The pin read is inverted before the synchronizer, so `PINS`, the edges and the interrupt levels hold for the program active at `1`, and the output register is inverted before the tri-state buffer. The program always sees and writes active at `1`, and the top only picks the generic according to the board.
+
+## 5. Verification
+
+Entity tests of the decoder, the cell and the block cover the map, the edges, the per-pin level mode and the zero read of addresses outside the map. The formal proof of the cell (`gpio_cell_props.sv`) includes the level mode, the `active_low` polarity and the mutants of each. The tests also cover the block with `active_low` and the zero-width block.
 
 ---
 

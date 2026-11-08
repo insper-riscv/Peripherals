@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formal verification of the CLINT, the PLIC, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO and the UART with SymbiYosys. Needs
+# Formal verification of the CLINT, the PLIC, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART and the console with SymbiYosys. Needs
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
@@ -286,6 +286,9 @@ mut_expose=(); mut_open=1
 build gpio_cell cell gpio_cell -- 
 expect "direction, output and masks change only by writes; pin read is the synchronized pin; status (bounded, 16 cycles)" PASS "$(prove cell.v "$f/gpio_cell_props.sv" bmc 16 '' cell_safety)"
 expect "cover: a rise and a fall interrupt and a stable output are reachable" PASS "$(prove cell.v "$f/gpio_cell_props.sv" cover 14 '-DCOVER' cell_cover)"
+build gpio_cell cell_low gpio_cell -- -gactive_low=true
+expect "active low: the pin read is the inverted pin and the cell drives the inverted output (bounded, 16 cycles)" PASS "$(prove cell_low.v "$f/gpio_cell_props.sv" bmc 16 '-DACTIVE_LOW' cell_low_safety)"
+expect "active low cover: a rise and a fall interrupt and a stable output are reachable" PASS "$(prove cell_low.v "$f/gpio_cell_props.sv" cover 14 '-DACTIVE_LOW -DCOVER' cell_low_cover)"
 mut_open=0
 
 echo "uart_fifo"
@@ -322,6 +325,24 @@ expect "transmit frame: start, 8 data bits LSB first, stop, 16 cycles per bit (b
 expect "cover: a frame of 5A is transmitted" PASS "$(prove uart.v "$f/uart_props.sv" cover 100 '-DTXF -DCOVER' uart_tx_cover)"
 expect "receive: the byte is sampled mid-bit despite noise at the edges, once, none lost (bounded, 200 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 200 '-DRXF' uart_rx)"
 expect "cover: a frame of A5 is received" PASS "$(prove uart.v "$f/uart_props.sv" cover 200 '-DRXF -DCOVER' uart_rx_cover)"
+
+echo "console"
+path_of[console]="$root/src/UART/console/console.vhd"
+path_of[console_equiv]="$root/tests/vhdl/console_equiv.vhd"
+console_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart jtag_uart console console_equiv)
+cp_="$f/console_props.sv"
+mut_expose=(); mut_open=0
+cgen_pins=(-gbackend=pinos -gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3)
+cgen_inv=(-gbackend=pinos -gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3 -gtx_invert=true -grx_invert=true)
+cgen_jtag=(-gbackend=jtag -glog2_depth=2)
+build console_equiv console_pins "${console_srcs[@]}" -- "${cgen_pins[@]}"
+expect "backend pinos: data read, interrupt, line and JTAG output equal those of the uart on the same inputs (bounded, 200 cycles)" PASS "$(prove console_pins.v "$cp_" bmc 200 '' console_pins)"
+expect "cover: the pinos console returns data and raises the interrupt" PASS "$(prove console_pins.v "$cp_" cover 30 '-DCOVER' console_pins_cover)"
+build console_equiv console_inv "${console_srcs[@]}" -- "${cgen_inv[@]}"
+expect "backend pinos with TX and RX inverted: equal to the uart with an explicit inversion on each pin (bounded, 200 cycles)" PASS "$(prove console_inv.v "$cp_" bmc 200 '' console_inv)"
+build console_equiv console_jtag "${console_srcs[@]}" -- "${cgen_jtag[@]}"
+expect "backend jtag: data read, interrupt, line and JTAG output equal those of the jtag_uart on the same inputs (bounded, 30 cycles)" PASS "$(prove console_jtag.v "$cp_" bmc 30 '' console_jtag)"
+expect "cover: the jtag console returns data and raises the interrupt" PASS "$(prove console_jtag.v "$cp_" cover 30 '-DCOVER' console_jtag_cover)"
 
 # Mutants of the VHDL: each defect must make a proof fail.
 # mutant <source name> <props> <entity> <defines> <name> <sed expression> <bmc depth> <sources...> -- [generics]
@@ -406,6 +427,8 @@ mutant gpio_cell "$gp" gpio_cell '' cell_status_not_cleared "s/irq_clear     <= 
 mutant gpio_cell "$gp" gpio_cell '' cell_level_ignored "s/interrupt_logic <= level_logic when irq_level_mode = '1' else edge_logic;/interrupt_logic <= edge_logic;/" 16 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '' cell_level_fall_is_high "s/(irq_fall_mask and not pin_input)/(irq_fall_mask and pin_input)/" 16 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '' cell_level_mode_write "s/i_enable => i_wr_signals(7),/i_enable => i_wr_signals(3),/" 16 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '-DACTIVE_LOW' cell_low_drive_not_inverted "s/drive_logic <= not out_reg when active_low else out_reg;/drive_logic <= out_reg;/" 10 gpio_cell -- -gactive_low=true
+mutant gpio_cell "$gp" gpio_cell '-DACTIVE_LOW' cell_low_input_not_inverted "s/pin_logic   <= not io_gpio_pin when active_low else io_gpio_pin;/pin_logic   <= io_gpio_pin;/" 10 gpio_cell -- -gactive_low=true
 mutant gpio_cell "$gp" gpio_cell '' cell_pin_not_driven "s/i_enable => dir_reg,/i_enable => '0',/" 10 gpio_cell --
 mut_open=0
 
@@ -446,6 +469,13 @@ mutant uartTx "$up" uart '-DTXF' uart_tx_short_frame "s/bitCount = \"1001\"/bitC
 mutant uartRx "$up" uart '-DRXF' uart_rx_early_sample "s/count16 = \"0111\"/count16 = \"0000\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_late_sample "s/count16 = \"0111\"/count16 = \"1110\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_msb_first "s/dataBuf <= inSync(1) \& dataBuf(7 downto 1);/dataBuf <= dataBuf(6 downto 0) \& inSync(1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+
+mut_expose=()
+mutant console "$cp_" console_equiv '' console_tx_polarity "s/o_tx    <= not uart_tx when tx_invert else uart_tx;/o_tx    <= uart_tx;/" 200 "${console_srcs[@]}" -- "${cgen_inv[@]}"
+mutant console "$cp_" console_equiv '' console_rx_polarity "s/uart_rx <= not i_rx when rx_invert else i_rx;/uart_rx <= i_rx;/" 200 "${console_srcs[@]}" -- "${cgen_inv[@]}"
+mutant console "$cp_" console_equiv '' console_address_bits "s/i_address  => i_addr(1 downto 0),/i_address  => i_addr(2 downto 1),/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
+mutant console "$cp_" console_equiv '' console_read_strobe "s/i_read     => i_re,/i_read     => i_we,/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
+mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        => i_we,/i_we        => i_re,/" 30 "${console_srcs[@]}" -- "${cgen_jtag[@]}"
 
 
 # PLIC (own file, like the external interrupt controller).
