@@ -350,8 +350,12 @@ expect "cover: the jtag console returns data and raises the interrupt" PASS "$(p
 mutant() {
   local sname="$1" props="$2" ent="$3" defs="$4" name="$5" expr="$6" depth="$7"; shift 7
   local copy="$out/mut_$name.vhd"
-  sed "$expr" "${path_of[$sname]}" > "$copy"
-  cmp -s "${path_of[$sname]}" "$copy" && { echo "mutant $name: the edit did not change the file"; exit 1; }
+  # The mutant is cut from the source with every run of blanks (spaces and tabs) squeezed to one space, and the sed
+  # expression is squeezed the same way, so the edit does not depend on the column alignment that the formatter
+  # (vsg --fix) owns. VHDL ignores the blanks, so the mutant means the same.
+  expr="$(printf '%s' "$expr" | sed 's/[[:space:]]\+/ /g')"
+  sed 's/[[:space:]]\+/ /g' "${path_of[$sname]}" | sed "$expr" > "$copy"
+  sed 's/[[:space:]]\+/ /g' "${path_of[$sname]}" | cmp -s - "$copy" && { echo "mutant $name: the edit did not change the file"; exit 1; }
   mut_from="${path_of[$sname]}"; mut_to="$copy"
   build "$ent" "mut_$name" "$@"
   mut_from=""; mut_to=""
