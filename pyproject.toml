@@ -1,6 +1,6 @@
 [project]
 name = "riscv-peripherals"
-version = "0.7.1"
+version = "0.7.2"
 description = "Memory-mapped peripherals of the RV32 SoC (GPIO, TIMER, CLINT and UART) with per-entity cocotb tests."
 license = "Apache-2.0"
 # Same Python as the ci-vhdl image of Infra, which also carries riscv-tools.
