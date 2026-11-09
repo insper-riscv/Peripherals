@@ -106,7 +106,7 @@ begin
             i_state_uir => '0'
         );
 
-    g_pins : if backend = "pinos" generate
+    gen_pins : if backend = "pinos" generate
     begin
         ref_rx <= not i_rx when rx_invert else i_rx;
 
@@ -132,9 +132,9 @@ begin
 
         o_tx_ref  <= not ref_tx when tx_invert else ref_tx;
         o_tdo_ref <= '0';
-    end generate g_pins;
+    end generate gen_pins;
 
-    g_jtag : if backend = "jtag" generate
+    gen_jtag : if backend = "jtag" generate
     begin
 
         u_ref : entity work.jtag_uart
@@ -161,6 +161,6 @@ begin
             );
 
         o_tx_ref <= '0' when tx_invert else '1';
-    end generate g_jtag;
+    end generate gen_jtag;
 
 end architecture rtl;

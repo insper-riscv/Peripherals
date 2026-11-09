@@ -113,7 +113,8 @@ architecture rtl of timer is
     -- Saída do comparador invertida.
     signal   pwm_inverted     : std_logic;
     -- Constante 1, segundo operando do somador do contador.
-    constant ADDER_ONE        : std_logic_vector(data_width - 1 downto 0) := std_logic_vector(to_unsigned(1, data_width));
+    constant ADDER_ONE        : std_logic_vector(data_width - 1 downto 0) :=
+        std_logic_vector(to_unsigned(1, data_width));
     -- Saída de 1 bit do registrador de status, em formato de vetor.
     signal   irq_status_reg_q : std_logic_vector(0 downto 0);
     -- Dado de 1 bit com valor '1'.
@@ -402,9 +403,12 @@ begin
     -- Com leitura em '1', a saída é escolhida por rd_sel.
     -- Com leitura em '0', a saída é escolhida por cnt_sel.
     ---------------------------------------------------------------------------
-    configs_readback  <= (31 downto 4 => '0') & (irq_mask & pwm_en & mode_signal & start_signal); -- Concatena os registradores para o multiplexador
-    pwm_readback      <= (31 downto 1 => '0') & pwm_out;                                          -- Concatena a saída PWM para o multiplexador
-    overflow_readback <= (31 downto 1 => '0') & overflow_status;                                  -- Concatena o status de overflow para o multiplexador
+    -- Concatena os registradores para o multiplexador.
+    configs_readback  <= (31 downto 4 => '0') & (irq_mask & pwm_en & mode_signal & start_signal);
+    -- Concatena a saída PWM para o multiplexador.
+    pwm_readback      <= (31 downto 1 => '0') & pwm_out;
+    -- Concatena o status de overflow para o multiplexador.
+    overflow_readback <= (31 downto 1 => '0') & overflow_status;
 
     u_mux_out_sel : entity work.mux_8x1
         generic map (

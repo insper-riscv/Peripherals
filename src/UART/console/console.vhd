@@ -97,7 +97,7 @@ begin
         report "console: backend must be ""jtag"" or ""pinos"""
         severity failure;
 
-    g_jtag : if backend = "jtag" generate
+    gen_jtag : if backend = "jtag" generate
     begin
 
         u_jtag_uart : entity work.jtag_uart
@@ -125,9 +125,9 @@ begin
 
         -- Linha serial em repouso (nível alto antes da polaridade).
         o_tx <= '0' when tx_invert else '1';
-    end generate g_jtag;
+    end generate gen_jtag;
 
-    g_pins : if backend = "pinos" generate
+    gen_pins : if backend = "pinos" generate
         -- Linha de transmissão do bloco serial antes da polaridade.
         signal uart_tx : std_logic;
         -- Linha de recepção do bloco serial depois da polaridade.
@@ -157,6 +157,6 @@ begin
         o_tx    <= not uart_tx when tx_invert else uart_tx;
         uart_rx <= not i_rx when rx_invert else i_rx;
         o_tdo   <= '0';
-    end generate g_pins;
+    end generate gen_pins;
 
 end architecture rtl;

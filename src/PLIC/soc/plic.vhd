@@ -108,7 +108,9 @@ begin
         -- A fonte é reclamada quando é a vencedora e o claim é lido.
         claim_hit(n) <= '1' when claim_read = '1' and winner_ok = '1' and to_integer(unsigned(winner_id)) = n else '0';
         -- O complete só vale para uma fonte habilitada no contexto.
-        compl_hit(n) <= '1' when compl_write = '1' and enable_reg(n) = '1' and unsigned(i_data_in) = to_unsigned(n, 32) else '0';
+        compl_hit(n) <= '1' when compl_write = '1' and enable_reg(n) = '1'
+                                 and unsigned(i_data_in) = to_unsigned(n, 32) else
+                        '0';
 
         u_gateway : entity work.plic_gateway
             port map (
@@ -142,7 +144,11 @@ begin
     -- ---------------------------------------------------------------------------
     -- Escrita de prioridade, habilitação e limiar
     -- ---------------------------------------------------------------------------
-    process (i_clk) is
+    p_write_regs : process (i_clk) is
+
+        -- Bit menos significativo da prioridade da fonte em exame dentro de priorities.
+        variable lsb : natural range 0 to n_sources * priority_bits;
+
     begin
 
         if rising_edge(i_clk) then
@@ -157,8 +163,9 @@ begin
 
                 for n in 1 to n_sources loop
 
+                    lsb := (n - 1) * priority_bits;
                     if addr = n then
-                        priorities(n * priority_bits - 1 downto (n - 1) * priority_bits) <= i_data_in(priority_bits - 1 downto 0);
+                        priorities(lsb + priority_bits - 1 downto lsb) <= i_data_in(priority_bits - 1 downto 0);
                     end if;
                     if addr = ADDR_ENABLE_BASE + n / 32 then
                         enable_reg(n) <= i_data_in(n mod 32);
@@ -169,12 +176,16 @@ begin
             end if;
         end if;
 
-    end process;
+    end process p_write_regs;
 
     -- ---------------------------------------------------------------------------
     -- Leitura combinacional por endereço
     -- ---------------------------------------------------------------------------
-    process (addr, priorities, pending, enable_reg, threshold, winner_id) is
+    p_read_mux : process (addr, priorities, pending, enable_reg, threshold, winner_id) is
+
+        -- Bit menos significativo da prioridade da fonte em exame dentro de priorities.
+        variable lsb : natural range 0 to n_sources * priority_bits;
+
     begin
 
         o_data_out <= (others => '0');
@@ -187,8 +198,10 @@ begin
 
         for n in 1 to n_sources loop
 
+            lsb := (n - 1) * priority_bits;
+
             if addr = n then
-                o_data_out(priority_bits - 1 downto 0) <= priorities(n * priority_bits - 1 downto (n - 1) * priority_bits);
+                o_data_out(priority_bits - 1 downto 0) <= priorities(lsb + priority_bits - 1 downto lsb);
             end if;
 
             if addr = ADDR_PENDING_BASE + n / 32 then
@@ -201,6 +214,6 @@ begin
 
         end loop;
 
-    end process;
+    end process p_read_mux;
 
 end architecture rtl;

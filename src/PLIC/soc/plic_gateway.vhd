@@ -38,7 +38,7 @@ architecture rtl of plic_gateway is
 
 begin
 
-    process (i_clk) is
+    p_gateway : process (i_clk) is
     begin
 
         if rising_edge(i_clk) then
@@ -59,7 +59,7 @@ begin
             end if;
         end if;
 
-    end process;
+    end process p_gateway;
 
     o_pending <= pending;
 

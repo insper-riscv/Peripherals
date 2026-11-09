@@ -108,7 +108,7 @@ begin
         signal phase : natural range 0 to tick_cycles - 1;
     begin
 
-        process (i_rst, i_clk) is
+        p_phase : process (i_rst, i_clk) is
         begin
 
             if i_rst = '1' then
@@ -121,7 +121,7 @@ begin
                 end if;
             end if;
 
-        end process;
+        end process p_phase;
 
         tick <= '1' when phase = tick_cycles - 1 else '0';
     end generate gen_tick_divided;

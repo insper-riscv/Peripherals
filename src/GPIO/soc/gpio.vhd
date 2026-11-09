@@ -15,9 +15,11 @@ library work;
 
 entity gpio is
     generic (
-        -- Largura do barramento de dados e número de pinos; zero deixa o módulo sem pino, sem registrador e sem interrupção.
+        -- Largura do barramento de dados e número de pinos;
+        -- zero deixa o módulo sem pino, sem registrador e sem interrupção.
         data_width : natural := 32;
-        -- Polaridade dos pinos: verdadeiro faz o programa ver e escrever ativo em '1' sobre pinos ativos em nível baixo.
+        -- Polaridade dos pinos: verdadeiro faz o programa ver e escrever ativo em '1'
+        -- sobre pinos ativos em nível baixo.
         active_low : boolean := false
     );
     port (

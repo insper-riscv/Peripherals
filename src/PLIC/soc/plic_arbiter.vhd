@@ -40,7 +40,7 @@ architecture rtl of plic_arbiter is
 
 begin
 
-    process (i_pending, i_enable, i_priorities, i_threshold) is
+    p_arbiter : process (i_pending, i_enable, i_priorities, i_threshold) is
 
         -- Melhor fonte até o momento.
         variable best_id  : natural range 0 to n_sources;
@@ -73,6 +73,6 @@ begin
             o_valid <= '0';
         end if;
 
-    end process;
+    end process p_arbiter;
 
 end architecture rtl;

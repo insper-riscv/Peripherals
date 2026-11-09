@@ -206,8 +206,8 @@ begin
     o_tdo    <= sr(0) when ir = "01" else bypass;
 
     -- os registradores lidos pelo core
-    process (i_addr, rx_mem, rx_r, rx_level, tx_level, lost, attached,
-             rx_irq_enable, tx_irq_enable, err_irq_enable) is
+    p_read_regs : process (i_addr, rx_mem, rx_r, rx_level, tx_level, lost, attached,
+                           rx_irq_enable, tx_irq_enable, err_irq_enable) is
 
         -- Lugares livres na fila de transmissão.
         variable free : unsigned(15 downto 0);
@@ -245,9 +245,9 @@ begin
 
         end case;
 
-    end process;
+    end process p_read_regs;
 
-    process (i_clk) is
+    p_core_clock : process (i_clk) is
 
         -- Quantidade de bytes retirados da fila de transmissão.
         variable n      : natural range 0 to 4;
@@ -338,9 +338,9 @@ begin
             end if;
         end if;
 
-    end process;
+    end process p_core_clock;
 
-    process (i_tck) is
+    p_tck_ir : process (i_tck) is
     begin
 
         if rising_edge(i_tck) then
@@ -380,6 +380,6 @@ begin
             end if;
         end if;
 
-    end process;
+    end process p_tck_ir;
 
 end architecture rtl;

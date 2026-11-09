@@ -71,7 +71,8 @@ entity seg_display is
         o_value     : out   std_logic_vector(4 * digits - 1 downto 0);
         -- Bandeira de falha gravada pelo hospedeiro ('1' = houve falha).
         o_fail      : out   std_logic;
-        -- Segmentos dos displays, o dígito 0 nos bits 6:0 e o de maior índice nos bits mais altos (polaridade de active_low).
+        -- Segmentos dos displays, o dígito 0 nos bits 6:0 e o de maior índice nos bits mais altos
+        -- (polaridade de active_low).
         o_hex       : out   std_logic_vector(7 * digits - 1 downto 0)
     );
 end entity seg_display;
@@ -119,7 +120,7 @@ begin
     o_value <= value;
 
     -- Leitura do core: só a palavra 0 tem conteúdo.
-    process (i_address, value) is
+    p_read : process (i_address, value) is
     begin
 
         o_rdata <= (others => '0');
@@ -128,10 +129,10 @@ begin
             o_rdata(VALUE_BITS - 1 downto 0) <= value;
         end if;
 
-    end process;
+    end process p_read;
 
     -- Registrador no domínio de i_clk: o core tem prioridade sobre o hospedeiro.
-    process (i_clk) is
+    p_value_reg : process (i_clk) is
     begin
 
         if rising_edge(i_clk) then
@@ -146,7 +147,7 @@ begin
             end if;
         end if;
 
-    end process;
+    end process p_value_reg;
 
     o_fail <= fail_flag;
 
@@ -155,7 +156,7 @@ begin
              bypass;
 
     -- Lado do hospedeiro, no domínio de tck.
-    process (i_tck) is
+    p_tck_side : process (i_tck) is
     begin
 
         if rising_edge(i_tck) then
@@ -177,7 +178,7 @@ begin
             end if;
         end if;
 
-    end process;
+    end process p_tck_side;
 
     gen_digits : for n in 0 to digits - 1 generate
 

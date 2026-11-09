@@ -151,7 +151,7 @@ begin
     ev_refused <= i_refused and not refused_prev;
     o_irq      <= '1' when (irq_status and irq_enable) /= "00" else '0';
 
-    process (i_clk) is
+    p_events : process (i_clk) is
     begin
 
         if rising_edge(i_clk) then
@@ -176,9 +176,9 @@ begin
             end if;
         end if;
 
-    end process;
+    end process p_events;
 
-    process (i_clk) is
+    p_registers : process (i_clk) is
     begin
 
         if rising_edge(i_clk) then
@@ -201,9 +201,9 @@ begin
             buf_q <= page(to_integer(unsigned(i_buf_idx)));
         end if;
 
-    end process;
+    end process p_registers;
 
-    process (i_read, i_address, addr_reg, ptr, i_busy, i_wel, i_refused, irq_enable, irq_status) is
+    p_read_mux : process (i_read, i_address, addr_reg, ptr, i_busy, i_wel, i_refused, irq_enable, irq_status) is
     begin
 
         o_data_out <= (others => '0');
@@ -242,6 +242,6 @@ begin
 
         end if;
 
-    end process;
+    end process p_read_mux;
 
 end architecture rtl;

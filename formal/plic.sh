@@ -43,7 +43,7 @@ mutant plic_arbiter "$arp" plic_arbiter '' plicarb_last_wins "s/for n in 1 to n_
 mut_expose=(pending:3 enable_reg:3 priorities:7 threshold:1)
 mutant plic "$pp" plic '' plic_claim_not_clearing "s/claim_hit(n) <= '1' when claim_read/claim_hit(n) <= '0' when claim_read/" 14 "${plic_srcs[@]}" -- "${plic_gen[@]}"
 mutant plic "$pp" plic '' plic_complete_any_id "s/ and unsigned(i_data_in) = to_unsigned(n, 32) else/ else/" 14 "${plic_srcs[@]}" -- "${plic_gen[@]}"
-mutant plic "$pp" plic '' plic_complete_ignores_enable "s/compl_write = '1' and enable_reg(n) = '1' and/compl_write = '1' and/" 14 "${plic_srcs[@]}" -- "${plic_gen[@]}"
+mutant plic "$pp" plic '' plic_complete_ignores_enable "s/ and enable_reg(n) = '1'\$//" 14 "${plic_srcs[@]}" -- "${plic_gen[@]}"
 mutant plic "$pp" plic '' plic_complete_any_address "s/compl_write <= '1' when i_write = '1' and addr = ADDR_CLAIM_COMPLETE else/compl_write <= '1' when i_write = '1' else/" 14 "${plic_srcs[@]}" -- "${plic_gen[@]}"
 mutant plic "$pp" plic '' plic_claim_any_address "s/claim_read  <= '1' when i_read = '1' and addr = ADDR_CLAIM_COMPLETE else/claim_read  <= '1' when i_read = '1' else/" 14 "${plic_srcs[@]}" -- "${plic_gen[@]}"
 mutant plic "$pp" plic '' plic_priority_address "s/if addr = n then/if addr = n + 1 then/" 14 "${plic_srcs[@]}" -- "${plic_gen[@]}"

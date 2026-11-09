@@ -269,20 +269,9 @@ begin
     end process p_registers;
 
     p_readback : process (
-                          i_address,
-                          rx_fifo_data,
-                          rx_fifo_empty,
-                          rx_fifo_full,
-                          rx_fifo_level,
-                          tx_fifo_empty,
-                          tx_fifo_full,
-                          tx_fifo_level,
-                          phy_tx_busy,
-                          rx_overrun,
-                          tx_dropped,
-                          rx_irq_enable,
-                          tx_irq_enable,
-                          err_irq_enable
+                          i_address, rx_fifo_data, rx_fifo_empty, rx_fifo_full, rx_fifo_level, tx_fifo_empty,
+                          tx_fifo_full, tx_fifo_level, phy_tx_busy, rx_overrun, tx_dropped, rx_irq_enable,
+                          tx_irq_enable, err_irq_enable
                          ) is
 
         -- Valor montado para o registrador selecionado.
