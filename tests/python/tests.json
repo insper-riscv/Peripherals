@@ -138,6 +138,58 @@
             "--std=08"
         ]
     },
+    "PS2Filter": {
+        "toplevel": "ps2_filter",
+        "sources": [
+            "src/PS2/host/ps2_filter.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.ps2_filter",
+        "parameters": {
+            "FILTER_CYCLES": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PS2Keyboard": {
+        "toplevel": "ps2_keyboard_tb",
+        "sources": [
+            "src/common/src/synchronizer.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/PS2/host/ps2_filter.vhd",
+            "src/PS2/host/ps2_host.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/PS2/keyboard/ps2_keyboard.vhd",
+            "tests/vhdl/ps2_keyboard_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.ps2_keyboard",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PS2Host": {
+        "toplevel": "ps2_host_tb",
+        "sources": [
+            "src/common/src/synchronizer.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/PS2/host/ps2_filter.vhd",
+            "src/PS2/host/ps2_host.vhd",
+            "tests/vhdl/ps2_host_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.ps2_host",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "UART": {
         "toplevel": "uart",
         "sources": [
