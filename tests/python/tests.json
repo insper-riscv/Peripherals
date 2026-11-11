@@ -577,5 +577,78 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "Mouse": {
+        "toplevel": "ps2_mouse",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_2x1.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_axis_accumulator.vhd",
+            "src/PS2/mouse/ps2_mouse_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse_operation_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.mouse",
+        "parameters": {
+            "INIT_TIMEOUT_CYCLES": "200",
+            "PACKET_TIMEOUT_CYCLES": "50"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MouseAxisAccumulator": {
+        "toplevel": "ps2_axis_accumulator",
+        "sources": [
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_axis_accumulator.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.axis_accumulator",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MouseDecoder": {
+        "toplevel": "ps2_mouse_decoder",
+        "sources": [
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_mouse_decoder.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.decoder",
+        "parameters": {
+            "INIT_TIMEOUT_CYCLES": "200",
+            "PACKET_TIMEOUT_CYCLES": "50"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MouseOperationDecoder": {
+        "toplevel": "ps2_mouse_operation_decoder",
+        "sources": [
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_mouse_operation_decoder.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.operation_decoder",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }
