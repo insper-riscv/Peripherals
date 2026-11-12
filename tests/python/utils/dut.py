@@ -261,3 +261,54 @@ class Ps2KeyboardTbDut(IrqDut, Protocol):
     i_dev_dat_low0: LogicObject
     o_clk0: LogicObject
     o_dat0: LogicObject
+
+
+class ByteHostDut(ResettableDut, Protocol):
+    """Byte interface of the ps2_host, seen from the mouse side."""
+
+    i_rx_data: LogicArrayObject
+    i_rx_valid: LogicObject
+    i_rx_error: LogicObject
+    o_tx_data: LogicArrayObject
+    o_tx_valid: LogicObject
+    i_tx_ready: LogicObject
+
+
+class MouseDut(IrqDut, ByteHostDut, Protocol):
+    """Signals of the PS/2 mouse, on the bus and the byte interface."""
+
+
+class AxisAccumulatorDut(ResettableDut, Protocol):
+    """Signals of the saturating accumulator of one mouse axis."""
+
+    i_clear: LogicObject
+    i_add_valid: LogicObject
+    i_delta: LogicArrayObject
+    o_value: LogicArrayObject
+    o_saturated: LogicObject
+
+
+class MouseDecoderDut(ByteHostDut, Protocol):
+    """Signals of the PS/2 mouse protocol decoder."""
+
+    i_restart: LogicObject
+    o_streaming: LogicObject
+    o_packet_valid: LogicObject
+    o_buttons: LogicArrayObject
+    o_dx: LogicArrayObject
+    o_dy: LogicArrayObject
+    o_overflow: LogicObject
+    o_error: LogicObject
+
+
+class MouseOperationDecoderDut(Protocol):
+    """Signals of the operation decoder of the PS/2 mouse."""
+
+    i_address: LogicArrayObject
+    i_write: LogicObject
+    i_read: LogicObject
+    o_rd_sel: LogicArrayObject
+    o_status_read: LogicObject
+    o_dx_read: LogicObject
+    o_dy_read: LogicObject
+    o_control_write: LogicObject

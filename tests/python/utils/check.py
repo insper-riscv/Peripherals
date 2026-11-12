@@ -18,3 +18,22 @@ def check(condition: bool, message: str = "") -> None:
     """
     if not condition:
         raise AssertionError(message)
+
+
+def check_equal(got: int, want: int) -> None:
+    """Fail the running test if two values differ.
+
+    Parameters
+    ----------
+    got : int
+        The value the design produced.
+    want : int
+        The value the test expects.
+
+    Raises
+    ------
+    AssertionError
+        If the values differ.
+    """
+    if got != want:
+        raise AssertionError(f"got {got:#x}, want {want:#x}")
