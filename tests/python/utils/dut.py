@@ -10,10 +10,15 @@ from typing import Protocol
 from cocotb.handle import LogicArrayObject, LogicObject
 
 
-class ResettableDut(Protocol):
-    """A clocked design with a synchronous reset."""
+class ClockedDut(Protocol):
+    """A design with a clock."""
 
     i_clk: LogicObject
+
+
+class ResettableDut(ClockedDut, Protocol):
+    """A clocked design with a synchronous reset."""
+
     i_rst: LogicObject
 
 
@@ -233,3 +238,81 @@ class FlashControllerDut(BusDut, Protocol):
     i_refused: LogicObject
     i_buf_idx: LogicArrayObject
     o_buf_data: LogicArrayObject
+
+
+class Ps2HostTbDut(ClockedDut, Protocol):
+    """Signals comuns do testbench de dois canais ps2_host."""
+
+    i_rst_n: LogicObject
+
+
+class Ps2FilterDut(ClockedDut, Protocol):
+    """Sinais do filtro de glitch de uma linha PS/2."""
+
+    i_rst_n: LogicObject
+    i_d: LogicObject
+    o_d: LogicObject
+
+
+class Ps2KeyboardTbDut(IrqDut, Protocol):
+    """Sinais do testbench do teclado PS/2."""
+
+    i_dev_clk_low0: LogicObject
+    i_dev_dat_low0: LogicObject
+    o_clk0: LogicObject
+    o_dat0: LogicObject
+
+
+class ByteHostDut(ResettableDut, Protocol):
+    """Interface de bytes do ps2_host, vista do lado do mouse."""
+
+    i_rx_data: LogicArrayObject
+    i_rx_valid: LogicObject
+    i_rx_error: LogicObject
+    o_tx_data: LogicArrayObject
+    o_tx_valid: LogicObject
+    i_tx_ready: LogicObject
+
+
+class AxisAccumulatorDut(ResettableDut, Protocol):
+    """Sinais do acumulador saturado de um eixo do mouse."""
+
+    i_clear: LogicObject
+    i_add_valid: LogicObject
+    i_delta: LogicArrayObject
+    o_value: LogicArrayObject
+    o_saturated: LogicObject
+
+
+class MouseDut(IrqDut, ByteHostDut, Protocol):
+    """Sinais do mouse PS/2, no barramento e na interface de bytes."""
+
+
+class MouseDecoderDut(ByteHostDut, Protocol):
+    """Sinais do decodificador de protocolo do mouse PS/2."""
+
+    i_restart: LogicObject
+    o_streaming: LogicObject
+    o_packet_valid: LogicObject
+    o_buttons: LogicArrayObject
+    o_dx: LogicArrayObject
+    o_dy: LogicArrayObject
+    o_overflow: LogicObject
+    o_error: LogicObject
+
+
+class MouseOperationDecoderDut(Protocol):
+    """Sinais do decodificador de operações do mouse PS/2."""
+
+    i_address: LogicArrayObject
+    i_write: LogicObject
+    i_read: LogicObject
+    o_rd_sel: LogicArrayObject
+    o_status_read: LogicObject
+    o_dx_read: LogicObject
+    o_dy_read: LogicObject
+    o_control_write: LogicObject
+
+
+class Ps2CableTbDut(ResettableDut, Protocol):
+    """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
