@@ -10,10 +10,15 @@ from typing import Protocol
 from cocotb.handle import LogicArrayObject, LogicObject
 
 
-class ResettableDut(Protocol):
-    """A clocked design with a synchronous reset."""
+class ClockedDut(Protocol):
+    """A design with a clock."""
 
     i_clk: LogicObject
+
+
+class ResettableDut(ClockedDut, Protocol):
+    """A clocked design with a synchronous reset."""
+
     i_rst: LogicObject
 
 
@@ -233,3 +238,17 @@ class FlashControllerDut(BusDut, Protocol):
     i_refused: LogicObject
     i_buf_idx: LogicArrayObject
     o_buf_data: LogicArrayObject
+
+
+class Ps2HostTbDut(ClockedDut, Protocol):
+    """Signals comuns do testbench de dois canais ps2_host."""
+
+    i_rst_n: LogicObject
+
+
+class Ps2FilterDut(ClockedDut, Protocol):
+    """Sinais do filtro de glitch de uma linha PS/2."""
+
+    i_rst_n: LogicObject
+    i_d: LogicObject
+    o_d: LogicObject
