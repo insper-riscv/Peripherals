@@ -1,4 +1,4 @@
-"""Test model of the ps2_host byte interface, seen by the mouse."""
+"""Estímulo de bytes na interface do decodificador do mouse PS/2."""
 
 from cocotb.triggers import RisingEdge, Timer
 
@@ -16,14 +16,14 @@ MAX_WAIT = 400
 
 
 async def send_byte(dut: ByteHostDut, value: int) -> None:
-    """Deliver one received byte to the mouse, as a one-cycle pulse.
+    """Entregue um byte recebido ao mouse, como pulso de um ciclo.
 
     Parameters
     ----------
     dut : ByteHostDut
-        The design under test.
+        Projeto sob teste.
     value : int
-        The byte the device sent.
+        Byte que o dispositivo enviou.
     """
     dut.i_rx_data.value = value
     dut.i_rx_valid.value = 1
@@ -33,12 +33,12 @@ async def send_byte(dut: ByteHostDut, value: int) -> None:
 
 
 async def send_rx_error(dut: ByteHostDut) -> None:
-    """Deliver a one-cycle framing or parity error.
+    """Entregue um erro de quadro ou de paridade de um ciclo.
 
     Parameters
     ----------
     dut : ByteHostDut
-        The design under test.
+        Projeto sob teste.
     """
     dut.i_rx_error.value = 1
     await RisingEdge(dut.i_clk)
@@ -47,22 +47,22 @@ async def send_rx_error(dut: ByteHostDut) -> None:
 
 
 async def expect_tx(dut: ByteHostDut, value: int) -> None:
-    """Wait for the mouse to send a byte and check it.
+    """Espere o mouse enviar um byte e confira.
 
-    The transmitter is ready only while waiting, so the byte goes out
-    in the first cycle it is asked for, and the request lasts one cycle.
+    O transmissor fica pronto só durante a espera, então o byte sai
+    no primeiro ciclo em que é pedido, e o pedido dura um ciclo.
 
     Parameters
     ----------
     dut : ByteHostDut
-        The design under test.
+        Projeto sob teste.
     value : int
-        The byte the mouse must send.
+        Byte que o mouse deve enviar.
 
     Raises
     ------
     AssertionError
-        If the byte does not come in time or is not the expected one.
+        Se o byte não vier a tempo ou não for o esperado.
     """
     dut.i_tx_ready.value = 1
     await Timer(1, unit="ns")
@@ -70,25 +70,25 @@ async def expect_tx(dut: ByteHostDut, value: int) -> None:
         if int(dut.o_tx_valid.value) == 1:
             got = int(dut.o_tx_data.value)
             if got != value:
-                raise AssertionError(f"sent {got:#x}, want {value:#x}")
+                raise AssertionError(f"enviou {got:#x}, queria {value:#x}")
             await RisingEdge(dut.i_clk)
             await Timer(1, unit="ns")
             if int(dut.o_tx_valid.value) != 0:
-                raise AssertionError("tx_valid lasted more than a cycle")
+                raise AssertionError("tx_valid durou mais de um ciclo")
             dut.i_tx_ready.value = 0
             return
         await RisingEdge(dut.i_clk)
         await Timer(1, unit="ns")
-    raise AssertionError(f"byte {value:#x} was never sent")
+    raise AssertionError(f"byte {value:#x} nunca foi enviado")
 
 
 async def initialize(dut: ByteHostDut) -> None:
-    """Run the whole initialization handshake of a mouse.
+    """Execute a troca completa de respostas da inicialização.
 
     Parameters
     ----------
     dut : ByteHostDut
-        The design under test.
+        Projeto sob teste.
     """
     await expect_tx(dut, CMD_RESET)
     for response in (RSP_ACK, RSP_SELF_TEST, RSP_ID):
@@ -100,20 +100,20 @@ async def initialize(dut: ByteHostDut) -> None:
 async def send_packet(
     dut: ByteHostDut, dx: int, dy: int, buttons: int = 0, overflow: int = 0
 ) -> None:
-    """Send one 3-byte movement packet.
+    """Envie um pacote de movimento de 3 bytes.
 
     Parameters
     ----------
     dut : ByteHostDut
-        The design under test.
+        Projeto sob teste.
     dx : int
-        Signed X displacement, from -256 to 255.
+        Deslocamento X com sinal, de -256 a 255.
     dy : int
-        Signed Y displacement, from -256 to 255.
+        Deslocamento Y com sinal, de -256 a 255.
     buttons : int
-        Bit 0 left, bit 1 right, bit 2 middle.
+        Bit 0 esquerdo, bit 1 direito, bit 2 meio.
     overflow : int
-        Bit 0 X overflow, bit 1 Y overflow.
+        Bit 0 estouro em X, bit 1 estouro em Y.
     """
     first = 0x08 | buttons
     first |= ((dx >> 8) & 1) << 4
@@ -124,12 +124,12 @@ async def send_packet(
 
 
 async def reset_idle(dut: ByteHostDut) -> None:
-    """Reset the design with the byte interface idle and the host busy.
+    """Reinicie com a interface de bytes parada e o host ocupado.
 
     Parameters
     ----------
     dut : ByteHostDut
-        The design under test.
+        Projeto sob teste.
     """
     dut.i_rx_data.value = 0
     dut.i_rx_valid.value = 0

@@ -36,12 +36,12 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/PLIC/soc/` | PLIC: level gateways, priority arbiter with tie-break by id, registers in the `riscv-plic-1.0.0` layout and the `MEIP` output (`plic`) |
 | `src/PS2/host/` | PS/2 physical layer of one channel (`ps2_host`): synchronizer, glitch filter, reception of 11-bit frames with odd parity and command sending with the clock inhibited; one instance per channel (keyboard on channel 0, mouse on channel 1) |
 | `src/PS2/keyboard/` | Memory-mapped PS/2 keyboard (`ps2_keyboard`): scancode byte queue, status with overflow and error, command sending and a level interrupt |
-| `src/PS2/mouse/` | PS/2 mouse: protocol decoder, saturating accumulator per axis and registers (`ps2_mouse`) |
+| `src/PS2/mouse/` | PS/2 mouse: protocol decoder, saturating accumulator per axis and registers (`ps2_mouse`), and the `ps2_mouse_top` that wires it to the `ps2_host` |
 | `src/video/soc/` | VGA video: 640x480 at 60 Hz timing generator, dual-port framebuffer memory, pixel path with optional palette and registers with the retrace status and the frame counter (`video`) |
 | `src/flash-controller/soc/` | FLASH controller: command, address, status and page buffer registers that carry the erase, program and protect commands to the FLASH chip of the Memory repository |
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
 | `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,UART,display,flash_controller,video}` |
-| `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO, `ps2_host_tb`, with two `ps2_host` channels, and `ps2_keyboard_tb`, with the keyboard and its lines reachable by cocotb |
+| `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO, `ps2_host_tb`, with two `ps2_host` channels, `ps2_keyboard_tb`, with the keyboard and its lines reachable by cocotb, and `ps2_cable_tb`, with the keyboard and the mouse active at the same time |
 | `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
 | `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), PS/2 documents (`PS2/`), UART documents (`UART/`), the FLASH controller (`flash-controller/`), the video (`video/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
 

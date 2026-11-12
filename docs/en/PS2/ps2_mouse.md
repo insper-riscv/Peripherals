@@ -6,7 +6,7 @@
 
 A bus peripheral that drives a three-button PS/2 mouse and hands the program the accumulated X and Y displacement, the button state and an optional interrupt. The `ps2_mouse` entity exchanges bytes with the `ps2_host` physical layer (one PS/2 channel) and keeps no state outside the instance, so several instances, each with its own `ps2_host`, coexist in one design, for example the keyboard on channel 0 and the mouse on channel 1.
 
-The entity is made of four single-purpose blocks.
+The entity is made of five single-purpose blocks.
 
 | Block | Function |
 | :--- | :--- |
@@ -14,6 +14,7 @@ The entity is made of four single-purpose blocks.
 | `ps2_axis_accumulator` | Saturating sum of the displacement of one axis, cleared on read (one instance per axis) |
 | `ps2_mouse_operation_decoder` | Translation of the word address into the read selector and the clear pulses |
 | `ps2_mouse` | Structural top with the status bits, the interrupt enable and the read multiplexer |
+| `ps2_mouse_top` | Structural top of the channel, which wires the `ps2_host` to the `ps2_mouse` and exposes the bus and the two connector lines |
 
 ## 2. Registers
 
@@ -85,7 +86,7 @@ Each channel has its own `ps2_host` and its own peripheral. The instances share 
 
 ### 6.1. Channel connection
 
-In the board top, a `ps2_host` joins the connector lines to the `ps2_mouse` through the byte interface.
+The `ps2_mouse_top` instantiates a `ps2_host` and a `ps2_mouse` and joins them through the byte interface, as the table below shows.
 
 | `ps2_host` | `ps2_mouse` | Note |
 | :--- | :--- | :--- |
@@ -111,12 +112,15 @@ In the board top, a `ps2_host` joins the connector lines to the `ps2_mouse` thro
 | Generic | Default | Meaning |
 | :--- | :--- | :--- |
 | `data_width` | 32 | Width of the data bus |
+| `filter_cycles` | 8 | Cycles a line level must last to pass the glitch filter |
+| `inhibit_cycles` | 6000 | Cycles with the clock held low before a command |
+| `timeout_cycles` | 1000000 | Cycles without a clock edge that abort a frame |
 | `init_timeout_cycles` | 100000000 | Silence accepted during initialization, in clock cycles |
 | `packet_timeout_cycles` | 5000000 | Silence accepted in the middle of a packet, in clock cycles |
 
 ## 7. Verification
 
-The entity tests drive the byte interface with a model of the `ps2_host` written in the test. They cover the initialization sequence, wrong answers and silence, sending only with the transmitter ready, packets with sign and overflow, accumulation and saturation, resynchronization, framing error and silence in the middle of a packet, the clear on read, the interrupt, reinitialization and the addresses outside the map. The accumulator has its own tests, which include the sum in the same cycle as the clear.
+The entity tests drive the `ps2_mouse_top` through a simulated PS/2 device that talks on the two connector lines, with the real `ps2_host` in the path. They cover the initialization sequence, a wrong answer and silence, packets with sign and overflow, accumulation, resynchronization, a parity error and silence in the middle of a packet, the clear on read, the interrupt, reinitialization and the addresses outside the map. The saturation of the accumulators and the protocol decoder have their own tests on the byte interface. The Y cable testbench puts the keyboard on channel 0 and the mouse on channel 1 at the same time and checks that both streams, including a command to one of them during the stream of the other, are neither lost nor disturbed.
 
 ---
 

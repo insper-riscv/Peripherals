@@ -1,4 +1,4 @@
-"""PS2_MOUSE_OPERATION_DECODER: the register map of the mouse."""
+"""PS2_MOUSE_OPERATION_DECODER: o mapa de registradores do mouse."""
 
 import cocotb
 from cocotb.triggers import Timer
@@ -21,18 +21,18 @@ RESERVED_SEL = 0b111
 async def drive(
     dut: MouseOperationDecoderDut, address: int, write: int, read: int
 ) -> None:
-    """Drive the bus inputs of the decoder and let them settle.
+    """Conduza as entradas de barramento do decodificador e espere.
 
     Parameters
     ----------
     dut : MouseOperationDecoderDut
-        The design under test.
+        Projeto sob teste.
     address : int
-        Register address.
+        Endereço do registrador.
     write : int
-        Value of the write strobe.
+        Valor do pulso de escrita.
     read : int
-        Value of the read strobe.
+        Valor do pulso de leitura.
     """
     dut.i_address.value = address
     dut.i_write.value = write
@@ -42,7 +42,7 @@ async def drive(
 
 @cocotb.test()
 async def test_read_selector(dut: MouseOperationDecoderDut) -> None:
-    """Every address selects its register; the rest select zero."""
+    """Cada endereço seleciona o seu registrador; o resto, zero."""
     for address in range(ADDRESSES):
         await drive(dut, address, 0, 0)
         want = RD_SEL.get(address, RESERVED_SEL)
@@ -51,7 +51,7 @@ async def test_read_selector(dut: MouseOperationDecoderDut) -> None:
 
 @cocotb.test()
 async def test_read_pulses(dut: MouseOperationDecoderDut) -> None:
-    """A read pulses the clear of its register and of no other."""
+    """Uma leitura pulsa a limpeza do seu registrador e só dele."""
     for address in range(ADDRESSES):
         await drive(dut, address, 0, 1)
         check(int(dut.o_status_read.value) == (address == STATUS))
@@ -62,7 +62,7 @@ async def test_read_pulses(dut: MouseOperationDecoderDut) -> None:
 
 @cocotb.test()
 async def test_write_pulse(dut: MouseOperationDecoderDut) -> None:
-    """Only a write to CONTROL pulses the control write."""
+    """Só uma escrita em CONTROL pulsa a escrita de controle."""
     for address in range(ADDRESSES):
         await drive(dut, address, 1, 0)
         check(int(dut.o_control_write.value) == (address == CONTROL))
@@ -73,7 +73,7 @@ async def test_write_pulse(dut: MouseOperationDecoderDut) -> None:
 
 @cocotb.test()
 async def test_idle(dut: MouseOperationDecoderDut) -> None:
-    """With no strobe no pulse comes out."""
+    """Sem pulso de entrada, nenhum pulso sai."""
     for address in range(ADDRESSES):
         await drive(dut, address, 0, 0)
         check(int(dut.o_status_read.value) == 0)

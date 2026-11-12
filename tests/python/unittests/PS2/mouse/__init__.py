@@ -1,1 +1,1 @@
-"""Package PS2.mouse of the peripheral tests."""
+"""Pacote PS2.mouse dos testes dos periféricos."""

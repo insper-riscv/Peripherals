@@ -6,7 +6,7 @@
 
 Periférico de barramento que conduz um mouse PS/2 de três botões e entrega ao programa o deslocamento acumulado em X e Y, o estado dos botões e uma interrupção opcional. A entidade `ps2_mouse` fala bytes com a camada física `ps2_host` (um canal PS/2) e não guarda estado fora da instância, de modo que várias instâncias, cada uma com seu `ps2_host`, convivem no mesmo projeto, por exemplo o teclado no canal 0 e o mouse no canal 1.
 
-A entidade é composta por quatro blocos de função única.
+A entidade é composta por cinco blocos de função única.
 
 | Bloco | Função |
 | :--- | :--- |
@@ -14,6 +14,7 @@ A entidade é composta por quatro blocos de função única.
 | `ps2_axis_accumulator` | Soma saturada do deslocamento de um eixo, zerada na leitura (uma instância por eixo) |
 | `ps2_mouse_operation_decoder` | Tradução do endereço de palavra em seletor de leitura e pulsos de limpeza |
 | `ps2_mouse` | Topo estrutural com os bits de status, a habilitação da interrupção e o multiplexador de leitura |
+| `ps2_mouse_top` | Topo estrutural do canal, que liga o `ps2_host` ao `ps2_mouse` e expõe o barramento e as duas linhas do conector |
 
 ## 2. Registradores
 
@@ -85,7 +86,7 @@ Cada canal tem o seu `ps2_host` e o seu periférico. As instâncias não compart
 
 ### 6.1. Conexão do canal
 
-No topo da placa, um `ps2_host` liga as linhas do conector ao `ps2_mouse` pela interface de bytes.
+O `ps2_mouse_top` instancia um `ps2_host` e um `ps2_mouse` e os liga pela interface de bytes, na tabela abaixo.
 
 | `ps2_host` | `ps2_mouse` | Observação |
 | :--- | :--- | :--- |
@@ -111,12 +112,15 @@ O `o_tx_valid` vale 1 por um único ciclo, e só no ciclo em que `i_tx_ready` va
 | Generic | Padrão | Significado |
 | :--- | :--- | :--- |
 | `data_width` | 32 | Largura do barramento de dados |
+| `filter_cycles` | 8 | Ciclos que um nível das linhas precisa durar para passar no filtro de glitch |
+| `inhibit_cycles` | 6000 | Ciclos com o clock em baixo antes de um comando |
+| `timeout_cycles` | 1000000 | Ciclos sem borda de clock que abortam um quadro |
 | `init_timeout_cycles` | 100000000 | Silêncio aceito durante a inicialização, em ciclos de clock |
 | `packet_timeout_cycles` | 5000000 | Silêncio aceito no meio de um pacote, em ciclos de clock |
 
 ## 7. Verificação
 
-Os testes de entidade conduzem a interface de bytes com um modelo do `ps2_host` escrito no teste. Cobrem a sequência de inicialização, as respostas erradas e o silêncio, o envio só com o transmissor pronto, os pacotes com sinal e estouro, a acumulação e a saturação, a ressincronização, o erro de quadro e o silêncio no meio do pacote, a limpeza na leitura, a interrupção, a reinicialização e os endereços fora do mapa. O acumulador tem testes próprios, que incluem a soma no mesmo ciclo da limpeza.
+Os testes de entidade conduzem o `ps2_mouse_top` por um dispositivo PS/2 simulado que fala nas duas linhas do conector, com o `ps2_host` real no caminho. Cobrem a sequência de inicialização, a resposta errada e o silêncio, os pacotes com sinal e estouro, a acumulação, a ressincronização, o erro de paridade e o silêncio no meio do pacote, a limpeza na leitura, a interrupção, a reinicialização e os endereços fora do mapa. A saturação dos acumuladores e o decodificador de protocolo têm testes próprios sobre a interface de bytes. O testbench do cabo Y põe o teclado no canal 0 e o mouse no canal 1 ao mesmo tempo e confere que os dois fluxos, inclusive um comando a um deles durante o fluxo do outro, não se perdem nem se perturbam.
 
 ---
 

@@ -1,8 +1,8 @@
-"""PS/2 mouse: initialization, packets, registers and interrupt."""
+"""Mouse PS/2: inicialização, pacotes, registradores e interrupção."""
 
 import cocotb
 
-from tests.python.unittests.PS2.mouse.host_model import (
+from tests.python.unittests.PS2.mouse.byte_driver import (
     expect_tx,
     initialize,
     reset_idle,
@@ -36,28 +36,28 @@ SETTLE = 4
 
 
 def signed16(value: int) -> int:
-    """Interpret a 32-bit register read as a signed number.
+    """Interprete uma leitura de 32 bits como número com sinal.
 
     Parameters
     ----------
     value : int
-        The word read from the bus.
+        Palavra lida do barramento.
 
     Returns
     -------
     int
-        The signed value.
+        Valor com sinal.
     """
     return value - (1 << 32) if value & (1 << 31) else value
 
 
 async def start(dut: MouseDut) -> None:
-    """Reset the design and bring the mouse to streaming.
+    """Reinicie o projeto e leve o mouse ao modo streaming.
 
     Parameters
     ----------
     dut : MouseDut
-        The design under test.
+        Projeto sob teste.
     """
     dut.i_rx_data.value = 0
     await reset_idle(dut)
@@ -66,18 +66,18 @@ async def start(dut: MouseDut) -> None:
 
 
 async def packet(dut: MouseDut, dx: int, dy: int, **kwargs: int) -> None:
-    """Send a packet and wait until the registers show it.
+    """Envie um pacote e espere os registradores o mostrarem.
 
     Parameters
     ----------
     dut : MouseDut
-        The design under test.
+        Projeto sob teste.
     dx : int
-        Signed X displacement.
+        Deslocamento X com sinal.
     dy : int
-        Signed Y displacement.
+        Deslocamento Y com sinal.
     **kwargs : int
-        Buttons and overflow bits of the packet.
+        Botões e bits de estouro do pacote.
     """
     await send_packet(dut, dx, dy, **kwargs)
     await bus.cycles(dut, SETTLE)
@@ -85,7 +85,7 @@ async def packet(dut: MouseDut, dx: int, dy: int, **kwargs: int) -> None:
 
 @cocotb.test()
 async def test_init_sequence(dut: MouseDut) -> None:
-    """The mouse resets, handshakes and starts streaming."""
+    """O mouse reinicia, troca as respostas e entra em streaming."""
     await reset_idle(dut)
     check(await bus.read(dut, STATUS) & STREAMING == 0)
     await expect_tx(dut, CMD_RESET)
@@ -100,7 +100,7 @@ async def test_init_sequence(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_no_send_without_ready(dut: MouseDut) -> None:
-    """No byte is requested while the host is not ready."""
+    """Nenhum byte é pedido enquanto o hospedeiro não está pronto."""
     await reset_idle(dut)
     for _ in range(10):
         check(int(dut.o_tx_valid.value) == 0)
@@ -110,7 +110,7 @@ async def test_no_send_without_ready(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_bad_response_restarts(dut: MouseDut) -> None:
-    """A wrong answer to the reset sends it again, with an error."""
+    """Uma resposta errada ao reset o envia de novo, com erro."""
     await reset_idle(dut)
     await expect_tx(dut, CMD_RESET)
     await send_byte(dut, 0xFE)
@@ -121,12 +121,12 @@ async def test_bad_response_restarts(dut: MouseDut) -> None:
 
 
 async def initialize_after_reset(dut: MouseDut) -> None:
-    """Finish the handshake once the reset was already sent.
+    """Termine a troca de respostas depois de o reset já enviado.
 
     Parameters
     ----------
     dut : MouseDut
-        The design under test.
+        Projeto sob teste.
     """
     for value in (0xFA, 0xAA, 0x00):
         await send_byte(dut, value)
@@ -138,7 +138,7 @@ async def initialize_after_reset(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_init_timeout(dut: MouseDut) -> None:
-    """Silence during the initialization sends the reset again."""
+    """O silêncio durante a inicialização envia o reset de novo."""
     await reset_idle(dut)
     await expect_tx(dut, CMD_RESET)
     await bus.cycles(dut, INIT_TIMEOUT + 10)
@@ -148,7 +148,7 @@ async def test_init_timeout(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_packet_registers(dut: MouseDut) -> None:
-    """A packet shows up in DX, DY, BUTTONS and STATUS."""
+    """Um pacote aparece em DX, DY, BUTTONS e STATUS."""
     await start(dut)
     await packet(dut, 5, -3, buttons=0b101)
     status = await bus.read(dut, STATUS)
@@ -161,7 +161,7 @@ async def test_packet_registers(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_read_clears_accumulators(dut: MouseDut) -> None:
-    """Reading DX and DY zeroes them, the buttons keep their level."""
+    """Ler DX e DY os zera, e os botões mantêm o nível."""
     await start(dut)
     await packet(dut, 7, 9, buttons=1)
     check_equal(await bus.read(dut, DX), 7)
@@ -173,7 +173,7 @@ async def test_read_clears_accumulators(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_accumulation_and_sign(dut: MouseDut) -> None:
-    """Packets add up, with the ninth bit as the sign."""
+    """Os pacotes se somam, com o nono bit como sinal."""
     await start(dut)
     for dx, dy in ((100, -200), (-256, 255), (255, -256), (-1, 1)):
         await packet(dut, dx, dy)
@@ -183,7 +183,7 @@ async def test_accumulation_and_sign(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_saturation(dut: MouseDut) -> None:
-    """The accumulators stop at the 16-bit limits and flag overflow."""
+    """Os acumuladores param nos limites de 16 bits e marcam estouro."""
     await start(dut)
     for _ in range(ACC_MAX // 255 + 2):
         await packet(dut, 255, -256)
@@ -197,7 +197,7 @@ async def test_saturation(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_axis_overflow_bits(dut: MouseDut) -> None:
-    """The overflow bits of a packet clip the axis and flag overflow."""
+    """Os bits de estouro do pacote cortam o eixo e marcam estouro."""
     await start(dut)
     await packet(dut, 10, 20, overflow=0b01)
     check(await bus.read(dut, STATUS) & OVERFLOW != 0)
@@ -210,7 +210,7 @@ async def test_axis_overflow_bits(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_resynchronization(dut: MouseDut) -> None:
-    """A first byte with bit 3 clear is dropped and flags an error."""
+    """Um primeiro byte com o bit 3 zerado é descartado e marca erro."""
     await start(dut)
     await send_byte(dut, 0x00)
     await send_byte(dut, 0x41)
@@ -226,7 +226,7 @@ async def test_resynchronization(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_frame_error_discards_packet(dut: MouseDut) -> None:
-    """A framing error in the middle of a packet drops that packet."""
+    """Um erro de quadro no meio de um pacote descarta esse pacote."""
     await start(dut)
     await send_byte(dut, 0x09)
     await send_rx_error(dut)
@@ -239,7 +239,7 @@ async def test_frame_error_discards_packet(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_packet_timeout(dut: MouseDut) -> None:
-    """A packet stalled between bytes is dropped after the timeout."""
+    """Um pacote parado entre bytes é descartado após o limite."""
     await start(dut)
     await send_byte(dut, 0x09)
     await send_byte(dut, 0x11)
@@ -252,7 +252,7 @@ async def test_packet_timeout(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_status_flags_clear_on_read(dut: MouseDut) -> None:
-    """New, overflow and error clear on reading STATUS."""
+    """NEW, OVERFLOW e ERROR são limpos pela leitura de STATUS."""
     await start(dut)
     await packet(dut, 1, 1, overflow=1)
     await send_byte(dut, 0x00)
@@ -263,7 +263,7 @@ async def test_status_flags_clear_on_read(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_interrupt(dut: MouseDut) -> None:
-    """The interrupt follows the new-packet bit when it is enabled."""
+    """A interrupção segue o bit de pacote novo quando habilitada."""
     await start(dut)
     await packet(dut, 1, 1)
     check(int(dut.o_irq.value) == 0)
@@ -280,7 +280,7 @@ async def test_interrupt(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_reinitialize(dut: MouseDut) -> None:
-    """Writing the reinitialize bit restarts the handshake."""
+    """Escrever o bit de reinício refaz a inicialização."""
     await start(dut)
     await bus.write(dut, CONTROL, REINIT)
     check(await bus.read(dut, CONTROL) == 0)
@@ -291,7 +291,7 @@ async def test_reinitialize(dut: MouseDut) -> None:
 
 @cocotb.test()
 async def test_reserved_addresses(dut: MouseDut) -> None:
-    """Addresses outside the map read zero and ignore writes."""
+    """Endereços fora do mapa leem zero e ignoram a escrita."""
     await start(dut)
     for address in (5, 6, 7):
         await bus.write(dut, address, 0xFFFF_FFFF)

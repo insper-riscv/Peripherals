@@ -1,4 +1,4 @@
-"""Word addresses and bit fields of the PS/2 mouse for its tests."""
+"""Endereços de palavra e campos de bits do mouse PS/2 nos testes."""
 
 STATUS = 0
 DX = 1

@@ -646,16 +646,16 @@
             "src/PS2/mouse/ps2_mouse.vhd"
         ],
         "test_module": "tests.python.unittests.PS2.mouse.mouse",
-        "parameters": {
-            "INIT_TIMEOUT_CYCLES": "200",
-            "PACKET_TIMEOUT_CYCLES": "50"
-        },
         "build_args": [
             "--std=08"
         ],
         "test_args": [
             "--std=08"
-        ]
+        ],
+        "parameters": {
+            "INIT_TIMEOUT_CYCLES": "200",
+            "PACKET_TIMEOUT_CYCLES": "50"
+        }
     },
     "MouseAxisAccumulator": {
         "toplevel": "ps2_axis_accumulator",
@@ -956,6 +956,66 @@
             "pixel_bits": 8
         },
         "test_module": "tests.python.unittests.video.video_scanout",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PS2Cable": {
+        "toplevel": "ps2_cable_tb",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_2x1.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/PS2/host/ps2_filter.vhd",
+            "src/PS2/host/ps2_host.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/PS2/keyboard/ps2_keyboard.vhd",
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_axis_accumulator.vhd",
+            "src/PS2/mouse/ps2_mouse_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse_operation_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse.vhd",
+            "src/PS2/mouse/ps2_mouse_top.vhd",
+            "tests/vhdl/ps2_cable_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.cable",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MouseTop": {
+        "toplevel": "ps2_mouse_top_tb",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_2x1.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/PS2/host/ps2_filter.vhd",
+            "src/PS2/host/ps2_host.vhd",
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_axis_accumulator.vhd",
+            "src/PS2/mouse/ps2_mouse_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse_operation_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse.vhd",
+            "src/PS2/mouse/ps2_mouse_top.vhd",
+            "tests/vhdl/ps2_mouse_top_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.top",
         "build_args": [
             "--std=08"
         ],

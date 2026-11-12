@@ -1,9 +1,9 @@
-"""PS2_MOUSE_DECODER: initialization and packets, byte by byte."""
+"""PS2_MOUSE_DECODER: inicialização e pacotes, byte a byte."""
 
 import cocotb
 from cocotb.triggers import RisingEdge, Timer
 
-from tests.python.unittests.PS2.mouse.host_model import (
+from tests.python.unittests.PS2.mouse.byte_driver import (
     expect_tx,
     initialize,
     reset_idle,
@@ -25,29 +25,29 @@ MIN_DELTA = -256
 
 
 async def start(dut: MouseDecoderDut) -> None:
-    """Reset the decoder with idle inputs.
+    """Reinicie o decodificador com as entradas paradas.
 
     Parameters
     ----------
     dut : MouseDecoderDut
-        The design under test.
+        Projeto sob teste.
     """
     dut.i_restart.value = 0
     await reset_idle(dut)
 
 
 async def packet_pulse(dut: MouseDecoderDut) -> int:
-    """Count the cycles the packet pulse stays high from now.
+    """Conte os ciclos em que o pulso de pacote fica alto.
 
     Parameters
     ----------
     dut : MouseDecoderDut
-        The design under test.
+        Projeto sob teste.
 
     Returns
     -------
     int
-        How many consecutive cycles the pulse stayed high.
+        Quantos ciclos seguidos o pulso ficou alto.
     """
     width = int(dut.o_packet_valid.value)
     for _ in range(3):
@@ -58,24 +58,24 @@ async def packet_pulse(dut: MouseDecoderDut) -> int:
 
 
 def signed9(value: int) -> int:
-    """Interpret a 9-bit displacement as a signed number.
+    """Interprete um deslocamento de 9 bits como número com sinal.
 
     Parameters
     ----------
     value : int
-        The raw 9-bit value.
+        Valor bruto de 9 bits.
 
     Returns
     -------
     int
-        The signed value.
+        Valor com sinal.
     """
     return value - (1 << 9) if value & (1 << 8) else value
 
 
 @cocotb.test()
 async def test_streaming_flag(dut: MouseDecoderDut) -> None:
-    """The streaming output rises only after the whole handshake."""
+    """O streaming sobe só depois de toda a troca de respostas."""
     await start(dut)
     check(int(dut.o_streaming.value) == 0)
     await initialize(dut)
@@ -90,7 +90,7 @@ async def test_streaming_flag(dut: MouseDecoderDut) -> None:
 
 @cocotb.test()
 async def test_packet_fields(dut: MouseDecoderDut) -> None:
-    """A packet gives one pulse and stable buttons and displacements."""
+    """Um pacote dá um pulso e deixa botões e deslocamentos estáveis."""
     await start(dut)
     await initialize(dut)
     await send_packet(dut, DX_VALUE, DY_VALUE, buttons=BUTTONS_LEFT_MIDDLE)
@@ -103,7 +103,7 @@ async def test_packet_fields(dut: MouseDecoderDut) -> None:
 
 @cocotb.test()
 async def test_overflow_clips(dut: MouseDecoderDut) -> None:
-    """An overflow bit clips that axis at the limit of its sign."""
+    """Um bit de estouro corta o eixo no limite do seu sinal."""
     await start(dut)
     await initialize(dut)
     await send_packet(dut, 1, -1, overflow=0b11)
@@ -115,7 +115,7 @@ async def test_overflow_clips(dut: MouseDecoderDut) -> None:
 
 @cocotb.test()
 async def test_error_pulses(dut: MouseDecoderDut) -> None:
-    """A bad first byte and a framing error give one pulse each."""
+    """Um primeiro byte ruim e um erro de quadro dão um pulso cada."""
     await start(dut)
     await initialize(dut)
     pulses = 0
@@ -130,7 +130,7 @@ async def test_error_pulses(dut: MouseDecoderDut) -> None:
 
 @cocotb.test()
 async def test_init_silence_restarts(dut: MouseDecoderDut) -> None:
-    """Silence after the reset command sends the reset command again."""
+    """O silêncio após o reset envia o comando de reset de novo."""
     await start(dut)
     await expect_tx(dut, CMD_RESET)
     await bus.cycles(dut, INIT_TIMEOUT + 10)

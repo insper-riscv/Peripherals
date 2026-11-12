@@ -120,6 +120,23 @@ def check_sample(
     check(int(dut.o_vblank.value) == int(blank), f"vblank em {where}")
 
 
+async def check_line(dut: TimingDut, line: int) -> None:
+    """Confira as amostras de todas as colunas de uma linha.
+
+    Parameters
+    ----------
+    dut : TimingDut
+        Projeto sob teste.
+    line : int
+        Linha da varredura.
+    """
+    for column in range(H_TOTAL):
+        previous = line if column else (line - 1) % V_TOTAL
+        # As saídas registradas mostram a linha da amostra anterior.
+        check_sample(dut, line, column, previous if line or column else 0)
+        await FallingEdge(dut.i_clk)
+
+
 @cocotb.test()
 async def test_selected_lines(dut: TimingDut) -> None:
     """Sincronismos, imagem e coordenadas em linhas escolhidas."""
@@ -130,12 +147,8 @@ async def test_selected_lines(dut: TimingDut) -> None:
         if target > cycle:
             await ClockCycles(dut.i_clk, target - cycle, rising=False)
             cycle = target
-        for column in range(H_TOTAL):
-            previous = line if column else (line - 1) % V_TOTAL
-            # As saídas registradas mostram a linha da amostra anterior.
-            check_sample(dut, line, column, previous if line or column else 0)
-            await FallingEdge(dut.i_clk)
-            cycle += 1
+        await check_line(dut, line)
+        cycle += H_TOTAL
 
 
 @cocotb.test()

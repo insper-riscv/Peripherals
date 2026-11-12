@@ -264,7 +264,7 @@ class Ps2KeyboardTbDut(IrqDut, Protocol):
 
 
 class ByteHostDut(ResettableDut, Protocol):
-    """Byte interface of the ps2_host, seen from the mouse side."""
+    """Interface de bytes do ps2_host, vista do lado do mouse."""
 
     i_rx_data: LogicArrayObject
     i_rx_valid: LogicObject
@@ -274,12 +274,8 @@ class ByteHostDut(ResettableDut, Protocol):
     i_tx_ready: LogicObject
 
 
-class MouseDut(IrqDut, ByteHostDut, Protocol):
-    """Signals of the PS/2 mouse, on the bus and the byte interface."""
-
-
 class AxisAccumulatorDut(ResettableDut, Protocol):
-    """Signals of the saturating accumulator of one mouse axis."""
+    """Sinais do acumulador saturado de um eixo do mouse."""
 
     i_clear: LogicObject
     i_add_valid: LogicObject
@@ -288,8 +284,12 @@ class AxisAccumulatorDut(ResettableDut, Protocol):
     o_saturated: LogicObject
 
 
+class MouseDut(IrqDut, ByteHostDut, Protocol):
+    """Sinais do mouse PS/2, no barramento e na interface de bytes."""
+
+
 class MouseDecoderDut(ByteHostDut, Protocol):
-    """Signals of the PS/2 mouse protocol decoder."""
+    """Sinais do decodificador de protocolo do mouse PS/2."""
 
     i_restart: LogicObject
     o_streaming: LogicObject
@@ -302,7 +302,7 @@ class MouseDecoderDut(ByteHostDut, Protocol):
 
 
 class MouseOperationDecoderDut(Protocol):
-    """Signals of the operation decoder of the PS/2 mouse."""
+    """Sinais do decodificador de operações do mouse PS/2."""
 
     i_address: LogicArrayObject
     i_write: LogicObject
@@ -312,3 +312,7 @@ class MouseOperationDecoderDut(Protocol):
     o_dx_read: LogicObject
     o_dy_read: LogicObject
     o_control_write: LogicObject
+
+
+class Ps2CableTbDut(ResettableDut, Protocol):
+    """Sinais comuns do testbench do cabo Y, com teclado e mouse."""

@@ -275,7 +275,11 @@ async def wait_until(dut: ClockedDut, condition: Callable[[], bool]) -> None:
 
 
 async def device_receive(
-    dut: ClockedDut, lines: Ps2Lines, *, ack: bool = True
+    dut: ClockedDut,
+    lines: Ps2Lines,
+    *,
+    ack: bool = True,
+    inhibited: bool = True,
 ) -> tuple[int, bool]:
     """Receba um byte do hospedeiro e responda com o reconhecimento.
 
@@ -287,13 +291,18 @@ async def device_receive(
         Linhas do dispositivo.
     ack : bool
         Responde com o bit de reconhecimento.
+    inhibited : bool
+        Espera ver o clock inibido antes do bit de início. Com falso, o
+        comando pode já ter passado da inibição, como logo depois de um
+        quadro recebido pelo hospedeiro.
 
     Returns
     -------
     tuple[int, bool]
         Byte recebido e se a paridade ímpar e a parada estavam certas.
     """
-    await wait_until(dut, lambda: int(lines.clk.value) == 0)
+    if inhibited:
+        await wait_until(dut, lambda: int(lines.clk.value) == 0)
     await wait_until(
         dut,
         lambda: int(lines.clk.value) == 1 and int(lines.dat.value) == 0,

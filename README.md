@@ -36,12 +36,12 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `src/PLIC/soc/` | PLIC: gateways de nível, árbitro por prioridade com desempate por id, registradores no leiaute do `riscv-plic-1.0.0` e a saída `MEIP` (`plic`) |
 | `src/PS2/host/` | Camada física PS/2 de um canal (`ps2_host`): sincronizador, filtro de glitch, recepção de quadros de 11 bits com paridade ímpar e envio de comandos com o clock inibido; uma instância por canal (teclado no canal 0, mouse no canal 1) |
 | `src/PS2/keyboard/` | Teclado PS/2 mapeado em memória (`ps2_keyboard`): fila de bytes de scancode, status com overflow e erro, envio de comandos e interrupção de nível |
-| `src/PS2/mouse/` | Mouse PS/2: decodificador de protocolo, acumuladores saturados por eixo e registradores (`ps2_mouse`) |
+| `src/PS2/mouse/` | Mouse PS/2: decodificador de protocolo, acumuladores saturados por eixo e registradores (`ps2_mouse`), e o topo `ps2_mouse_top` que o liga ao `ps2_host` |
 | `src/video/soc/` | Vídeo VGA: gerador de temporização 640x480 a 60 Hz, memória de duas portas do framebuffer, caminho de pixel com paleta opcional e registradores com estado de retrace e contador de quadros (`video`) |
 | `src/flash-controller/soc/` | Controlador de FLASH: registradores de comando, endereço, estado e buffer de página que levam os comandos de apagar, gravar e proteger ao chip de FLASH do repositório Memory |
 | `src/display/` | Display de sete segmentos: o registrador do valor, o conversor de hexadecimal para segmentos (`soc/`) e a casca do Virtual JTAG da placa (`cyclone-v/`) |
 | `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,UART,display,flash_controller,video}` |
-| `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO, `ps2_host_tb`, com dois canais `ps2_host`, e `ps2_keyboard_tb`, com o teclado e as linhas acessíveis ao cocotb |
+| `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO, `ps2_host_tb`, com dois canais `ps2_host`, `ps2_keyboard_tb`, com o teclado e as linhas acessíveis ao cocotb, e `ps2_cable_tb`, com o teclado e o mouse ativos ao mesmo tempo |
 | `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo` e `uart`, o `run.sh` e o agregador dos engines |
 | `docs/pt-br/`, `docs/en/` | Documentos do CLINT (`CLINT/`), do PLIC (`PLIC/`), do PS/2 (`PS2/`), da UART (`UART/`), do controlador de FLASH (`flash-controller/`), do vídeo (`video/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
 
