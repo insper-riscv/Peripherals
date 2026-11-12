@@ -4,6 +4,13 @@
 repository: Peripherals
 references:
   - {name: GPIO C driver, paths: [src/GPIO/soc/driver/c/driver.yaml, src/GPIO/soc/driver/c/rv32_gpio.h, src/GPIO/soc/driver/c/rv32_gpio.c, tests/c/gpio_driver.c]}
+  - {name: CLINT C driver, paths: [src/CLINT/soc/driver/c/driver.yaml, src/CLINT/soc/driver/c/rv32_clint.c, src/CLINT/soc/driver/c/rv32_clint.h]}
+  - {name: PLIC C driver, paths: [src/PLIC/soc/driver/c/driver.yaml, src/PLIC/soc/driver/c/rv32_plic.c, src/PLIC/soc/driver/c/rv32_plic.h]}
+  - {name: TIMER C driver, paths: [src/TIMER/soc/driver/c/driver.yaml, src/TIMER/soc/driver/c/rv32_timer.c, src/TIMER/soc/driver/c/rv32_timer.h]}
+  - {name: UART C driver, paths: [src/UART/console/driver/c/driver.yaml, src/UART/console/driver/c/rv32_uart.c, src/UART/console/driver/c/rv32_uart.h]}
+  - {name: display C driver, paths: [src/display/soc/driver/c/driver.yaml, src/display/soc/driver/c/rv32_display.c, src/display/soc/driver/c/rv32_display.h]}
+  - {name: flash-controller C driver, paths: [src/flash-controller/soc/driver/c/driver.yaml, src/flash-controller/soc/driver/c/rv32_flash.c, src/flash-controller/soc/driver/c/rv32_flash.h]}
+  - {name: C driver tests and style, paths: [tests/c/peripheral_drivers.c, .clang-format]}
   - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
   - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/gpio_zero_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd]}
   - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/uart_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}

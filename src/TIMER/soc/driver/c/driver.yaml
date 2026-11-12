@@ -1,0 +1,6 @@
+schema: 1
+name: TIMER
+instances: [TIMER]
+register_bytes: 32
+headers: [rv32_timer.h]
+sources: [rv32_timer.c]

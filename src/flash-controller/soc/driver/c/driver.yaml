@@ -1,0 +1,6 @@
+schema: 1
+name: FLASH
+instances: [FLASH_CTRL, FLASH]
+register_bytes: 28
+headers: [rv32_flash.h]
+sources: [rv32_flash.c]

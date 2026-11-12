@@ -49,11 +49,46 @@ Entity tests of the decoder, the cell and the block cover the map, the edges, th
 
 ## 6. C23 driver
 
-The driver in `src/GPIO/soc/driver/c/` accepts a base address per instance. The SDK generator copies its sources into `vendor/GPIO` and generates addresses from the platform map. The descriptor maps GPIO, SWITCHES and KEYS to one implementation.
+Construct instances with `rv32_gpio_new(base, pin_count)`. Constructors allocate
+no memory and do not configure hardware. Invalid arguments produce an invalid
+handle, checked with `rv32_gpio_valid`. Do not initialize handle structs directly.
+Pin count comes from the RTL instance, not the MMIO window size.
 
-Direction 1 means output. Set, clear and toggle use a single mask write. Reading IRQ status returns and clears all pending events for that instance, without a W1C write. A persistent level may raise another event. Direction and IRQ configuration replace complete masks and require callers to serialize concurrent changes.
+```c
+rv32_gpio_t gpio = rv32_gpio_new(RV32_GPIO_SWITCHES_BASE, 10);
 
-Run `make driver-test` to check C accesses against RAM-backed MMIO and `make test TEST=GPIO` to check RTL effects.
+rv32_gpio_pin_direction(gpio, 3, RV32_GPIO_OUTPUT_PIN);
+rv32_gpio_pin_write(gpio, 3, true);
+rv32_gpio_pin_toggle(gpio, 3);
+```
+
+Pins are zero-based `size_t` indices. The driver checks bounds and builds
+`1u << pin` internally: pin 3 selects mask `0x08`, not address `0x03`.
+Set/clear/toggle use atomic hardware registers. Direction/IRQ configuration
+preserves other bits but callers must serialize configuration. The previous
+whole-mask API remains available for grouped operations.
+
+Pin reads return the currently synchronized value without waiting. Tests that
+write and observe a pin use bounded condition polling, not arbitrary `settle()`
+delays in every operation. Reading IRQ status clears ALL instance events;
+`rv32_gpio_irq_contains(snapshot, pin)` interprets that snapshot without exposing
+masks to application code. Persistent level conditions can raise another event.
+
+The SDK vendors the reusable sources into `vendor/GPIO` and resolves instance
+base addresses from `platform.yaml`. Internal register offsets follow the RTL
+and remain in the C implementation. One driver serves GPIO, SWITCHES and KEYS.
+
+Constructor-based drivers now cover GPIO, TIMER, CLINT, PLIC, UART (serial/JTAG),
+DISPLAY and FLASH. CLINT performs coherent 64-bit reads and safe deadline writes;
+PLIC takes source numbers (zero reserved); DISPLAY takes digit indices. UART
+requires the actual backend and TX capacity. FLASH uses buffer word indices,
+named commands and W1C IRQ acknowledgement. Each header documents side effects.
+
+Run `make driver-test` for RAM-backed MMIO and `make test` for RTL behavior.
+RAM does not model read-to-clear, W1C, FIFO state or pin propagation.
+
+Use `.clang-format`: four-space indentation, multiline functions, one statement
+per line and blank lines between functions and logical blocks.
 
 ---
 

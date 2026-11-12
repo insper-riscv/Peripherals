@@ -49,11 +49,48 @@ Testes de entidade do decodificador, da célula e do bloco cobrem o mapa, as bor
 
 ## 6. Driver C23
 
-O driver em `src/GPIO/soc/driver/c/` recebe o endereço base por instância. O gerador do SDK copia os fontes para `vendor/GPIO` e gera endereços a partir do mapa da plataforma. O descritor associa GPIO, SWITCHES e KEYS à mesma implementação.
+Crie cada instância com `rv32_gpio_new(base, quantidade_de_pinos)`. O construtor
+não aloca memória nem escreve no hardware. Argumentos inválidos geram um handle
+inválido, verificável por `rv32_gpio_valid`. Não inicialize a struct diretamente.
+A quantidade de pinos vem da instância RTL, não do tamanho da janela MMIO.
 
-Direção 1 significa saída. Set, clear e toggle usam uma escrita de máscara. A leitura do status de IRQ retorna os eventos e limpa toda a instância, sem escrita W1C. Um nível persistente pode gerar outro evento. Alterações de direção e configuração de IRQ substituem máscaras completas e exigem exclusão entre chamadores concorrentes.
+```c
+rv32_gpio_t gpio = rv32_gpio_new(RV32_GPIO_SWITCHES_BASE, 10);
 
-Execute `make driver-test` para conferir os acessos C em MMIO em RAM e `make test TEST=GPIO` para conferir os efeitos do RTL.
+rv32_gpio_pin_direction(gpio, 3, RV32_GPIO_OUTPUT_PIN);
+rv32_gpio_pin_write(gpio, 3, true);
+rv32_gpio_pin_toggle(gpio, 3);
+```
+
+Os pinos usam índices `size_t` a partir de zero. O driver valida o índice e gera
+internamente `1u << pin`: pino 3 significa máscara `0x08`, não endereço `0x03`.
+Set/clear/toggle usam os registradores atômicos do hardware. Direção e configuração
+de IRQ preservam os outros bits, mas exigem serialização entre chamadores.
+A API anterior de máscaras completas continua disponível para operações em grupo.
+
+A leitura de pino retorna o valor sincronizado disponível naquele momento. Ela
+não espera propagação. Um teste que escreve e verifica o pino deve fazer polling
+com limite de tentativas; não use um `settle()` arbitrário em toda operação.
+A leitura de IRQ limpa TODOS os eventos da instância. Use
+`rv32_gpio_irq_contains(snapshot, pin)` para interpretar a captura sem máscaras
+na aplicação; uma condição de nível persistente pode gerar outro evento.
+
+O SDK copia os fontes para `vendor/GPIO` e gera os endereços-base com o resolvedor
+do `platform.yaml`. Os offsets dos registradores são definidos pelo RTL e ficam
+no arquivo C. Um driver atende GPIO, SWITCHES e KEYS.
+
+Todos os periféricos agora possuem drivers com construtores: GPIO, TIMER, CLINT,
+PLIC, UART (serial/JTAG), DISPLAY e FLASH. CLINT usa leitura coerente de 64 bits
+e escrita segura do comparador; PLIC recebe o número da fonte, com zero reservado;
+DISPLAY recebe o índice do dígito. UART exige backend e capacidade TX reais.
+FLASH usa índice de palavra no buffer, comandos nomeados e confirmação W1C de IRQ.
+Os headers de cada driver documentam limites e efeitos colaterais.
+
+Execute `make driver-test` para MMIO em RAM e `make test` para os efeitos do RTL.
+RAM não emula read-to-clear, W1C, FIFOs ou propagação dos pinos.
+
+Use `.clang-format`: quatro espaços de indentação, funções em múltiplas linhas,
+uma instrução por linha e linhas vazias entre funções e blocos lógicos.
 
 ---
 

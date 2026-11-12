@@ -35,8 +35,15 @@ clean:
 	rm -rf build
 	find . -type f \( -name '*.vcd' -o -name '*.ghw' \) -print -delete
 
-# O teste C usa MMIO em RAM; a suíte cocotb confere os efeitos do RTL.
+# RAM-backed MMIO tests; RTL tests separately validate device side effects.
+DRIVER_DIRS := $(sort $(dir $(wildcard src/*/*/driver/c/*.c)))
+DRIVER_SOURCES := $(foreach directory,$(DRIVER_DIRS),$(wildcard $(directory)*.c))
+DRIVER_INCLUDES := $(addprefix -I,$(DRIVER_DIRS))
+DRIVER_CFLAGS := -std=c23 -Wall -Wextra -Wpedantic -Werror -Wconversion -Wshadow
+
 driver-test:
 	@mkdir -p build/drivers
-	$(CC) -std=c23 -Wall -Wextra -Wpedantic -Werror -Isrc/GPIO/soc/driver/c src/GPIO/soc/driver/c/rv32_gpio.c tests/c/gpio_driver.c -o build/drivers/gpio_driver
+	$(CC) $(DRIVER_CFLAGS) $(DRIVER_INCLUDES) $(DRIVER_SOURCES) tests/c/gpio_driver.c -o build/drivers/gpio_driver
 	@build/drivers/gpio_driver
+	$(CC) $(DRIVER_CFLAGS) $(DRIVER_INCLUDES) $(DRIVER_SOURCES) tests/c/peripheral_drivers.c -o build/drivers/peripheral_drivers
+	@build/drivers/peripheral_drivers

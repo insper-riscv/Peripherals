@@ -1,0 +1,9 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+BreakBeforeBraces: Linux
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+ColumnLimit: 88
+AllowShortEnumsOnASingleLine: false
+SeparateDefinitionBlocks: Always

@@ -1,0 +1,6 @@
+schema: 1
+name: DISPLAY
+instances: [DISPLAY]
+register_bytes: 4
+headers: [rv32_display.h]
+sources: [rv32_display.c]

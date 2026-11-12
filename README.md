@@ -108,7 +108,7 @@ docker run --rm -v "$PWD:/workspace" -w /workspace ghcr.io/insper-riscv/ci-vhdl:
   bash -c "uv sync && make check && make test && make paths && make formal"
 ```
 
-O GPIO inclui um driver C23 e descritor para integração automática pelo SDK. Veja [o uso do driver](docs/pt-br/GPIO/gpio.md).
+GPIO, TIMER, CLINT, PLIC, UART (serial/JTAG), display e controlador de FLASH incluem drivers C23 e descritores para integração automática pelo SDK. Todos os handles são criados por funções `*_new()`, sem alocação dinâmica. As APIs recebem números de pino, dígito ou fonte; endereços e máscaras ficam na implementação. Veja [o uso e os padrões dos drivers](docs/pt-br/GPIO/gpio.md).
 
 ---
 
