@@ -47,6 +47,14 @@ O generic `active_low` (padrão falso) inverte os dois sentidos do pino dentro d
 
 Testes de entidade do decodificador, da célula e do bloco cobrem o mapa, as bordas, o modo de nível por pino e a leitura zero dos endereços fora do mapa. A prova formal da célula (`gpio_cell_props.sv`) inclui o modo de nível, a polaridade `active_low` e os mutantes de cada um. Os testes cobrem ainda o bloco com `active_low` e o bloco de largura zero.
 
+## 6. Driver C23
+
+O driver em `src/GPIO/soc/driver/c/` recebe o endereço base por instância. O gerador do SDK copia os fontes para `vendor/GPIO` e gera endereços a partir do mapa da plataforma. O descritor associa GPIO, SWITCHES e KEYS à mesma implementação.
+
+Direção 1 significa saída. Set, clear e toggle usam uma escrita de máscara. A leitura do status de IRQ retorna os eventos e limpa toda a instância, sem escrita W1C. Um nível persistente pode gerar outro evento. Alterações de direção e configuração de IRQ substituem máscaras completas e exigem exclusão entre chamadores concorrentes.
+
+Execute `make driver-test` para conferir os acessos C em MMIO em RAM e `make test TEST=GPIO` para conferir os efeitos do RTL.
+
 ---
 
 Copyright 2026 Insper. Licenciado sob a [Apache License, Version 2.0](../../../LICENSE).

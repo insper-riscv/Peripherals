@@ -1,0 +1,6 @@
+schema: 1
+name: GPIO
+instances: [GPIO, SWITCHES, KEYS]
+register_bytes: 44
+headers: [rv32_gpio.h]
+sources: [rv32_gpio.c]

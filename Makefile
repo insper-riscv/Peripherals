@@ -7,7 +7,7 @@ WDIR  := build/ghdl
 # shells of src/*/cyclone-v/ need Intel's megafunctions, which the toolchain image does not carry.
 VHDL      := $(shell find src tests/vhdl -name '*.vhd' -not -path 'src/common/*' -not -path '*/cyclone-v/*' | sort) $(sort $(wildcard src/common/src/*.vhd))
 
-.PHONY: check test paths formal clean
+.PHONY: check test driver-test paths formal clean
 
 # GHDL syntax check of every source, in dependency order (riscv-tools vhdl-sort).
 check:
@@ -16,7 +16,7 @@ check:
 	@echo "VHDL syntax check passed"
 
 # Per-entity cocotb tests; `make test TEST=GPIO` for one entry of tests/python/tests.json.
-test:
+test: driver-test
 	uv run python tests/python/runner.py $(TEST)
 
 # Every path the configuration lists exists.
@@ -29,8 +29,14 @@ paths:
 # the UART, with their mutants. The result of the run is build/formal/result-<engine>.tsv.
 FORMAL_ENGINE ?= bitwuzla
 formal:
-	FORMAL_ENGINE=$(FORMAL_ENGINE) bash formal/run.sh
+	FORMAL_ENGINE=$(FORMAL_ENGINE) uv run --group formal bash formal/run.sh
 
 clean:
 	rm -rf build
 	find . -type f \( -name '*.vcd' -o -name '*.ghw' \) -print -delete
+
+# O teste C usa MMIO em RAM; a suíte cocotb confere os efeitos do RTL.
+driver-test:
+	@mkdir -p build/drivers
+	$(CC) -std=c23 -Wall -Wextra -Wpedantic -Werror -Isrc/GPIO/soc/driver/c src/GPIO/soc/driver/c/rv32_gpio.c tests/c/gpio_driver.c -o build/drivers/gpio_driver
+	@build/drivers/gpio_driver

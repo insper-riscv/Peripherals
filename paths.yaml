@@ -3,6 +3,7 @@
 # (needs Core cloned next to this repository: ../Core).
 repository: Peripherals
 references:
+  - {name: GPIO C driver, paths: [src/GPIO/soc/driver/c/driver.yaml, src/GPIO/soc/driver/c/rv32_gpio.h, src/GPIO/soc/driver/c/rv32_gpio.c, tests/c/gpio_driver.c]}
   - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
   - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/gpio_zero_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd]}
   - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/uart_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}

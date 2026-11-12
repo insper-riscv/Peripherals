@@ -108,6 +108,8 @@ docker run --rm -v "$PWD:/workspace" -w /workspace ghcr.io/insper-riscv/ci-vhdl:
   bash -c "uv sync && make check && make test && make paths && make formal"
 ```
 
+O GPIO inclui um driver C23 e descritor para integração automática pelo SDK. Veja [o uso do driver](docs/pt-br/GPIO/gpio.md).
+
 ---
 
 Copyright 2026 Insper. Licenciado sob a [Apache License, Version 2.0](LICENSE).

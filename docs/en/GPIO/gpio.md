@@ -47,6 +47,14 @@ The `active_low` generic (default false) inverts both directions of the pin insi
 
 Entity tests of the decoder, the cell and the block cover the map, the edges, the per-pin level mode and the zero read of addresses outside the map. The formal proof of the cell (`gpio_cell_props.sv`) includes the level mode, the `active_low` polarity and the mutants of each. The tests also cover the block with `active_low` and the zero-width block.
 
+## 6. C23 driver
+
+The driver in `src/GPIO/soc/driver/c/` accepts a base address per instance. The SDK generator copies its sources into `vendor/GPIO` and generates addresses from the platform map. The descriptor maps GPIO, SWITCHES and KEYS to one implementation.
+
+Direction 1 means output. Set, clear and toggle use a single mask write. Reading IRQ status returns and clears all pending events for that instance, without a W1C write. A persistent level may raise another event. Direction and IRQ configuration replace complete masks and require callers to serialize concurrent changes.
+
+Run `make driver-test` to check C accesses against RAM-backed MMIO and `make test TEST=GPIO` to check RTL effects.
+
 ---
 
 Copyright 2026 Insper. Licensed under the [Apache License, Version 2.0](../../../LICENSE).

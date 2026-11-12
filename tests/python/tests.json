@@ -33,7 +33,16 @@
         ],
         "test_args": [
             "--std=08"
-        ]
+        ],
+        "c_driver": {
+            "headers": [
+                "src/GPIO/soc/driver/c/rv32_gpio.h"
+            ],
+            "sources": [
+                "src/GPIO/soc/driver/c/rv32_gpio.c"
+            ],
+            "test": "tests/c/gpio_driver.c"
+        }
     },
     "GPIOActiveLow": {
         "toplevel": "gpio_tb",
