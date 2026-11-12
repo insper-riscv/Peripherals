@@ -1,0 +1,39 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "rv32_drivers.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    rv32_timer_t timer = rv32_timer_new(@BASE@);
+
+    if (!rv32_timer_valid(timer)) {
+        return 1;
+    }
+
+    rv32_timer_stop(timer);
+    rv32_timer_one_shot(timer, true);
+    rv32_timer_set_top(timer, 100);
+
+    if (!rv32_timer_set_divider(timer, 1)) {
+        return 2;
+    }
+
+    rv32_timer_load(timer, 0);
+    (void)rv32_timer_overflow_read_clear(timer);
+    rv32_timer_start(timer);
+
+    for (size_t attempt = 0; attempt < 4096; ++attempt) {
+        if (rv32_timer_overflow_read_clear(timer)) {
+            rv32_timer_stop(timer);
+
+            puts("TIMER example: PASS");
+
+            return 0;
+        }
+    }
+
+    rv32_timer_stop(timer);
+
+    return 3;
+}

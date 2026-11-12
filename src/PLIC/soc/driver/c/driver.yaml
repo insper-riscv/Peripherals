@@ -5,3 +5,4 @@ requires_cpu_flags: [HAS_INTERRUPTS]
 register_bytes: 2097160
 headers: [rv32_plic.h]
 sources: [rv32_plic.c]
+example: examples/main.c.in

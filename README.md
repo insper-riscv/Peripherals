@@ -113,3 +113,5 @@ GPIO, TIMER, CLINT, PLIC, UART (serial/JTAG), display e controlador de FLASH inc
 ---
 
 Copyright 2026 Insper. Licenciado sob a [Apache License, Version 2.0](LICENSE).
+
+Cada descritor C também fornece um template de exemplo. O SDK 0.8 gera um projeto C independente em `vendor/<DRIVER>/example`, herdando plataforma e profile. Os exemplos usam construtores, índices numéricos e esperas limitadas. O exemplo de FLASH apenas lê status. Copie o projeto antes de editar arquivos gerenciados.

@@ -113,3 +113,5 @@ GPIO, TIMER, CLINT, PLIC, UART (serial/JTAG), display and FLASH controller inclu
 ---
 
 Copyright 2026 Insper. Licensed under the [Apache License, Version 2.0](LICENSE).
+
+Each C descriptor also supplies an example template. SDK 0.8 generates one standalone C project in `vendor/<DRIVER>/example`, inheriting the application platform/profile. Examples use constructors and numeric indices, with bounded waits. The FLASH example reads status only. Copy a generated project before editing managed files.

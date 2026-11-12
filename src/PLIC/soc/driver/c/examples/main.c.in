@@ -1,0 +1,37 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "rv32_drivers.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    rv32_plic_t plic = rv32_plic_new(@BASE@, @SOURCE_COUNT@, @PRIORITY_BITS@);
+    size_t source = @SOURCE@;
+
+    if (!rv32_plic_valid(plic)) {
+        return 1;
+    }
+
+    if (!rv32_plic_set_priority(plic, source, 1)) {
+        return 2;
+    }
+
+    if (!rv32_plic_set_threshold(plic, 0)) {
+        return 3;
+    }
+
+    if (!rv32_plic_enable(plic, source, true)) {
+        return 4;
+    }
+
+    /* Observe pending without consuming it. Claim/complete needs an IRQ source. */
+    (void)rv32_plic_pending(plic, source);
+
+    if (!rv32_plic_enable(plic, source, false)) {
+        return 5;
+    }
+
+    puts("PLIC example: PASS");
+
+    return 0;
+}

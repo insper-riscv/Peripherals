@@ -4,3 +4,4 @@ instances: [GPIO, SWITCHES, KEYS]
 register_bytes: 44
 headers: [rv32_gpio.h]
 sources: [rv32_gpio.c]
+example: examples/main.c.in

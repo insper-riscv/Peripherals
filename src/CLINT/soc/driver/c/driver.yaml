@@ -5,3 +5,4 @@ requires_cpu_flags: [HAS_INTERRUPTS]
 register_bytes: 49152
 headers: [rv32_clint.h]
 sources: [rv32_clint.c]
+example: examples/main.c.in

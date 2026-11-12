@@ -1,0 +1,25 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "rv32_drivers.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    rv32_uart_t uart = rv32_uart_new(@BASE@, @BACKEND@, @TX_CAPACITY@);
+    static const uint8_t message[] = "UART example: PASS\n";
+
+    if (!rv32_uart_valid(uart)) {
+        return 1;
+    }
+
+    /* Bounded polling: a missing host or full queue cannot hang the program. */
+    size_t sent = rv32_uart_write(uart, message, sizeof(message) - 1, 4096);
+
+    if (sent != sizeof(message) - 1) {
+        return 2;
+    }
+
+    puts("UART example: PASS");
+
+    return 0;
+}

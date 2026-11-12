@@ -1,0 +1,56 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "rv32_drivers.h"
+
+#include <stdio.h>
+
+static bool wait_pin(rv32_gpio_t gpio, size_t pin, bool expected)
+{
+    for (size_t attempt = 0; attempt < 2048; ++attempt) {
+        bool level = false;
+
+        if (!rv32_gpio_pin_read(gpio, pin, &level)) {
+            return false;
+        }
+
+        if (level == expected) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int main(void)
+{
+    rv32_gpio_t gpio = rv32_gpio_new(@BASE@, @PIN_COUNT@);
+
+    if (!rv32_gpio_valid(gpio)) {
+        return 1;
+    }
+
+    if (!rv32_gpio_pin_direction(gpio, 0, RV32_GPIO_OUTPUT_PIN)) {
+        return 2;
+    }
+
+    if (!rv32_gpio_pin_write(gpio, 0, true)) {
+        return 3;
+    }
+
+    if (!wait_pin(gpio, 0, true)) {
+        return 4;
+    }
+
+    if (!rv32_gpio_pin_toggle(gpio, 0)) {
+        return 5;
+    }
+
+    if (!wait_pin(gpio, 0, false)) {
+        return 6;
+    }
+
+    (void)rv32_gpio_pin_direction(gpio, 0, RV32_GPIO_INPUT);
+
+    puts("GPIO example: PASS");
+
+    return 0;
+}

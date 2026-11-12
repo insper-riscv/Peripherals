@@ -1,0 +1,32 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "rv32_drivers.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    rv32_clint_t clint = rv32_clint_new(@BASE@);
+
+    if (!rv32_clint_valid(clint)) {
+        return 1;
+    }
+
+    uint64_t before = rv32_clint_time(clint);
+
+    rv32_clint_set_deadline(clint, UINT64_MAX);
+    rv32_clint_software_irq(clint, true);
+
+    if (!rv32_clint_software_irq_pending(clint)) {
+        return 2;
+    }
+
+    rv32_clint_software_irq(clint, false);
+
+    if (rv32_clint_time(clint) <= before) {
+        return 3;
+    }
+
+    puts("CLINT example: PASS");
+
+    return 0;
+}
