@@ -105,6 +105,12 @@ int main(void)
     rv32_gpio_t narrow = rv32_gpio_new((uintptr_t)words, 4);
     rv32_gpio_t invalid = rv32_gpio_new(0, 4);
 
+    /* Source-tree placeholders never dereference address zero. */
+    assert(!rv32_gpio_valid(rv32_gpio_platform_new(RV32_GPIO_DEFAULT_INSTANCE)));
+    assert(!rv32_gpio_valid(rv32_gpio_platform_new(RV32_GPIO_SWITCHES_INSTANCE)));
+    assert(!rv32_gpio_valid(rv32_gpio_platform_new(RV32_GPIO_KEYS_INSTANCE)));
+    assert(!rv32_gpio_valid(rv32_gpio_platform_new((rv32_gpio_instance_t)99)));
+
     assert(rv32_gpio_valid(gpio));
     assert(!rv32_gpio_valid(invalid));
     assert(!rv32_gpio_pin_write(narrow, 4, true));

@@ -1,0 +1,11 @@
+[package]
+name = "insper-riscv-gpio"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+license = "Apache-2.0"
+description = "Allocation-free GPIO and numbered pin API for Insper RISC-V"
+
+[dependencies]
+insper-riscv-gpio-sys = { version = "0.1.0", path = "../insper-riscv-gpio-sys" }

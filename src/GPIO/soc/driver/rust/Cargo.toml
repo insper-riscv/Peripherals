@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "insper-riscv-gpio",
+    "insper-riscv-gpio-sys",
+]
+default-members = [
+    "insper-riscv-gpio",
+    "insper-riscv-gpio-sys",
+]
+resolver = "2"

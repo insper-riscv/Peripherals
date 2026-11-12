@@ -22,7 +22,7 @@ static bool wait_pin(rv32_gpio_t gpio, size_t pin, bool expected)
 
 int main(void)
 {
-    rv32_gpio_t gpio = rv32_gpio_new(@BASE@, @PIN_COUNT@);
+    rv32_gpio_t gpio = rv32_gpio_platform_new(RV32_GPIO_DEFAULT_INSTANCE);
 
     if (!rv32_gpio_valid(gpio)) {
         return 1;

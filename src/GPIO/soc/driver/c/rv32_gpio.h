@@ -18,7 +18,19 @@ typedef struct {
  * Invalid/alignment/width arguments produce an invalid handle.
  * Use the actual number of implemented GPIO bits (not the MMIO window size).
  */
+/* Low-level compatibility constructor. Application code uses platform_new. */
 rv32_gpio_t rv32_gpio_new(uintptr_t base, size_t pin_count);
+
+typedef enum {
+    RV32_GPIO_DEFAULT_INSTANCE,
+    RV32_GPIO_SWITCHES_INSTANCE,
+    RV32_GPIO_KEYS_INSTANCE
+} rv32_gpio_instance_t;
+
+/* Address and width are generated from the selected platform. An absent
+ * instance returns an invalid handle without touching hardware.
+ */
+rv32_gpio_t rv32_gpio_platform_new(rv32_gpio_instance_t instance);
 bool rv32_gpio_valid(rv32_gpio_t gpio);
 
 typedef enum {

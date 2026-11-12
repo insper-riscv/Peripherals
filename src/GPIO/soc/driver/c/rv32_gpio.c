@@ -2,6 +2,7 @@
  * Acessos voláteis de 32 bits aos registradores do GPIO.
  */
 #include "rv32_gpio.h"
+#include <rv32_gpio_platform.h>
 
 /* Deslocamentos em bytes. O decodificador RTL recebe endereços de palavra. */
 enum {
@@ -222,4 +223,18 @@ bool rv32_gpio_pin_irq_configure(rv32_gpio_t gpio, size_t pin,
     rv32_gpio_irq_enable(gpio, enabled);
 
     return true;
+}
+
+rv32_gpio_t rv32_gpio_platform_new(rv32_gpio_instance_t instance)
+{
+    switch (instance) {
+    case RV32_GPIO_DEFAULT_INSTANCE:
+        return rv32_gpio_new(RV32_GPIO_DEFAULT_BASE, RV32_GPIO_DEFAULT_PIN_COUNT);
+    case RV32_GPIO_SWITCHES_INSTANCE:
+        return rv32_gpio_new(RV32_GPIO_SWITCHES_BASE, RV32_GPIO_SWITCHES_PIN_COUNT);
+    case RV32_GPIO_KEYS_INSTANCE:
+        return rv32_gpio_new(RV32_GPIO_KEYS_BASE, RV32_GPIO_KEYS_PIN_COUNT);
+    default:
+        return rv32_gpio_new(0, 0);
+    }
 }

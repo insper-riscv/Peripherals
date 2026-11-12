@@ -2,6 +2,6 @@ schema: 1
 name: GPIO
 instances: [GPIO, SWITCHES, KEYS]
 register_bytes: 44
-headers: [rv32_gpio.h]
+headers: [rv32_gpio.h, rv32_gpio_platform.h]
 sources: [rv32_gpio.c]
 example: examples/main.c.in
