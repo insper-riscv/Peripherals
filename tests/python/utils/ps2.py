@@ -14,7 +14,7 @@ from cocotb.handle import LogicArrayObject, LogicObject
 from cocotb.triggers import RisingEdge, Timer
 
 from tests.python.utils import bus
-from tests.python.utils.dut import Ps2HostTbDut
+from tests.python.utils.dut import ClockedDut, Ps2HostTbDut
 
 QUARTER = 20
 POLL_LIMIT = 4000
@@ -212,52 +212,52 @@ def frame_bits(
     ]
 
 
-async def pulse_clock(dut: Ps2HostTbDut, channel: Ps2Channel) -> None:
+async def pulse_clock(dut: ClockedDut, lines: Ps2Lines) -> None:
     """Gere um pulso de clock do dispositivo, em baixo por meio período.
 
     Parameters
     ----------
-    dut : Ps2HostTbDut
+    dut : ClockedDut
         Testbench exercitado.
-    channel : Ps2Channel
-        Canal do dispositivo.
+    lines : Ps2Lines
+        Linhas do dispositivo.
     """
-    channel.lines.clk_low.value = 1
+    lines.clk_low.value = 1
     await bus.cycles(dut, 2 * QUARTER)
-    channel.lines.clk_low.value = 0
+    lines.clk_low.value = 0
 
 
 async def device_send(
-    dut: Ps2HostTbDut,
-    channel: Ps2Channel,
+    dut: ClockedDut,
+    lines: Ps2Lines,
     bits: list[int],
 ) -> None:
     """Envie bits ao hospedeiro, um por ciclo de clock do dispositivo.
 
     Parameters
     ----------
-    dut : Ps2HostTbDut
+    dut : ClockedDut
         Testbench exercitado.
-    channel : Ps2Channel
-        Canal do dispositivo.
+    lines : Ps2Lines
+        Linhas do dispositivo.
     bits : list[int]
         Bits na ordem de transmissao.
     """
     for bit in bits:
-        channel.lines.dat_low.value = int(bit == 0)
+        lines.dat_low.value = int(bit == 0)
         await bus.cycles(dut, QUARTER)
-        await pulse_clock(dut, channel)
+        await pulse_clock(dut, lines)
         await bus.cycles(dut, QUARTER)
-    channel.lines.dat_low.value = 0
+    lines.dat_low.value = 0
     await bus.cycles(dut, QUARTER)
 
 
-async def wait_until(dut: Ps2HostTbDut, condition: Callable[[], bool]) -> None:
+async def wait_until(dut: ClockedDut, condition: Callable[[], bool]) -> None:
     """Espere uma condição, ciclo a ciclo, até o limite de espera.
 
     Parameters
     ----------
-    dut : Ps2HostTbDut
+    dut : ClockedDut
         Testbench exercitado.
     condition : Callable[[], bool]
         Condição esperada.
@@ -275,16 +275,16 @@ async def wait_until(dut: Ps2HostTbDut, condition: Callable[[], bool]) -> None:
 
 
 async def device_receive(
-    dut: Ps2HostTbDut, channel: Ps2Channel, *, ack: bool = True
+    dut: ClockedDut, lines: Ps2Lines, *, ack: bool = True
 ) -> tuple[int, bool]:
     """Receba um byte do hospedeiro e responda com o reconhecimento.
 
     Parameters
     ----------
-    dut : Ps2HostTbDut
+    dut : ClockedDut
         Testbench exercitado.
-    channel : Ps2Channel
-        Canal do dispositivo.
+    lines : Ps2Lines
+        Linhas do dispositivo.
     ack : bool
         Responde com o bit de reconhecimento.
 
@@ -293,27 +293,24 @@ async def device_receive(
     tuple[int, bool]
         Byte recebido e se a paridade ímpar e a parada estavam certas.
     """
-    await wait_until(dut, lambda: int(channel.lines.clk.value) == 0)
+    await wait_until(dut, lambda: int(lines.clk.value) == 0)
     await wait_until(
         dut,
-        lambda: (
-            int(channel.lines.clk.value) == 1
-            and int(channel.lines.dat.value) == 0
-        ),
+        lambda: int(lines.clk.value) == 1 and int(lines.dat.value) == 0,
     )
     await bus.cycles(dut, QUARTER)
     bits: list[int] = []
     for _ in range(DATA_BITS + 1):
-        await pulse_clock(dut, channel)
+        await pulse_clock(dut, lines)
         await bus.cycles(dut, QUARTER)
-        bits.append(int(channel.lines.dat.value))
-    await pulse_clock(dut, channel)
+        bits.append(int(lines.dat.value))
+    await pulse_clock(dut, lines)
     await bus.cycles(dut, QUARTER)
-    stop = int(channel.lines.dat.value)
-    channel.lines.dat_low.value = int(ack)
-    await pulse_clock(dut, channel)
+    stop = int(lines.dat.value)
+    lines.dat_low.value = int(ack)
+    await pulse_clock(dut, lines)
     await bus.cycles(dut, QUARTER)
-    channel.lines.dat_low.value = 0
+    lines.dat_low.value = 0
     value = sum(bit << index for index, bit in enumerate(bits[:DATA_BITS]))
     odd = (sum(bits) % 2) == 1
     return value, odd and stop == 1

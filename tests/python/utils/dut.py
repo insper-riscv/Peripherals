@@ -252,3 +252,12 @@ class Ps2FilterDut(ClockedDut, Protocol):
     i_rst_n: LogicObject
     i_d: LogicObject
     o_d: LogicObject
+
+
+class Ps2KeyboardTbDut(IrqDut, Protocol):
+    """Sinais do testbench do teclado PS/2."""
+
+    i_dev_clk_low0: LogicObject
+    i_dev_dat_low0: LogicObject
+    o_clk0: LogicObject
+    o_dat0: LogicObject

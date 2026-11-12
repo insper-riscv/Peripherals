@@ -16,6 +16,7 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 - [docs/pt-br/UART/serial_uart.md](docs/pt-br/UART/serial_uart.md): a UART serial 8N1, suas filas, registradores, erros e parâmetros de temporização.
 - [docs/pt-br/UART/jtag_uart.md](docs/pt-br/UART/jtag_uart.md): a UART sobre JTAG (os registradores do core, o lado do hospedeiro e os limites), com o defeito que a moldou em [docs/pt-br/bugs/](docs/pt-br/bugs/JTAG_UART_RESPOSTA_PERDIDA.md).
 - [docs/pt-br/PS2/ps2_host.md](docs/pt-br/PS2/ps2_host.md): a camada física PS/2 (`ps2_host`: canais 0 e 1 do cabo Y, filtro de glitch, quadro de 11 bits e envio de comandos).
+- [docs/pt-br/PS2/ps2_keyboard.md](docs/pt-br/PS2/ps2_keyboard.md): o teclado PS/2 (`ps2_keyboard`: fila de scancodes do conjunto 2, registradores `DATA`, `STATUS`, `COMMAND` e `CONTROL`, comandos e interrupção).
 - [docs/pt-br/flash-controller/flash_controller.md](docs/pt-br/flash-controller/flash_controller.md): o controlador de FLASH (registradores de comando, endereço, estado e buffer de página).
 - [contracts/01-es-de-placa.md](docs/pt-br/contracts/01-es-de-placa.md) e [contracts/02-console.md](docs/pt-br/contracts/02-console.md): contratos K8 (vetores de E/S por papel, polaridade normalizada, largura zero) e K9 (console `jtag` ou `pinos`).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/pt-br/contracts/02-barramento-e-memoria.md): protocolo de barramento adotado pelos periféricos.
@@ -32,10 +33,11 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `src/UART/jtag/` | UART sobre JTAG: o núcleo escreve e lê bytes por registradores e um hospedeiro faz o mesmo pelo Virtual JTAG (`jtag_uart`); `cyclone-v/` guarda a casca do Virtual JTAG, só para a placa |
 | `src/PLIC/soc/` | PLIC: gateways de nível, árbitro por prioridade com desempate por id, registradores no leiaute do `riscv-plic-1.0.0` e a saída `MEIP` (`plic`) |
 | `src/PS2/host/` | Camada física PS/2 de um canal (`ps2_host`): sincronizador, filtro de glitch, recepção de quadros de 11 bits com paridade ímpar e envio de comandos com o clock inibido; uma instância por canal (teclado no canal 0, mouse no canal 1) |
+| `src/PS2/keyboard/` | Teclado PS/2 mapeado em memória (`ps2_keyboard`): fila de bytes de scancode, status com overflow e erro, envio de comandos e interrupção de nível |
 | `src/flash-controller/soc/` | Controlador de FLASH: registradores de comando, endereço, estado e buffer de página que levam os comandos de apagar, gravar e proteger ao chip de FLASH do repositório Memory |
 | `src/display/` | Display de sete segmentos: o registrador do valor, o conversor de hexadecimal para segmentos (`soc/`) e a casca do Virtual JTAG da placa (`cyclone-v/`) |
 | `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,UART,display,flash_controller}` |
-| `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO, e `ps2_host_tb`, com dois canais `ps2_host` |
+| `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO, `ps2_host_tb`, com dois canais `ps2_host`, e `ps2_keyboard_tb`, com o teclado e as linhas acessíveis ao cocotb |
 | `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo` e `uart`, o `run.sh` e o agregador dos engines |
 | `docs/pt-br/`, `docs/en/` | Documentos do CLINT (`CLINT/`), do PLIC (`PLIC/`), do PS/2 (`PS2/`), da UART (`UART/`), do controlador de FLASH (`flash-controller/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
 
