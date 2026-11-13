@@ -206,7 +206,7 @@ mod tests {
         let mut pin = gpio.get(31).unwrap();
         assert_eq!(pin.index(), 31);
         assert_eq!(pin.set_high(), Err(GPIOError::NotOutput));
-        pin.set_direction(Direction::Output).unwrap();
+        pin.set_direction(Direction::Output);
         assert_eq!(registers[0], 1 << 31);
         pin.set_high().unwrap();
         assert_eq!(registers[2], 1 << 31);
@@ -215,10 +215,10 @@ mod tests {
         pin.toggle().unwrap();
         assert_eq!(registers[4], 1 << 31);
         registers[9] = 1 << 31;
-        assert!(pin.is_high().unwrap());
-        assert!(!pin.is_low().unwrap());
+        assert!(pin.is_high());
+        assert!(!pin.is_low());
         let mut alias = gpio.get(31).unwrap();
-        alias.set_direction(Direction::Input).unwrap();
+        alias.set_direction(Direction::Input);
         assert_eq!(pin.toggle(), Err(GPIOError::NotOutput));
         assert_eq!(registers[0], 0);
         registers[8] = (1 << 31) | 1;
@@ -247,7 +247,7 @@ mod tests {
             (InterruptMode::LowLevel, [8, 0, 8, 8]),
             (InterruptMode::Disabled, [0, 0, 0, 0]),
         ] {
-            pin.configure_interrupt(mode).unwrap();
+            pin.configure_interrupt(mode);
             assert_eq!(
                 [registers[5], registers[6], registers[7], registers[10]],
                 expected

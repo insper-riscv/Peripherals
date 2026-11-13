@@ -8,14 +8,12 @@ use insper_riscv_clint_sys as sys;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     Unavailable,
-    Rejected,
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Unavailable => "Peripheral unavailable on this platform/profile.",
-            Self::Rejected => "Peripheral rejected the argument or is busy.",
         })
     }
 }

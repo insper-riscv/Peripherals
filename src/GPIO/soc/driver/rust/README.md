@@ -9,7 +9,7 @@ use insper_riscv_gpio::{Direction, GPIO, Instance};
 
 let gpio = GPIO::from_platform(Instance::Switches)?;
 let mut pin = gpio.get(0)?;
-pin.set_direction(Direction::Output)?;
+pin.set_direction(Direction::Output);
 pin.set_high()?;
 let high = pin.read()?;
 pin.toggle()?;

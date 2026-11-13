@@ -2,20 +2,18 @@
 //! Handles are not Send/Sync. Serialize configuration, including interrupt handlers.
 #![no_std]
 
-use core::{fmt, marker::PhantomData};
+use core::{fmt, marker::PhantomData, num::NonZeroU32};
 use insper_riscv_timer_sys as sys;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     Unavailable,
-    Rejected,
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Unavailable => "Peripheral unavailable on this platform/profile.",
-            Self::Rejected => "Peripheral rejected the argument or is busy.",
         })
     }
 }
@@ -131,17 +129,22 @@ impl Timer {
     pub fn set_duty(&mut self, ticks: u32) {
         unsafe { sys::rv32_timer_set_duty(self.inner, ticks) };
     }
-    /// Set cycles per timer tick. Zero is rejected.
+    /// Set cycles per timer tick. The type excludes zero.
+    ///
+    /// ```compile_fail
+    /// let mut timer = insper_riscv_timer::Timer::new().unwrap();
+    /// timer.set_divider(0);
+    /// ```
     /// ```no_run
     /// use insper_riscv_timer::{Timer, Error};
     /// # fn example() -> Result<(), Error> {
     /// let mut timer = Timer::new()?;
-    /// timer.set_divider(4)?;
+    /// timer.set_divider(core::num::NonZeroU32::new(4).unwrap());
     /// # Ok(())
     /// # }
     /// ```
-    pub fn set_divider(&mut self, cycles: u32) -> Result<(), Error> {
-        checked(unsafe { sys::rv32_timer_set_divider(self.inner, cycles) })
+    pub fn set_divider(&mut self, cycles: NonZeroU32) {
+        unsafe { sys::rv32_timer_set_divider(self.inner, cycles.get()) };
     }
     /// Load the counter.
     /// ```no_run
@@ -205,14 +208,6 @@ impl Timer {
     }
 }
 
-fn checked(accepted: bool) -> Result<(), Error> {
-    if accepted {
-        Ok(())
-    } else {
-        Err(Error::Rejected)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -235,8 +230,8 @@ mod tests {
         assert_eq!(words[0], 15);
         timer.stop();
         assert_eq!(words[0], 14);
-        assert_eq!(timer.set_divider(0), Err(Error::Rejected));
-        timer.set_divider(4).unwrap();
+        assert!(NonZeroU32::new(0).is_none());
+        timer.set_divider(NonZeroU32::new(4).unwrap());
         assert_eq!(words[7], 3);
         timer.set_top(100);
         timer.set_duty(25);

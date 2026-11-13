@@ -8,14 +8,16 @@ use insper_riscv_flash_sys as sys;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     Unavailable,
-    Rejected,
+    InvalidWord,
+    Busy,
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Unavailable => "Peripheral unavailable on this platform/profile.",
-            Self::Rejected => "Peripheral rejected the argument or is busy.",
+            Self::InvalidWord => "Word index is outside the page buffer.",
+            Self::Busy => "Flash is busy; retry when the operation completes.",
         })
     }
 }
@@ -74,7 +76,7 @@ impl Flash {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn page_bytes(&mut self) -> usize {
+    pub fn page_bytes(&self) -> usize {
         self.inner.page_bytes
     }
     /// Check whether an operation is in progress.
@@ -101,17 +103,18 @@ impl Flash {
     pub fn refused(&mut self) -> bool {
         unsafe { sys::rv32_flash_refused(self.inner) }
     }
-    /// Fill a word in the page buffer. Fill every word before submitting a program command; busy writes are rejected.
+    /// Validate a page-buffer index once. Acquiring the handle does not write flash.
     /// ```no_run
     /// use insper_riscv_flash::{Flash, Error, Command};
     /// # fn example() -> Result<(), Error> {
     /// let mut flash = Flash::new()?;
-    /// flash.buffer_word(0, u32::MAX)?;
+    /// let mut word = flash.buffer_word(0)?;
+    /// word.write(u32::MAX)?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn buffer_word(&mut self, word: usize, value: u32) -> Result<(), Error> {
-        checked(unsafe { sys::rv32_flash_buffer_word(self.inner, word, value) })
+    pub fn buffer_word(&mut self, index: usize) -> Result<BufferWord<'_>, Error> {
+        BufferWord::new(self, index)
     }
     /// Submit a flash command, not wait for completion. Offset is within flash, not MMIO. Erase/program must execute outside that flash.
     /// ```no_run
@@ -123,7 +126,11 @@ impl Flash {
     /// # }
     /// ```
     pub fn submit(&mut self, command: Command, byte_offset: u32) -> Result<(), Error> {
-        checked(unsafe { sys::rv32_flash_submit(self.inner, command.raw(), byte_offset) })
+        if unsafe { sys::rv32_flash_submit(self.inner, command.raw(), byte_offset) } {
+            Ok(())
+        } else {
+            Err(Error::Busy)
+        }
     }
     /// Configure completion/refusal event generation.
     /// ```no_run
@@ -164,11 +171,60 @@ impl Flash {
     }
 }
 
-fn checked(accepted: bool) -> Result<(), Error> {
-    if accepted {
-        Ok(())
-    } else {
-        Err(Error::Rejected)
+/// A validated word slot borrowing its flash controller. No raw MMIO is exposed.
+#[derive(Debug)]
+pub struct BufferWord<'a> {
+    flash: &'a mut Flash,
+    index: usize,
+}
+
+impl<'a> BufferWord<'a> {
+    /// Validate an index, measured in 32-bit words within the programming page.
+    /// ```no_run
+    /// use insper_riscv_flash::{Flash, BufferWord, Error};
+    /// # fn example() -> Result<(), Error> {
+    /// let mut flash = Flash::new()?;
+    /// let word = BufferWord::new(&mut flash, 0)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new(flash: &'a mut Flash, index: usize) -> Result<Self, Error> {
+        if index >= flash.page_bytes() / 4 {
+            return Err(Error::InvalidWord);
+        }
+        Ok(Self { flash, index })
+    }
+
+    /// Return the validated word index.
+    /// ```no_run
+    /// use insper_riscv_flash::{Flash, Error};
+    /// # fn example() -> Result<(), Error> {
+    /// let mut flash = Flash::new()?;
+    /// assert_eq!(flash.buffer_word(0)?.index(), 0);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    /// Fill this buffer slot. Busy is a runtime state and can be retried.
+    /// Fill every page word before submitting ProgramPage.
+    /// ```no_run
+    /// use insper_riscv_flash::{Flash, Error};
+    /// # fn example() -> Result<(), Error> {
+    /// let mut flash = Flash::new()?;
+    /// let mut word = flash.buffer_word(0)?;
+    /// word.write(u32::MAX)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn write(&mut self, value: u32) -> Result<(), Error> {
+        if unsafe { sys::rv32_flash_buffer_word(self.flash.inner, self.index, value) } {
+            Ok(())
+        } else {
+            Err(Error::Busy)
+        }
     }
 }
 
@@ -188,17 +244,24 @@ mod tests {
             _single_thread: PhantomData,
         };
         assert_eq!(flash.page_bytes(), 256);
-        flash.buffer_word(63, 123).unwrap();
+        flash.buffer_word(63).unwrap().write(123).unwrap();
         assert_eq!(words[3], 63);
         assert_eq!(words[4], 123);
-        assert_eq!(flash.buffer_word(64, 0), Err(Error::Rejected));
+        assert!(matches!(flash.buffer_word(64), Err(Error::InvalidWord)));
+        assert!(matches!(
+            flash.buffer_word(usize::MAX),
+            Err(Error::InvalidWord)
+        ));
         words[2] = 1;
         assert!(flash.busy());
-        assert_eq!(
-            flash.submit(Command::ProgramPage, 256),
-            Err(Error::Rejected)
-        );
-        assert_eq!(flash.buffer_word(0, 0), Err(Error::Rejected));
+        assert_eq!(flash.submit(Command::ProgramPage, 256), Err(Error::Busy));
+        let mut word = flash.buffer_word(0).unwrap();
+        assert_eq!(word.index(), 0);
+        assert_eq!(word.write(0), Err(Error::Busy));
+        // The same valid word becomes writable when hardware clears busy.
+        words[2] = 0;
+        word.write(99).unwrap();
+        assert_eq!(words[4], 99);
         words[2] = 4;
         assert!(flash.refused());
         flash.submit(Command::ProgramPage, 256).unwrap();
