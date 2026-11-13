@@ -485,5 +485,8 @@ mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        
 # PLIC (own file, like the external interrupt controller).
 source "$root/formal/plic.sh"
 
+# LCD controller (own file).
+source "$root/formal/lcd.sh"
+
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }

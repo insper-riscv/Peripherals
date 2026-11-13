@@ -1022,5 +1022,186 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "LCD": {
+        "toplevel": "lcd",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/LCD/soc/lcd_consts.vhd",
+            "src/LCD/soc/lcd_phy.vhd",
+            "src/LCD/soc/lcd_init.vhd",
+            "src/LCD/soc/lcd_regs.vhd",
+            "src/LCD/soc/lcd.vhd"
+        ],
+        "test_module": "tests.python.unittests.LCD.lcd",
+        "parameters": {
+            "clk_freq_hz": 10000000,
+            "pulse_ns": 500,
+            "fifo_depth": 4
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "LCDAutoInit": {
+        "toplevel": "lcd",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/LCD/soc/lcd_consts.vhd",
+            "src/LCD/soc/lcd_phy.vhd",
+            "src/LCD/soc/lcd_init.vhd",
+            "src/LCD/soc/lcd_regs.vhd",
+            "src/LCD/soc/lcd.vhd"
+        ],
+        "test_module": "tests.python.unittests.LCD.auto_init",
+        "parameters": {
+            "clk_freq_hz": 10000000,
+            "pulse_ns": 500,
+            "fifo_depth": 4,
+            "auto_init": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "LCDNoRw": {
+        "toplevel": "lcd",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/LCD/soc/lcd_consts.vhd",
+            "src/LCD/soc/lcd_phy.vhd",
+            "src/LCD/soc/lcd_init.vhd",
+            "src/LCD/soc/lcd_regs.vhd",
+            "src/LCD/soc/lcd.vhd"
+        ],
+        "test_module": "tests.python.unittests.LCD.no_rw",
+        "parameters": {
+            "clk_freq_hz": 10000000,
+            "pulse_ns": 500,
+            "fifo_depth": 4,
+            "has_rw": false
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "LCDTimeout": {
+        "toplevel": "lcd",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/LCD/soc/lcd_consts.vhd",
+            "src/LCD/soc/lcd_phy.vhd",
+            "src/LCD/soc/lcd_init.vhd",
+            "src/LCD/soc/lcd_regs.vhd",
+            "src/LCD/soc/lcd.vhd"
+        ],
+        "test_module": "tests.python.unittests.LCD.timeout",
+        "parameters": {
+            "clk_freq_hz": 10000000,
+            "pulse_ns": 500,
+            "fifo_depth": 4,
+            "busy_timeout_us": 200
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "LCDRegs": {
+        "toplevel": "lcd_regs",
+        "sources": [
+            "src/LCD/soc/lcd_consts.vhd",
+            "src/LCD/soc/lcd_regs.vhd"
+        ],
+        "test_module": "tests.python.unittests.LCD.regs",
+        "parameters": {
+            "fifo_depth": 4,
+            "delay_reset": 7,
+            "delay_long_reset": 11
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "LCDPhy": {
+        "toplevel": "lcd_phy",
+        "sources": [
+            "src/LCD/soc/lcd_consts.vhd",
+            "src/LCD/soc/lcd_phy.vhd"
+        ],
+        "test_module": "tests.python.unittests.LCD.phy",
+        "parameters": {
+            "setup_cycles": 2,
+            "pulse_cycles": 3,
+            "hold_cycles": 2,
+            "timeout_cycles": 20
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "LCDInit": {
+        "toplevel": "lcd_init",
+        "sources": [
+            "src/LCD/soc/lcd_consts.vhd",
+            "src/LCD/soc/lcd_init.vhd"
+        ],
+        "test_module": "tests.python.unittests.LCD.init",
+        "parameters": {
+            "clk_freq_hz": 1000000,
+            "enabled": true,
+            "power_up_us": 30,
+            "exec_us": 4,
+            "exec_long_us": 9
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "LCDInitDisabled": {
+        "toplevel": "lcd_init",
+        "sources": [
+            "src/LCD/soc/lcd_consts.vhd",
+            "src/LCD/soc/lcd_init.vhd"
+        ],
+        "test_module": "tests.python.unittests.LCD.init_disabled",
+        "parameters": {
+            "clk_freq_hz": 1000000,
+            "enabled": false
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }

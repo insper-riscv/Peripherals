@@ -316,3 +316,65 @@ class MouseOperationDecoderDut(Protocol):
 
 class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
+
+
+class LcdDut(IrqDut, Protocol):
+    """Signals of the LCD controller."""
+
+    i_lcd_data: LogicArrayObject
+    o_lcd_data: LogicArrayObject
+    o_lcd_data_oe: LogicObject
+    o_lcd_rs: LogicObject
+    o_lcd_rw: LogicObject
+    o_lcd_en: LogicObject
+    o_lcd_on: LogicObject
+    o_lcd_blon: LogicObject
+
+
+class LcdRegsDut(BusDut, Protocol):
+    """Signals of the LCD registers."""
+
+    o_irq: LogicObject
+    o_push: LogicObject
+    o_push_rs: LogicObject
+    o_push_data: LogicArrayObject
+    i_push_accepted: LogicObject
+    i_fifo_full: LogicObject
+    i_fifo_empty: LogicObject
+    i_fifo_level: LogicArrayObject
+    i_phy_busy: LogicObject
+    i_init_busy: LogicObject
+    i_timeout: LogicObject
+    o_poll_enable: LogicObject
+    o_delay: LogicArrayObject
+    o_delay_long: LogicArrayObject
+    o_lcd_on: LogicObject
+    o_lcd_blon: LogicObject
+
+
+class LcdPhyDut(ResettableDut, Protocol):
+    """Signals of the LCD physical layer."""
+
+    i_start: LogicObject
+    i_rs: LogicObject
+    i_data: LogicArrayObject
+    i_poll: LogicObject
+    i_delay: LogicArrayObject
+    i_busy_flag: LogicObject
+    o_ready: LogicObject
+    o_timeout: LogicObject
+    o_lcd_rs: LogicObject
+    o_lcd_rw: LogicObject
+    o_lcd_en: LogicObject
+    o_lcd_data: LogicArrayObject
+    o_lcd_data_oe: LogicObject
+
+
+class LcdInitDut(ResettableDut, Protocol):
+    """Signals of the LCD initialization sequence."""
+
+    i_phy_ready: LogicObject
+    o_start: LogicObject
+    o_data: LogicArrayObject
+    o_delay: LogicArrayObject
+    o_busy: LogicObject
