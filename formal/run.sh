@@ -61,6 +61,8 @@ for n in config_pkg counter64; do path_of[$n]="$root/src/common/src/$n.vhd"; don
 path_of[uart]="$root/src/UART/serial/uart.vhd"
 path_of[uart_fifo]="$root/src/UART/serial/uart_fifo.vhd"
 path_of[flash_controller]="$root/src/flash-controller/soc/flash_controller.vhd"
+usb_srcs=(config_pkg usb_consts usb_bus_master usb_regs usb_bridge)
+for n in usb_consts usb_bus_master usb_regs usb_bridge; do path_of[$n]="$root/src/USB/soc/$n.vhd"; done
 mut_from=""; mut_to=""
 
 # A warning is an error. GHDL, Yosys and SymbiYosys print a warning for code that is out of the norm or at its
@@ -418,6 +420,14 @@ mutant flash_controller "$fp" flash_controller '' flashc_irq_mask_ignored "s/o_i
 mutant flash_controller "$fp" flash_controller '' flashc_w1c_clears_all "s/irq_status <= irq_status and not i_data_in(1 downto 0);/irq_status <= (others => '0');/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 mutant flash_controller "$fp" flash_controller '' flashc_event_loses_to_clear "s/        if ev_done = '1' then/        if ev_done = '1' and not (i_write = '1' and i_address = REG_IRQ_STATUS) then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 mutant flash_controller "$fp" flash_controller '' flashc_status_bit_lost "s/o_data_out(2) <= i_refused;/o_data_out(2) <= '0';/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
+
+mut_expose=(busy)
+up_="$f/usb_bridge_props.sv"
+mutant usb_bridge "$up_" usb_bridge '' usb_rst_not_inverted "s/o_otg_rst_n <= not chip_reset;/o_otg_rst_n <= chip_reset;/" 14 "${usb_srcs[@]}" --
+mutant usb_regs "$up_" usb_bridge '' usb_mask_ignored "s/(int_level and irq_mask)/(int_level)/" 14 "${usb_srcs[@]}" --
+mutant usb_regs "$up_" usb_bridge '' usb_error_not_set "s/err <= '1';/err <= '0';/" 14 "${usb_srcs[@]}" --
+mutant usb_bus_master "$up_" usb_bridge '' usb_both_strobes "s/wr_n <= is_read;/wr_n <= '0';/" 14 "${usb_srcs[@]}" --
+mutant usb_bus_master "$up_" usb_bridge '' usb_oe_on_read "s/data_oe <= not i_is_read;/data_oe <= '1';/" 14 "${usb_srcs[@]}" --
 
 mut_expose=(); mut_open=1
 gp="$f/gpio_cell_props.sv"

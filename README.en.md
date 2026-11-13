@@ -20,6 +20,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 - [docs/en/PS2/ps2_mouse.md](docs/en/PS2/ps2_mouse.md): the PS/2 mouse (initialization, 3-byte packets, saturating displacement accumulators, buttons, interrupt, channel 1 and the Y cable).
 - [docs/en/video/video.md](docs/en/video/video.md): the 640x480 at 60 Hz VGA video peripheral (dual-clock dual-port framebuffer, pixel magnification, optional palette, frame counter and register map).
 - [docs/en/flash-controller/flash_controller.md](docs/en/flash-controller/flash_controller.md): the FLASH controller (command, address, status and page buffer registers).
+- [docs/en/USB/usb_bridge.md](docs/en/USB/usb_bridge.md): the 16-bit parallel bridge to the board USB chip (four access ports, timing per register, interrupts, chip reset and chip identifier read).
 - [contracts/01-es-de-placa.md](docs/en/contracts/01-es-de-placa.md) and [contracts/02-console.md](docs/en/contracts/02-console.md): contracts K8 (I/O vectors by role, normalized polarity, zero width) and K9 (`jtag` or `pinos` console).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/en/contracts/02-barramento-e-memoria.md): bus protocol adopted by the peripherals.
 
@@ -39,11 +40,12 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/PS2/mouse/` | PS/2 mouse: protocol decoder, saturating accumulator per axis and registers (`ps2_mouse`), and the `ps2_mouse_top` that wires it to the `ps2_host` |
 | `src/video/soc/` | VGA video: 640x480 at 60 Hz timing generator, dual-port framebuffer memory, pixel path with optional palette and registers with the retrace status and the frame counter (`video`) |
 | `src/flash-controller/soc/` | FLASH controller: command, address, status and page buffer registers that carry the erase, program and protect commands to the FLASH chip of the Memory repository |
+| `src/USB/soc/` | USB bridge: master of the chip parallel bus (configurable setup, pulse, hold and recovery), registers and the `usb_bridge` top with synchronizers |
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
-| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,UART,display,flash_controller,video}` |
+| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,UART,USB,display,flash_controller,video}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO, `ps2_host_tb`, with two `ps2_host` channels, `ps2_keyboard_tb`, with the keyboard and its lines reachable by cocotb, and `ps2_cable_tb`, with the keyboard and the mouse active at the same time |
 | `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
-| `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), PS/2 documents (`PS2/`), UART documents (`UART/`), the FLASH controller (`flash-controller/`), the video (`video/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
+| `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), PS/2 documents (`PS2/`), UART documents (`UART/`), USB bridge documents (`USB/`), the FLASH controller (`flash-controller/`), the video (`video/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
 
 ## 3. Interface
 

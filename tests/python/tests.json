@@ -1022,5 +1022,76 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "USB": {
+        "toplevel": "usb_bridge",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/USB/soc/usb_consts.vhd",
+            "src/USB/soc/usb_bus_master.vhd",
+            "src/USB/soc/usb_regs.vhd",
+            "src/USB/soc/usb_bridge.vhd"
+        ],
+        "test_module": "tests.python.unittests.USB.usb_bridge",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "USBActiveLow": {
+        "toplevel": "usb_bridge",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/USB/soc/usb_consts.vhd",
+            "src/USB/soc/usb_bus_master.vhd",
+            "src/USB/soc/usb_regs.vhd",
+            "src/USB/soc/usb_bridge.vhd"
+        ],
+        "parameters": {
+            "INT_ACTIVE_HIGH": false
+        },
+        "test_module": "tests.python.unittests.USB.usb_bridge_active_low",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "USBBusMaster": {
+        "toplevel": "usb_bus_master",
+        "sources": [
+            "src/USB/soc/usb_consts.vhd",
+            "src/USB/soc/usb_bus_master.vhd"
+        ],
+        "test_module": "tests.python.unittests.USB.usb_bus_master",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "USBRegs": {
+        "toplevel": "usb_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/USB/soc/usb_consts.vhd",
+            "src/USB/soc/usb_regs.vhd"
+        ],
+        "test_module": "tests.python.unittests.USB.usb_regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }
