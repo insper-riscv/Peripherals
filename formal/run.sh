@@ -327,6 +327,19 @@ expect "cover: a frame of 5A is transmitted" PASS "$(prove uart.v "$f/uart_props
 expect "receive: the byte is sampled mid-bit despite noise at the edges, once, none lost (bounded, 200 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 200 '-DRXF' uart_rx)"
 expect "cover: a frame of A5 is received" PASS "$(prove uart.v "$f/uart_props.sv" cover 200 '-DRXF -DCOVER' uart_rx_cover)"
 
+echo "sd_spi"
+path_of[sd_spi_phy]="$root/src/SD/spi/sd_spi_phy.vhd"
+path_of[sd_spi]="$root/src/SD/spi/sd_spi.vhd"
+sd_srcs=(config_pkg uart_fifo sd_spi_phy sd_spi)
+sd_exp=(phy_busy phy_done tx_fifo_empty rx_fifo_empty done_flag rx_overrun tx_dropped cs_assert divider:15)
+sdgen=(-gclock_hz=2 -ginit_sclk_hz=1 -grx_fifo_depth=3 -gtx_fifo_depth=3)
+mut_expose=("${sd_exp[@]}"); mut_open=0
+build sd_spi sdspi "${sd_srcs[@]}" -- "${sdgen[@]}"
+expect "CONTROL, DIVIDER, chip select, interrupt, sticky flags, STATUS and reset follow the contract (bounded, 24 cycles, 3-byte queues)" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" bmc 24 '' sdspi_regs)"
+expect "a byte has exactly 8 rising edges of SCLK, SCLK moves only while busy and MOSI idles high (bounded, 40 cycles)" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" bmc 40 '-DBYTE' sdspi_byte)"
+expect "cover: the done interrupt, the receive interrupt and a dropped write are reachable" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" cover 40 '-DCOVER' sdspi_cover)"
+expect "cover: a complete byte of 8 rising edges is reachable" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" cover 40 '-DBYTE -DCOVER' sdspi_byte_cover)"
+
 echo "console"
 path_of[console]="$root/src/UART/console/console.vhd"
 path_of[console_equiv]="$root/tests/vhdl/console_equiv.vhd"
@@ -480,6 +493,18 @@ mutant console "$cp_" console_equiv '' console_rx_polarity "s/uart_rx <= not i_r
 mutant console "$cp_" console_equiv '' console_address_bits "s/i_address  => i_addr(1 downto 0),/i_address  => i_addr(2 downto 1),/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
 mutant console "$cp_" console_equiv '' console_read_strobe "s/i_read     => i_re,/i_read     => i_we,/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
 mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        => i_we,/i_we        => i_re,/" 30 "${console_srcs[@]}" -- "${cgen_jtag[@]}"
+
+
+mut_expose=("${sd_exp[@]}")
+sp="$f/sd_spi_props.sv"
+mutant sd_spi "$sp" sd_spi '' sdspi_cs_bit "s/cs_assert <= i_data_in(0);/cs_assert <= i_data_in(1);/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_done_enable_bit "s/done_irq_enable <= i_data_in(3);/done_irq_enable <= i_data_in(4);/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_divider_address "s/if i_write = '1' and i_address = DIVIDER_ADDRESS then/if i_write = '1' and i_address = CONTROL_ADDRESS then/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_done_not_cleared "s/done_flag <= done_flag and not i_data_in(5);/done_flag <= done_flag;/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_rx_valid_inverted "s/value(0) := not rx_fifo_empty;/value(0) := rx_fifo_empty;/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_busy_ignores_done "s/value(3) := phy_busy or phy_done or not tx_fifo_empty;/value(3) := phy_busy or not tx_fifo_empty;/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi_phy "$sp" sd_spi '-DBYTE' sdspi_phy_short_byte "s/if bits_left = 1 then/if bits_left = 2 then/" 40 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi_phy "$sp" sd_spi '-DBYTE' sdspi_phy_mosi_low "s/tx_shift <= tx_shift(6 downto 0) \& '1';/tx_shift <= tx_shift(6 downto 0) \& '0';/" 40 "${sd_srcs[@]}" -- "${sdgen[@]}"
 
 
 # PLIC (own file, like the external interrupt controller).

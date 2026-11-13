@@ -190,6 +190,42 @@
             "--std=08"
         ]
     },
+    "SDSpiPhy": {
+        "toplevel": "sd_spi_phy",
+        "sources": [
+            "src/SD/spi/sd_spi_phy.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_spi_phy",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDSpi": {
+        "toplevel": "sd_spi",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/SD/spi/sd_spi_phy.vhd",
+            "src/SD/spi/sd_spi.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_spi",
+        "parameters": {
+            "CLOCK_HZ": "3200000",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "UART": {
         "toplevel": "uart",
         "sources": [
