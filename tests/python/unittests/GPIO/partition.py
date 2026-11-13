@@ -74,6 +74,36 @@ def addr(group: int, register: int) -> int:
     return group * GROUP_WORDS + register
 
 
+def expected_pin(
+    layout: Layout, state: list[tuple[int, int]], pin: int
+) -> str:
+    """Return the resolved level of one pin: 0, 1 or Z.
+
+    Parameters
+    ----------
+    layout : Layout
+        The pin layout.
+    state : list[tuple[int, int]]
+        The (DIR written, OUT_LOAD) of each group.
+    pin : int
+        The pin.
+
+    Returns
+    -------
+    str
+        The level of the pin.
+    """
+    place = layout.place(pin)
+    low = layout.lows[pin] == "l"
+    if place is None:
+        return ("1" if low else "0") if layout.dirs[pin] == "o" else "Z"
+    g, k = place
+    written, value = state[g]
+    if (layout.eff_dir(g, written) >> k) & 1:
+        return str(((value >> k) & 1) ^ low)
+    return "Z"
+
+
 def expected_pins(layout: Layout, state: list[tuple[int, int]]) -> str:
     """Return the resolved pins, most significant first.
 
@@ -89,22 +119,10 @@ def expected_pins(layout: Layout, state: list[tuple[int, int]]) -> str:
     str
         One character per pin: 0, 1 or Z.
     """
-    out: list[str] = []
-    for pin in range(layout.pins):
-        place = layout.place(pin)
-        low = layout.lows[pin] == "l"
-        if place is None:
-            out.append(
-                ("1" if low else "0") if layout.dirs[pin] == "o" else "Z"
-            )
-            continue
-        g, k = place
-        written, value = state[g]
-        if (layout.eff_dir(g, written) >> k) & 1:
-            out.append(str(((value >> k) & 1) ^ low))
-        else:
-            out.append("Z")
-    return "".join(reversed(out))
+    return "".join(
+        expected_pin(layout, state, pin)
+        for pin in reversed(range(layout.pins))
+    )
 
 
 async def setup(dut: GpioDut) -> None:
@@ -167,25 +185,33 @@ async def check_pin_mapping(dut: GpioDut, layout: Layout) -> None:
         )
 
 
+def external_mask(layout: Layout) -> int:
+    """Return the pins the outside world may drive (not output only)."""
+    return sum(1 << p for p in range(layout.pins) if layout.dirs[p] != "o")
+
+
+async def check_group_pins(
+    dut: GpioDut, layout: Layout, g: int, level: int
+) -> None:
+    """Check PINS of one group against the levels driven outside."""
+    got = await bus.read(dut, addr(g, PINS))
+    for k, pin in enumerate(layout.groups[g]):
+        if layout.dirs[pin] == "o":
+            continue
+        want = ((level >> pin) & 1) ^ (layout.lows[pin] == "l")
+        check((got >> k) & 1 == want, f"group {g} bit {k} pin {pin}")
+    check(got & ~layout.mask(g) == 0, f"group {g} high bits {got:#x}")
+
+
 async def check_pins_read(dut: GpioDut, layout: Layout) -> None:
     """PINS of a group is the synchronized level of its pins."""
     await setup(dut)
-    drive_en = 0
-    for pin in range(layout.pins):
-        if layout.dirs[pin] != "o":
-            drive_en |= 1 << pin
     for level in (0x5555_5555, 0x2AAA_AAAA):
         dut.i_pin_drive.value = level & ((1 << layout.pins) - 1)
-        dut.i_pin_drive_en.value = drive_en
+        dut.i_pin_drive_en.value = external_mask(layout)
         await bus.cycles(dut, SYNC_CYCLES)
-        for g, members in enumerate(layout.groups):
-            got = await bus.read(dut, addr(g, PINS))
-            for k, pin in enumerate(members):
-                if layout.dirs[pin] == "o":
-                    continue
-                want = ((level >> pin) & 1) ^ (layout.lows[pin] == "l")
-                check((got >> k) & 1 == want, f"group {g} bit {k} pin {pin}")
-            check(got & ~layout.mask(g) == 0, f"group {g} high bits {got:#x}")
+        for g in range(len(layout.groups)):
+            await check_group_pins(dut, layout, g, level)
 
 
 async def check_unmapped(dut: GpioDut, layout: Layout) -> None:
@@ -196,62 +222,56 @@ async def check_unmapped(dut: GpioDut, layout: Layout) -> None:
         for register in (11, 12, 13, 14, 15):
             got = await bus.read(dut, addr(g, register))
             check(got == 0, f"group {g} register {register}")
-    index_bits = max(0, (count - 1).bit_length())
-    if (1 << index_bits) > count:
-        for g in range(count, 1 << index_bits):
-            await bus.write(dut, addr(g, OUT_LOAD), WORD_MASK)
-            for register in (DIR, OUT_LOAD, PINS, IRQ_STAT):
-                got = await bus.read(dut, addr(g, register))
-                check(got == 0, f"missing group {g} register {register}")
-        for g in range(count):
-            check(
-                await bus.read(dut, addr(g, OUT_LOAD)) == 0,
-                f"group {g} intact",
-            )
+    for g in range(count, 1 << max(0, (count - 1).bit_length())):
+        await bus.write(dut, addr(g, OUT_LOAD), WORD_MASK)
+        for register in (DIR, OUT_LOAD, PINS, IRQ_STAT):
+            got = await bus.read(dut, addr(g, register))
+            check(got == 0, f"missing group {g} register {register}")
+    for g in range(count):
+        got = await bus.read(dut, addr(g, OUT_LOAD))
+        check(got == 0, f"group {g} intact")
+
+
+async def check_group_irq(
+    dut: GpioDut, layout: Layout, g: int, k: int
+) -> None:
+    """Raise an edge on bit k of group g and check who sees it."""
+    count = len(layout.groups)
+    pin = layout.groups[g][k]
+    idle = (1 << pin) if layout.lows[pin] == "l" else 0
+    dut.i_pin_drive_en.value = external_mask(layout)
+    dut.i_pin_drive.value = idle
+    await bus.cycles(dut, SYNC_CYCLES)
+    for h in range(count):
+        await bus.write(dut, addr(h, IRQ_MASK), WORD_MASK)
+        await bus.write(dut, addr(h, RISE_MASK), WORD_MASK)
+    await bus.read(dut, addr(g, IRQ_STAT))
+    dut.i_pin_drive.value = (1 << pin) ^ idle
+    await bus.cycles(dut, SYNC_CYCLES)
+    check(int(dut.o_irq.value) == 1, f"group {g}: o_irq")
+    for h in range(count):
+        got = await bus.read(dut, addr(h, IRQ_STAT))
+        want = (1 << k) if h == g else 0
+        check(got == want, f"group {g}: IRQ_STAT of {h} is {got:#x}")
+    check(int(dut.o_irq.value) == 0, f"group {g}: cleared by the read")
+    for h in range(count):
+        await bus.write(dut, addr(h, IRQ_MASK), 0)
+        await bus.write(dut, addr(h, RISE_MASK), 0)
+    dut.i_pin_drive.value = idle
+    await bus.cycles(dut, SYNC_CYCLES)
+    for h in range(count):
+        await bus.read(dut, addr(h, IRQ_STAT))
 
 
 async def check_irq(dut: GpioDut, layout: Layout) -> None:
     """Check that an edge is pending in its own group only."""
     await setup(dut)
-    count = len(layout.groups)
     for g, members in enumerate(layout.groups):
-        pick = [
-            (k, pin)
-            for k, pin in enumerate(members)
-            if layout.dirs[pin] != "o"
+        inputs = [
+            k for k, pin in enumerate(members) if layout.dirs[pin] != "o"
         ]
-        if not pick:
-            continue
-        k, pin = pick[0]
-        low = layout.lows[pin] == "l"
-        rest = layout.pins
-        dut.i_pin_drive_en.value = (
-            (1 << rest)
-            - 1
-            - sum(1 << p for p in range(rest) if layout.dirs[p] == "o")
-        )
-        idle = (1 << pin) if low else 0
-        dut.i_pin_drive.value = idle
-        await bus.cycles(dut, SYNC_CYCLES)
-        for h in range(count):
-            await bus.write(dut, addr(h, IRQ_MASK), WORD_MASK)
-            await bus.write(dut, addr(h, RISE_MASK), WORD_MASK)
-        await bus.read(dut, addr(g, IRQ_STAT))
-        dut.i_pin_drive.value = 0 if low else (1 << pin)
-        await bus.cycles(dut, SYNC_CYCLES)
-        check(int(dut.o_irq.value) == 1, f"group {g}: o_irq")
-        for h in range(count):
-            got = await bus.read(dut, addr(h, IRQ_STAT))
-            want = (1 << k) if h == g else 0
-            check(got == want, f"group {g}: IRQ_STAT of {h} is {got:#x}")
-        check(int(dut.o_irq.value) == 0, f"group {g}: cleared by the read")
-        for h in range(count):
-            await bus.write(dut, addr(h, IRQ_MASK), 0)
-            await bus.write(dut, addr(h, RISE_MASK), 0)
-        dut.i_pin_drive.value = idle
-        await bus.cycles(dut, SYNC_CYCLES)
-        for h in range(count):
-            await bus.read(dut, addr(h, IRQ_STAT))
+        if inputs:
+            await check_group_irq(dut, layout, g, inputs[0])
 
 
 def tests(layout: Layout) -> dict[str, object]:
