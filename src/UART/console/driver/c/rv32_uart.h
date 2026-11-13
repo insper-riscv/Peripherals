@@ -41,4 +41,13 @@ uint32_t rv32_uart_status_read(rv32_uart_t uart);
 /* Serial clears both sticky errors (W1C); JTAG acknowledges by status read. */
 void rv32_uart_clear_errors(rv32_uart_t uart);
 
+typedef enum {
+    RV32_UART_DEFAULT_INSTANCE,
+    RV32_UART_SERIAL_INSTANCE,
+    RV32_UART_JTAG_INSTANCE
+} rv32_uart_instance_t;
+
+/* Generated platform constructor: no application addresses or widths. */
+rv32_uart_t rv32_uart_platform_new(rv32_uart_instance_t instance);
+
 #endif

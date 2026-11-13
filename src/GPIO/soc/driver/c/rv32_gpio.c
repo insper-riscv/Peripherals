@@ -33,7 +33,7 @@ void rv32_gpio_direction(rv32_gpio_t gpio, uint32_t outputs)
 
 uint32_t rv32_gpio_get_direction(rv32_gpio_t gpio)
 {
-    return *reg_at(gpio, RV32_GPIO_DIRECTION);
+    return rv32_gpio_valid(gpio) ? *reg_at(gpio, RV32_GPIO_DIRECTION) : 0;
 }
 
 void rv32_gpio_write(rv32_gpio_t gpio, uint32_t value)
@@ -45,7 +45,7 @@ void rv32_gpio_write(rv32_gpio_t gpio, uint32_t value)
 
 uint32_t rv32_gpio_read_output(rv32_gpio_t gpio)
 {
-    return *reg_at(gpio, RV32_GPIO_OUTPUT);
+    return rv32_gpio_valid(gpio) ? *reg_at(gpio, RV32_GPIO_OUTPUT) : 0;
 }
 
 void rv32_gpio_set(rv32_gpio_t gpio, uint32_t mask)

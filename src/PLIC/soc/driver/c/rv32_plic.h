@@ -24,4 +24,7 @@ bool rv32_plic_pending(rv32_plic_t plic, size_t source);
 size_t rv32_plic_claim(rv32_plic_t plic);
 bool rv32_plic_complete(rv32_plic_t plic, size_t source);
 
+/* Generated platform constructor: no application addresses or widths. */
+rv32_plic_t rv32_plic_platform_new(void);
+
 #endif

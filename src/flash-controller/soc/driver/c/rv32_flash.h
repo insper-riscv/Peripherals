@@ -38,4 +38,7 @@ uint32_t rv32_flash_irq_pending(rv32_flash_t flash);
 /* W1C, unlike GPIO/TIMER. Each bool selects one event to acknowledge. */
 void rv32_flash_irq_acknowledge(rv32_flash_t flash, bool done, bool refused);
 
+/* Generated platform constructor: no application addresses or widths. */
+rv32_flash_t rv32_flash_platform_new(void);
+
 #endif

@@ -2,6 +2,6 @@ schema: 1
 name: TIMER
 instances: [TIMER]
 register_bytes: 32
-headers: [rv32_timer.h]
+headers: [rv32_timer.h, rv32_timer_platform.h]
 sources: [rv32_timer.c]
 example: examples/main.c.in

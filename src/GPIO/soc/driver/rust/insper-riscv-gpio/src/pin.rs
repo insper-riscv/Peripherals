@@ -29,10 +29,28 @@ impl<'a> Pin<'a> {
         Self { idx, gpio }
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// let index = pin.index();
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn index(&self) -> usize {
         self.idx
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// pin.set_direction(Direction::Output)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn set_direction(&mut self, dir: Direction) -> Result<(), GPIOError> {
         let dir = match dir {
             Direction::Input => sys::RV32_GPIO_INPUT,
@@ -42,6 +60,15 @@ impl<'a> Pin<'a> {
     }
 
     /// Read the hardware direction, so another pin handle cannot stale a cache.
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// let direction = pin.direction();
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn direction(&self) -> Direction {
         let outputs = unsafe { sys::rv32_gpio_get_direction(self.gpio.inner) };
         if outputs & (1_u32 << self.idx) != 0 {
@@ -51,39 +78,115 @@ impl<'a> Pin<'a> {
         }
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// pin.set_direction(Direction::Output)?;
+    /// pin.write(true)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn write(&mut self, high: bool) -> Result<(), GPIOError> {
         self.require_output()?;
         checked(unsafe { sys::rv32_gpio_pin_write(self.gpio.inner, self.idx, high) })
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// pin.set_direction(Direction::Output)?;
+    /// pin.set_high()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn set_high(&mut self) -> Result<(), GPIOError> {
         self.write(true)
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// pin.set_direction(Direction::Output)?;
+    /// pin.set_low()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn set_low(&mut self) -> Result<(), GPIOError> {
         self.write(false)
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// pin.set_direction(Direction::Output)?;
+    /// pin.toggle()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn toggle(&mut self) -> Result<(), GPIOError> {
         self.require_output()?;
         checked(unsafe { sys::rv32_gpio_pin_toggle(self.gpio.inner, self.idx) })
     }
 
     /// Read the synchronized input, which can lag an output change by two clocks.
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// let level = pin.read()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn read(&self) -> Result<bool, GPIOError> {
         let mut high = false;
         checked(unsafe { sys::rv32_gpio_pin_read(self.gpio.inner, self.idx, &mut high) })?;
         Ok(high)
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// let high = pin.is_high()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn is_high(&self) -> Result<bool, GPIOError> {
         self.read()
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// let low = pin.is_low()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn is_low(&self) -> Result<bool, GPIOError> {
         self.read().map(|high| !high)
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let mut pin = gpio.get(0)?;
+    /// pin.configure_interrupt(InterruptMode::RisingEdge)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn configure_interrupt(&mut self, mode: InterruptMode) -> Result<(), GPIOError> {
         let mode = match mode {
             InterruptMode::Disabled => sys::RV32_GPIO_IRQ_DISABLED,

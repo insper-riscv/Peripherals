@@ -21,4 +21,7 @@ bool rv32_display_read_digit(rv32_display_t display, size_t digit, uint8_t *valu
 void rv32_display_write(rv32_display_t display, uint32_t value);
 uint32_t rv32_display_read(rv32_display_t display);
 
+/* Generated platform constructor: no application addresses or widths. */
+rv32_display_t rv32_display_platform_new(void);
+
 #endif

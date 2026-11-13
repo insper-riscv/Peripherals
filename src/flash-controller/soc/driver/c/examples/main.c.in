@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    rv32_flash_t flash = rv32_flash_new(@BASE@, @PAGE_BYTES@);
+    rv32_flash_t flash = rv32_flash_platform_new();
 
     if (!rv32_flash_valid(flash)) {
         return 1;

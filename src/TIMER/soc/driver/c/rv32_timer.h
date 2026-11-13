@@ -29,4 +29,7 @@ uint32_t rv32_timer_count(rv32_timer_t timer);
 bool rv32_timer_overflow_read_clear(rv32_timer_t timer);
 bool rv32_timer_pwm_read(rv32_timer_t timer);
 
+/* Generated platform constructor: no application addresses or widths. */
+rv32_timer_t rv32_timer_platform_new(void);
+
 #endif

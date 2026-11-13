@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "rv32_uart.h"
+#include <rv32_uart_platform.h>
 
 static volatile uint32_t *uart_reg(rv32_uart_t uart, uintptr_t offset)
 {
@@ -121,5 +122,22 @@ void rv32_uart_clear_errors(rv32_uart_t uart)
         *uart_reg(uart, 0x08) = 0x0c;
     } else {
         (void)rv32_uart_status_read(uart);
+    }
+}
+
+rv32_uart_t rv32_uart_platform_new(rv32_uart_instance_t instance)
+{
+    switch (instance) {
+    case RV32_UART_DEFAULT_INSTANCE:
+        return rv32_uart_new(RV32_UART_DEFAULT_BASE, RV32_UART_DEFAULT_BACKEND,
+                             RV32_UART_DEFAULT_TX_CAPACITY);
+    case RV32_UART_SERIAL_INSTANCE:
+        return rv32_uart_new(RV32_UART_SERIAL_BASE, RV32_UART_SERIAL_BACKEND,
+                             RV32_UART_SERIAL_TX_CAPACITY);
+    case RV32_UART_JTAG_INSTANCE:
+        return rv32_uart_new(RV32_UART_JTAG_BASE, RV32_UART_JTAG_BACKEND,
+                             RV32_UART_JTAG_TX_CAPACITY);
+    default:
+        return rv32_uart_new(0, RV32_UART_SERIAL, 0);
     }
 }

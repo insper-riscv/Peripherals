@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    rv32_display_t display = rv32_display_new(@BASE@, @DIGIT_COUNT@);
+    rv32_display_t display = rv32_display_platform_new();
     uint8_t digit = 0;
 
     if (!rv32_display_valid(display)) {

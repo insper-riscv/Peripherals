@@ -19,4 +19,7 @@ void rv32_clint_set_deadline(rv32_clint_t clint, uint64_t deadline);
 void rv32_clint_software_irq(rv32_clint_t clint, bool pending);
 bool rv32_clint_software_irq_pending(rv32_clint_t clint);
 
+/* Generated platform constructor: no application addresses or widths. */
+rv32_clint_t rv32_clint_platform_new(void);
+
 #endif

@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    rv32_plic_t plic = rv32_plic_new(@BASE@, @SOURCE_COUNT@, @PRIORITY_BITS@);
+    rv32_plic_t plic = rv32_plic_platform_new();
     size_t source = @SOURCE@;
 
     if (!rv32_plic_valid(plic)) {

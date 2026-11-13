@@ -113,6 +113,8 @@ int main(void)
 
     assert(rv32_gpio_valid(gpio));
     assert(!rv32_gpio_valid(invalid));
+    assert(rv32_gpio_get_direction(invalid) == 0);
+    assert(rv32_gpio_read_output(invalid) == 0);
     assert(!rv32_gpio_pin_write(narrow, 4, true));
     assert(!rv32_gpio_pin_write(invalid, 0, true));
     assert(!rv32_gpio_valid(rv32_gpio_new((uintptr_t)words + 1, 4)));

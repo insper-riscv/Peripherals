@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    rv32_clint_t clint = rv32_clint_new(@BASE@);
+    rv32_clint_t clint = rv32_clint_platform_new();
 
     if (!rv32_clint_valid(clint)) {
         return 1;

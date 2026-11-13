@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "rv32_display.h"
+#include <rv32_display_platform.h>
 
 static volatile uint32_t *display_reg(rv32_display_t display)
 {
@@ -61,4 +62,10 @@ bool rv32_display_read_digit(rv32_display_t display, size_t digit, uint8_t *valu
     *value = (uint8_t)((rv32_display_read(display) >> (4 * digit)) & 15);
 
     return true;
+}
+
+rv32_display_t rv32_display_platform_new(void)
+{
+    return rv32_display_new(RV32_DISPLAY_DEFAULT_BASE,
+                            RV32_DISPLAY_DEFAULT_DIGIT_COUNT);
 }

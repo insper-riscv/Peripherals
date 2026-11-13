@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    rv32_timer_t timer = rv32_timer_new(@BASE@);
+    rv32_timer_t timer = rv32_timer_platform_new();
 
     if (!rv32_timer_valid(timer)) {
         return 1;

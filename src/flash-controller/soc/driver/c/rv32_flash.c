@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "rv32_flash.h"
+#include <rv32_flash_platform.h>
 
 static volatile uint32_t *flash_reg(rv32_flash_t flash, uintptr_t offset)
 {
@@ -79,4 +80,9 @@ void rv32_flash_irq_acknowledge(rv32_flash_t flash, bool done, bool refused)
     if (rv32_flash_valid(flash)) {
         *flash_reg(flash, 0x18) = (done ? 1u : 0u) | (refused ? 2u : 0u);
     }
+}
+
+rv32_flash_t rv32_flash_platform_new(void)
+{
+    return rv32_flash_new(RV32_FLASH_DEFAULT_BASE, RV32_FLASH_DEFAULT_PAGE_BYTES);
 }

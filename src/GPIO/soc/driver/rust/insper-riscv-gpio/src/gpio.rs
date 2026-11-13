@@ -24,11 +24,27 @@ pub struct GPIO {
 impl GPIO {
     /// Select the default platform GPIO and expose its first `pin_count` pins.
     /// The platform-generated width is an upper bound, not an MMIO window size.
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let gpio = GPIO::new(4)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn new(pin_count: usize) -> Result<Self, GPIOError> {
         Self::new_for(Instance::Default, pin_count)
     }
 
     /// Select a named instance without exposing its address.
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let keys = GPIO::new_for(Instance::Keys, 4)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn new_for(instance: Instance, pin_count: usize) -> Result<Self, GPIOError> {
         let mut gpio = Self::from_platform(instance)?;
         if pin_count == 0 || pin_count > gpio.pin_count {
@@ -40,6 +56,14 @@ impl GPIO {
     }
 
     /// Use the complete width generated from the selected platform/RTL.
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn from_platform(instance: Instance) -> Result<Self, GPIOError> {
         let instance = match instance {
             Instance::Default => sys::RV32_GPIO_DEFAULT_INSTANCE,
@@ -58,10 +82,26 @@ impl GPIO {
         })
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let count = gpio.pin_count();
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn pin_count(&self) -> usize {
         self.pin_count
     }
 
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let pin = gpio.get(0)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get(&self, pin_idx: usize) -> Result<Pin<'_>, GPIOError> {
         if pin_idx >= self.pin_count {
             return Err(GPIOError::InvalidPinIndex);
@@ -71,6 +111,14 @@ impl GPIO {
 
     /// Read and clear ALL pending events once. Inspect this snapshot for each pin.
     /// A persistent level condition can immediately assert a new event.
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let pending = gpio.take_interrupts();
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn take_interrupts(&self) -> Interrupts {
         Interrupts {
             bits: unsafe { sys::rv32_gpio_irq_read_clear(self.inner) },
@@ -87,6 +135,15 @@ pub struct Interrupts {
 }
 
 impl Interrupts {
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::from_platform(Instance::Switches)?;
+    /// let pending = gpio.take_interrupts();
+    /// let active = pending.contains(0)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn contains(&self, pin_idx: usize) -> Result<bool, GPIOError> {
         if pin_idx >= self.pin_count {
             return Err(GPIOError::InvalidPinIndex);

@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "rv32_timer.h"
+#include <rv32_timer_platform.h>
 
 static volatile uint32_t *timer_reg(rv32_timer_t timer, uintptr_t offset)
 {
@@ -110,4 +111,9 @@ bool rv32_timer_overflow_read_clear(rv32_timer_t timer)
 bool rv32_timer_pwm_read(rv32_timer_t timer)
 {
     return rv32_timer_valid(timer) && (*timer_reg(timer, 0x18) & 1) != 0;
+}
+
+rv32_timer_t rv32_timer_platform_new(void)
+{
+    return rv32_timer_new(RV32_TIMER_DEFAULT_BASE);
 }

@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "rv32_clint.h"
+#include <rv32_clint_platform.h>
 
 static volatile uint32_t *clint_reg(rv32_clint_t clint, uintptr_t offset)
 {
@@ -62,4 +63,9 @@ void rv32_clint_software_irq(rv32_clint_t clint, bool pending)
 bool rv32_clint_software_irq_pending(rv32_clint_t clint)
 {
     return rv32_clint_valid(clint) && (*clint_reg(clint, 0x0000) & 1) != 0;
+}
+
+rv32_clint_t rv32_clint_platform_new(void)
+{
+    return rv32_clint_new(RV32_CLINT_DEFAULT_BASE);
 }

@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "rv32_plic.h"
+#include <rv32_plic_platform.h>
 
 static volatile uint32_t *plic_reg(rv32_plic_t plic, uintptr_t offset)
 {
@@ -93,4 +94,10 @@ bool rv32_plic_complete(rv32_plic_t plic, size_t source)
     *plic_reg(plic, 0x200004) = (uint32_t)source;
 
     return true;
+}
+
+rv32_plic_t rv32_plic_platform_new(void)
+{
+    return rv32_plic_new(RV32_PLIC_DEFAULT_BASE, RV32_PLIC_DEFAULT_SOURCE_COUNT,
+                         RV32_PLIC_DEFAULT_PRIORITY_BITS);
 }

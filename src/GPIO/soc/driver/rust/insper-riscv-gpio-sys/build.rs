@@ -4,11 +4,19 @@ use std::path::PathBuf;
 
 fn main() {
     let manifest = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
-    let c_dir = manifest
-        .join("../../c")
-        .canonicalize()
-        .expect("GPIO C driver missing: keep the driver/c and driver/rust directories together");
-    let config = env::var_os("RV32_GPIO_CONFIG_DIR").map(PathBuf::from);
+    let original = manifest.join("../../c");
+    let c_dir = if original.join("rv32_gpio.c").is_file() {
+        original
+    } else {
+        manifest.join("../..")
+    }
+    .canonicalize()
+    .expect("GPIO C driver missing");
+    let config = Some(
+        env::var_os("RV32_GPIO_CONFIG_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| c_dir.clone()),
+    );
     println!("cargo:rerun-if-env-changed=RV32_GPIO_CONFIG_DIR");
     let source = c_dir.join("rv32_gpio.c");
     let header = c_dir.join("rv32_gpio.h");
