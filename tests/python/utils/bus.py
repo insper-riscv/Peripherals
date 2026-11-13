@@ -9,7 +9,12 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
-from tests.python.utils.dut import BusDut, DecoderDut, ResettableDut
+from tests.python.utils.dut import (
+    BusDut,
+    ClockedDut,
+    DecoderDut,
+    ResettableDut,
+)
 
 
 def _set_read(dut: BusDut, value: int) -> None:
@@ -145,12 +150,12 @@ async def read(dut: BusDut, address: int) -> int:
     return value
 
 
-async def cycles(dut: ResettableDut, n: int) -> None:
+async def cycles(dut: ClockedDut, n: int) -> None:
     """Wait for a number of clock edges.
 
     Parameters
     ----------
-    dut : ResettableDut
+    dut : ClockedDut
         The design under test.
     n : int
         Number of clock edges to wait.

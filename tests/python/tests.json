@@ -147,6 +147,58 @@
             "--std=08"
         ]
     },
+    "PS2Filter": {
+        "toplevel": "ps2_filter",
+        "sources": [
+            "src/PS2/host/ps2_filter.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.ps2_filter",
+        "parameters": {
+            "FILTER_CYCLES": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PS2Keyboard": {
+        "toplevel": "ps2_keyboard_tb",
+        "sources": [
+            "src/common/src/synchronizer.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/PS2/host/ps2_filter.vhd",
+            "src/PS2/host/ps2_host.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/PS2/keyboard/ps2_keyboard.vhd",
+            "tests/vhdl/ps2_keyboard_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.ps2_keyboard",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PS2Host": {
+        "toplevel": "ps2_host_tb",
+        "sources": [
+            "src/common/src/synchronizer.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/PS2/host/ps2_filter.vhd",
+            "src/PS2/host/ps2_host.vhd",
+            "tests/vhdl/ps2_host_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.ps2_host",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "UART": {
         "toplevel": "uart",
         "sources": [
@@ -580,6 +632,399 @@
             "priority_bits": 3,
             "id_width": 3
         },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Mouse": {
+        "toplevel": "ps2_mouse",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_2x1.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_axis_accumulator.vhd",
+            "src/PS2/mouse/ps2_mouse_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse_operation_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.mouse",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "INIT_TIMEOUT_CYCLES": "200",
+            "PACKET_TIMEOUT_CYCLES": "50"
+        }
+    },
+    "MouseAxisAccumulator": {
+        "toplevel": "ps2_axis_accumulator",
+        "sources": [
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_axis_accumulator.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.axis_accumulator",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MouseDecoder": {
+        "toplevel": "ps2_mouse_decoder",
+        "sources": [
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_mouse_decoder.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.decoder",
+        "parameters": {
+            "INIT_TIMEOUT_CYCLES": "200",
+            "PACKET_TIMEOUT_CYCLES": "50"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MouseOperationDecoder": {
+        "toplevel": "ps2_mouse_operation_decoder",
+        "sources": [
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_mouse_operation_decoder.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.operation_decoder",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Video": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoSmall": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "parameters": {
+            "fb_width": 32,
+            "fb_height": 20,
+            "pixel_bits": 16,
+            "scale": 2,
+            "addr_width": 11
+        },
+        "test_module": "tests.python.unittests.video.video",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoScale3": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "parameters": {
+            "fb_width": 40,
+            "fb_height": 30,
+            "pixel_bits": 16,
+            "scale": 3,
+            "addr_width": 12
+        },
+        "test_module": "tests.python.unittests.video.video",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoPalette": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "parameters": {
+            "fb_width": 64,
+            "fb_height": 40,
+            "pixel_bits": 8,
+            "scale": 2,
+            "addr_width": 12
+        },
+        "test_module": "tests.python.unittests.video.video",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoTiming": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_timing",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoTimingScale3": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "parameters": {
+            "fb_width": 40,
+            "fb_height": 30,
+            "scale": 3
+        },
+        "test_module": "tests.python.unittests.video.video_timing",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoTimingFull": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "parameters": {
+            "fb_width": 640,
+            "fb_height": 480,
+            "scale": 1
+        },
+        "test_module": "tests.python.unittests.video.video_timing",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoDpram": {
+        "toplevel": "video_dpram",
+        "sources": [
+            "src/video/soc/video_dpram.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_dpram",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoDpramNarrow": {
+        "toplevel": "video_dpram",
+        "sources": [
+            "src/video/soc/video_dpram.vhd"
+        ],
+        "parameters": {
+            "lanes": 1,
+            "lane_width": 12,
+            "depth": 100,
+            "addr_width": 7
+        },
+        "test_module": "tests.python.unittests.video.video_dpram",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoRegs": {
+        "toplevel": "video_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_regs.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoRegsPalette": {
+        "toplevel": "video_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_regs.vhd"
+        ],
+        "parameters": {
+            "fb_width": 64,
+            "fb_height": 40,
+            "pixel_bits": 8,
+            "scale": 2,
+            "addr_width": 12
+        },
+        "test_module": "tests.python.unittests.video.video_regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoScanout": {
+        "toplevel": "video_scanout",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_scanout.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_scanout",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoScanoutPalette": {
+        "toplevel": "video_scanout",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_scanout.vhd"
+        ],
+        "parameters": {
+            "fb_width": 64,
+            "fb_height": 40,
+            "pixel_bits": 8
+        },
+        "test_module": "tests.python.unittests.video.video_scanout",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "PS2Cable": {
+        "toplevel": "ps2_cable_tb",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_2x1.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/PS2/host/ps2_filter.vhd",
+            "src/PS2/host/ps2_host.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/PS2/keyboard/ps2_keyboard.vhd",
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_axis_accumulator.vhd",
+            "src/PS2/mouse/ps2_mouse_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse_operation_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse.vhd",
+            "src/PS2/mouse/ps2_mouse_top.vhd",
+            "tests/vhdl/ps2_cable_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.cable",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MouseTop": {
+        "toplevel": "ps2_mouse_top_tb",
+        "sources": [
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_2x1.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/PS2/host/ps2_filter.vhd",
+            "src/PS2/host/ps2_host.vhd",
+            "src/PS2/mouse/ps2_mouse_consts.vhd",
+            "src/PS2/mouse/ps2_axis_accumulator.vhd",
+            "src/PS2/mouse/ps2_mouse_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse_operation_decoder.vhd",
+            "src/PS2/mouse/ps2_mouse.vhd",
+            "src/PS2/mouse/ps2_mouse_top.vhd",
+            "tests/vhdl/ps2_mouse_top_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.PS2.mouse.top",
         "build_args": [
             "--std=08"
         ],
