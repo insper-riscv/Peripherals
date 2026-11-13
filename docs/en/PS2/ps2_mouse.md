@@ -104,7 +104,7 @@ The `ps2_mouse_top` instantiates a `ps2_host` and a `ps2_mouse` and joins them t
 | :--- | :--- |
 | Connector lines (bidirectional ports of the `ps2_host`) | `io_ps2_clk` on pin E2 (`PS2_CLK2`) and `io_ps2_dat` on pin G1 (`PS2_DAT2`) |
 | Register window | 8 words (32 bytes), 3-bit word address, five registers used |
-| Bus | 32-bit `i_data_in`, `i_address`, `i_write`, `i_read`, `o_data_out`, like the other peripherals |
+| Bus | `i_data_in`, `i_address`, `i_write`, `i_read`, `o_data_out` (`word_t`), like the other peripherals |
 | Interrupt | `o_irq`, active at 1, for a PLIC source |
 
 ### 6.3. Parameters

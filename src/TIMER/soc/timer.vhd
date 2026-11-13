@@ -404,11 +404,11 @@ begin
     -- Com leitura em '0', a saída é escolhida por cnt_sel.
     ---------------------------------------------------------------------------
     -- Concatena os registradores para o multiplexador.
-    configs_readback  <= (31 downto 4 => '0') & (irq_mask & pwm_en & mode_signal & start_signal);
+    configs_readback  <= (data_width - 1 downto 4 => '0') & (irq_mask & pwm_en & mode_signal & start_signal);
     -- Concatena a saída PWM para o multiplexador.
-    pwm_readback      <= (31 downto 1 => '0') & pwm_out;
+    pwm_readback      <= (data_width - 1 downto 1 => '0') & pwm_out;
     -- Concatena o status de overflow para o multiplexador.
-    overflow_readback <= (31 downto 1 => '0') & overflow_status;
+    overflow_readback <= (data_width - 1 downto 1 => '0') & overflow_status;
 
     u_mux_out_sel : entity work.mux_8x1
         generic map (

@@ -31,6 +31,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+library work;
+use work.config_pkg.all;
+
 entity seg_display is
     generic (
         -- Número de dígitos de sete segmentos; zero deixa o módulo sem registrador e sem segmento.
@@ -46,11 +49,11 @@ entity seg_display is
         -- Deslocamento de palavra dentro da janela do periférico.
         i_address   : in    std_logic_vector(7 downto 0);
         -- Dado escrito pelo core.
-        i_data_in   : in    std_logic_vector(31 downto 0);
+        i_data_in   : in    word_t;
         -- Pulso de escrita do core ('1' = escreve).
         i_write     : in    std_logic;
         -- Dado lido pelo core, válido no ciclo do pulso.
-        o_rdata     : out   std_logic_vector(31 downto 0);
+        o_rdata     : out   word_t;
         -- Clock da cadeia JTAG.
         i_tck       : in    std_logic;
         -- Dado serial vindo do hospedeiro.

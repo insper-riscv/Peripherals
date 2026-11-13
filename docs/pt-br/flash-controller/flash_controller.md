@@ -84,7 +84,7 @@ A saída `o_irq` vale um enquanto algum bit pendente estiver habilitado. O softw
 | :--- | :--- | ---: | :--- |
 | `i_clk` | entrada | 1 | Clock do módulo |
 | `i_rst` | entrada | 1 | Reset, ativo em `'1'`; zera `ADDR` e `BUF_PTR` |
-| `i_data_in` | entrada | 32 | Dado de escrita |
+| `i_data_in` | entrada | `XLEN` (`word_t`) | Dado de escrita |
 | `i_address` | entrada | 3 | Endereço de palavra |
 | `i_write` | entrada | 1 | Pulso de escrita |
 | `i_read` | entrada | 1 | Pulso de leitura |

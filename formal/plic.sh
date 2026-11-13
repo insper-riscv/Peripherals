@@ -18,7 +18,7 @@ expect "o_id is the pending enabled source of highest priority above the thresho
 expect "cover: the first and the last source win, a pending source is below the threshold, and a tie goes to the lowest id" PASS "$(prove plicarb.v "$arp" cover 2 '-DCOVER' plicarb_cover)"
 
 echo "plic"
-plic_srcs=(plic_consts plic_gateway plic_arbiter plic)
+plic_srcs=(config_pkg plic_consts plic_gateway plic_arbiter plic)
 plic_gen=(-gn_sources=4 -gpriority_bits=2 -gaddr_width=20)
 pp="$f/plic_props.sv"
 mut_expose=(pending:3 enable_reg:3 priorities:7 threshold:1)

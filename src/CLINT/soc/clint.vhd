@@ -25,6 +25,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
+use work.config_pkg.all;
 use work.clint_consts.all;
 
 entity clint is
@@ -38,13 +39,13 @@ entity clint is
         -- Reset, ativo em '1'.
         i_rst          : in    std_logic;
         -- Dado de escrita vindo do processador.
-        i_data_in      : in    std_logic_vector(31 downto 0);
+        i_data_in      : in    word_t;
         -- Endereço de palavra dentro do periférico.
         i_address      : in    std_logic_vector(CLINT_ADDR_WIDTH - 1 downto 0);
         -- Pulso de escrita do processador ('1' = escreve).
         i_write        : in    std_logic;
         -- Dado de leitura para o processador.
-        o_data_out     : out   std_logic_vector(31 downto 0);
+        o_data_out     : out   word_t;
         -- Interrupção de timer de máquina (MTIP), ativa em '1'.
         o_irq_timer    : out   std_logic;
         -- Interrupção de software de máquina (MSIP), ativa em '1'.
@@ -71,13 +72,13 @@ architecture rtl of clint is
     -- Bit do msip.
     signal msip        : std_logic_vector(0 downto 0);
     -- Metade baixa do mtimecmp.
-    signal cmp_lo      : std_logic_vector(31 downto 0);
+    signal cmp_lo      : word_t;
     -- Metade alta do mtimecmp.
-    signal cmp_hi      : std_logic_vector(31 downto 0);
+    signal cmp_hi      : word_t;
     -- Metade baixa do mtime.
-    signal mtime_lo    : std_logic_vector(31 downto 0);
+    signal mtime_lo    : word_t;
     -- Metade alta do mtime, com o vai-um pendente.
-    signal mtime_hi    : std_logic_vector(31 downto 0);
+    signal mtime_hi    : word_t;
     -- Valor de 64 bits do mtime.
     signal mtime       : std_logic_vector(63 downto 0);
     -- Valor de 64 bits do mtimecmp.
@@ -211,7 +212,7 @@ begin
     -- Leitura combinacional por endereço
     -- ---------------------------------------------------------------------------
     with i_address select o_data_out <=
-        (31 downto 1 => '0') & msip when ADDR_MSIP,
+        (XLEN - 1 downto 1 => '0') & msip when ADDR_MSIP,
         cmp_lo when ADDR_MTIMECMP_LO,
         cmp_hi when ADDR_MTIMECMP_HI,
         mtime_lo when ADDR_MTIME_LO,

@@ -104,7 +104,7 @@ O `o_tx_valid` vale 1 por um único ciclo, e só no ciclo em que `i_tx_ready` va
 | :--- | :--- |
 | Linhas do conector (portas bidirecionais do `ps2_host`) | `io_ps2_clk` no pino E2 (`PS2_CLK2`) e `io_ps2_dat` no pino G1 (`PS2_DAT2`) |
 | Janela de registradores | 8 palavras (32 bytes), endereço de palavra de 3 bits, cinco registradores usados |
-| Barramento | `i_data_in`, `i_address`, `i_write`, `i_read`, `o_data_out` de 32 bits, como os demais periféricos |
+| Barramento | `i_data_in`, `i_address`, `i_write`, `i_read`, `o_data_out` de `word_t`, como os demais periféricos |
 | Interrupção | `o_irq`, ativa em 1, para uma fonte do PLIC |
 
 ### 6.3. Parâmetros

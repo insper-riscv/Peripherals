@@ -23,8 +23,8 @@ The ports follow the bus of the other peripherals, with `o_rdata` as the read ou
 | :--- | :--- | :--- | :--- |
 | Control | `i_clk`, `i_rst` | input | Core clock and synchronous reset, active at 1 |
 | Bus | `i_address` | input | 8-bit word offset inside the window |
-| Bus | `i_data_in`, `i_write` | input | 32-bit write data and write pulse |
-| Bus | `o_rdata` | output | 32-bit read data, combinational on the address |
+| Bus | `i_data_in`, `i_write` | input | `word_t` write data (`XLEN` bits) and write pulse |
+| Bus | `o_rdata` | output | `word_t` read data (`XLEN` bits), combinational on the address |
 | JTAG | `i_tck`, `i_tdi`, `o_tdo` | input, input, output | Clock and serial data of the Virtual JTAG chain |
 | JTAG | `i_ir_in` | input | 2-bit instruction register |
 | JTAG | `i_state_cdr`, `i_state_sdr`, `i_state_udr`, `i_state_uir` | input | Capture-DR, Shift-DR, Update-DR and Update-IR states |

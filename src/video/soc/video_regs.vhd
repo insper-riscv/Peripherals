@@ -28,6 +28,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
+use work.config_pkg.all;
 use work.utils_pkg.all;
 use work.video_consts.all;
 
@@ -51,7 +52,7 @@ entity video_regs is
         i_rst : in    std_logic;
 
         -- Dado de escrita vindo do processador.
-        i_data_in  : in    std_logic_vector(31 downto 0);
+        i_data_in  : in    word_t;
         -- Endereço de palavra dentro do periférico.
         i_address  : in    std_logic_vector(addr_width - 1 downto 0);
         -- Habilitação de bytes da escrita, um bit por byte.
@@ -59,7 +60,7 @@ entity video_regs is
         -- Pulso de escrita do processador ('1' = escreve).
         i_write    : in    std_logic;
         -- Dado de leitura para o processador.
-        o_data_out : out   std_logic_vector(31 downto 0);
+        o_data_out : out   word_t;
 
         -- Sincronismo vertical em nível alto, já sincronizado em i_clk.
         i_vsync  : in    std_logic;

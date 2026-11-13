@@ -12,6 +12,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+library work;
+use work.config_pkg.all;
+
 entity seg_display_shell is
     port (
         -- Clock do módulo.
@@ -21,11 +24,11 @@ entity seg_display_shell is
         -- Endereço do acesso.
         i_address : in    std_logic_vector(7 downto 0);
         -- Dado de escrita.
-        i_data_in : in    std_logic_vector(31 downto 0);
+        i_data_in : in    word_t;
         -- Pulso de escrita ('1' = escreve).
         i_write   : in    std_logic;
         -- Dado lido.
-        o_rdata   : out   std_logic_vector(31 downto 0);
+        o_rdata   : out   word_t;
         -- Segmentos dos seis displays, HEX0 nos bits 6:0 e HEX5 nos bits 41:36 (nível baixo).
         o_hex     : out   std_logic_vector(41 downto 0);
         -- Valor de 24 bits guardado no registrador do display.
