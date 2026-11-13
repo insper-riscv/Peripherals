@@ -11,6 +11,12 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity gpio_cell_tb is
+    generic (
+        -- Direção do pino da célula: 0 livre, 1 fixa em entrada, 2 fixa em saída.
+        dir_mode   : natural range 0 to 2 := 0;
+        -- Polaridade do pino da célula.
+        active_low : boolean              := false
+    );
     port (
         -- Clock do módulo.
         i_clk          : in    std_logic;
@@ -36,14 +42,23 @@ end entity gpio_cell_tb;
 architecture rtl of gpio_cell_tb is
 
     -- Pino da célula, resolvido entre a célula e o mundo externo.
-    signal pin : std_logic;
+    signal pin       : std_logic;
+    -- Valor que a célula dirige ao pino.
+    signal cell_drv  : std_logic;
+    -- A célula dirige o pino.
+    signal cell_en   : std_logic;
 
 begin
 
     pin   <= i_pin_drive when i_pin_drive_en = '1' else 'Z';
+    pin   <= cell_drv when cell_en = '1' else 'Z';
     o_pin <= pin;
 
     u_dut : entity work.gpio_cell
+        generic map (
+            dir_mode   => dir_mode,
+            active_low => active_low
+        )
         port map (
             i_clk        => i_clk,
             i_rst        => i_rst,
@@ -51,7 +66,9 @@ begin
             o_data_out   => o_data_out,
             i_wr_signals => i_wr_signals,
             i_wr_op      => i_wr_op,
-            io_gpio_pin  => pin
+            i_pin        => pin,
+            o_pin_drv    => cell_drv,
+            o_pin_en     => cell_en
         );
 
 end architecture rtl;

@@ -12,7 +12,12 @@ Registrador que guarda 4 bits por dígito e os mostra em hexadecimal nos display
 | :--- | :--- | :--- |
 | `digits` | 6 | Número de dígitos, de 0 a 8. O registrador tem `4 * digits` bits e `o_hex` tem `7 * digits` bits. Zero deixa o módulo sem registrador e sem segmento |
 | `active_low` | verdadeiro | Segmentos acesos em nível baixo, como nas placas DE. Falso acende em nível alto |
+| `group_count` | 1 | Número de grupos de dígitos, de 1 a 8 |
+| `member_count` | 6 | Total de índices de dígito listados em `group_members`, igual à soma dos tamanhos |
+| `group_sizes` | `x"06"` | `std_logic_vector(8 * group_count - 1 downto 0)`; o campo $g$ é o número de dígitos do grupo $g$ |
+| `group_members` | dígitos 0 a 5 | `std_logic_vector(8 * member_count - 1 downto 0)`; índices de dígito de todos os grupos em sequência, na ordem escrita |
 
+Os campos das listas têm 8 bits, com o elemento $k$ nos bits $8k+7$ a $8k$, como no generic de partição do GPIO (`docs/pt-br/GPIO/gpio.md`). Um dígito que não está na lista de nenhum grupo fica apagado, com todos os segmentos no nível inativo da placa, e o `o_value` continua com os 4 bits dele para o hospedeiro.
 A polaridade fica só na saída `o_hex`. O conversor acende em nível baixo e o generic escolhe o nível do pino, de modo que o resto do módulo não depende da placa.
 
 ## 3. Interface
@@ -34,7 +39,7 @@ As portas seguem o barramento dos demais periféricos, com `o_rdata` como saída
 
 ## 4. Lado do core
 
-Um acesso por pulso de `i_write`. A palavra 0 lê o valor de `4 * digits` bits e a escrita grava os `4 * digits` bits baixos. As outras palavras leem zero e ignoram a escrita.
+Um acesso por pulso de `i_write`. Cada grupo tem 64 bytes de janela, e o grupo $g$ começa na palavra $16g$ do endereço de palavra. A palavra 0 do grupo guarda os dígitos dele, e o dígito $k$ da lista do grupo ocupa os bits $4k+3$ a $4k$. A leitura devolve os dígitos do grupo, e a escrita grava só os dígitos do grupo, sem tocar nos outros. As outras palavras do grupo, e os grupos que não existem, leem zero e ignoram a escrita. O bloco ocupa uma janela de $64 G$ bytes arredondada para a potência de dois seguinte, como o GPIO, e `i_address` tem 8 bits.
 
 ## 5. Lado do hospedeiro
 
@@ -42,7 +47,7 @@ A instrução 1 do Virtual JTAG seleciona um registrador de `4 * digits + 1` bit
 
 ## 6. Verificação
 
-Os testes de entidade cobrem o padrão de cada dígito, o acesso do core e do hospedeiro, a variante de três dígitos com segmentos ativos em nível alto (registrador de 12 bits e varredura de 13 bits) e o módulo de zero dígito, que não guarda nada e lê zero.
+Os testes de entidade cobrem o padrão de cada dígito, o acesso do core e do hospedeiro, a variante de três dígitos com segmentos ativos em nível alto (registrador de 12 bits e varredura de 13 bits) e o módulo de zero dígito, que não guarda nada e lê zero, e as partições com um dígito só, explícita (`[[0,1,2,3],[5,6]]` em 8 dígitos) e com a ordem dos dígitos invertida. A prova formal (`seg_display_props.sv`) compara a leitura, o valor guardado e os segmentos de todos os dígitos com um modelo ideal, em duas partições.
 
 ---
 

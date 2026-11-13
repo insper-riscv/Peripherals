@@ -9,8 +9,8 @@ module props (input clk);
   (* anyseq *) wire [7:0] ws;
   (* anyseq *) wire [1:0] op;
   wire [7:0] q;
-  wire drv;
-  wire pin = q[0] ? drv : ext;
+  wire drv, en;
+  wire pin = en ? drv : ext;
   // O que o programa vê no pino e o que o ambiente externo vale na polaridade do programa.
 `ifdef ACTIVE_LOW
   wire lpin = !pin;
@@ -21,13 +21,22 @@ module props (input clk);
 `endif
 
   gpio_cell dut (.i_clk(clk), .i_rst(reset), .i_data_in(d), .o_data_out(q), .i_wr_signals(ws), .i_wr_op(op),
-    .i_pin(pin), .o_pin_drv(drv));
+    .i_pin(pin), .o_pin_drv(drv), .o_pin_en(en));
 
   // Os registradores não têm valor inicial: o primeiro clock é um reset, como na placa.
   initial assume (reset);
 
   reg f_past = 0;
   reg m_dir = 0, m_out = 0, m_mask = 0, m_rise = 0, m_fall = 0, m_stat = 0, m_level = 0;
+  // A direção do modelo: o valor fixo nos modos fixos e o registrador no modo livre.
+`ifdef FIXED_IN
+  wire dir_now = 1'b0;
+`elsif FIXED_OUT
+  wire dir_now = 1'b1;
+`else
+  wire dir_now = m_dir;
+`endif
+
   // A cadeia do sincronizador do pino e o valor anterior da entrada sincronizada.
   reg h1 = 0, h2 = 0, prev = 0;
   // Ciclos seguidos com a saída ligada e o registrador de saída parado (satura em 3).
@@ -51,12 +60,19 @@ module props (input clk);
     h1 <= lpin;
     h2 <= h1;
     prev <= h2;
-    steady <= (!reset && m_dir && !out_enable && steady != 2'd3) ? steady + 2'd1 : ((!reset && m_dir && !out_enable) ? 2'd3 : 2'd0);
+    steady <= (!reset && dir_now && !out_enable && steady != 2'd3) ? steady + 2'd1 : ((!reset && dir_now && !out_enable) ? 2'd3 : 2'd0);
   end
 
   always @(posedge clk) if (f_past) begin
     // 1. Direção e dado só mudam por escrita (o registrador de direção e o de saída seguem o modelo; o reset os zera).
+`ifdef FIXED_IN
+    assert (q[0] == 1'b0);
+`elsif FIXED_OUT
+    assert (q[0] == 1'b1);
+`else
     assert (q[0] == (reset ? 1'b0 : m_dir));
+`endif
+    assert (en == q[0]);
     assert (q[1] == (reset ? 1'b0 : m_out));
     // 2. As máscaras só mudam por escrita.
     assert (q[3] == (reset ? 1'b0 : m_mask));
@@ -68,8 +84,8 @@ module props (input clk);
     if (!q[0] && h1 == h2 && h2 == lpin) assert (q[2] == lext);
     // 4. Status (limpeza síncrona): sobe numa borda selecionada pelas máscaras e só desce por leitura ou reset.
     assert (q[6] == m_stat);
-    // 5. Com a saída ligada e estável, a leitura e a saída não divergem.
-    if (steady == 2'd3 && q[0]) assert (q[2] == q[1]);
+    // 5. Com a saída ligada e estável, a leitura e a saída não divergem (o reset limpa o registrador de saída no mesmo ciclo, e a leitura só o acompanha dois ciclos depois).
+    if (steady == 2'd3 && q[0] && !reset) assert (q[2] == q[1]);
     // 6. Como saída, a célula dirige o registrador de saída na polaridade do pino.
 `ifdef ACTIVE_LOW
     if (q[0]) assert (drv == !q[1]);
@@ -80,12 +96,26 @@ module props (input clk);
 
 `ifdef COVER
   always @(posedge clk) if (f_past && !reset) begin
+`ifdef FIXED_OUT
+    cover (q[6] && q[4]);
+    cover (q[6] && q[5]);
+    cover (q[6] && q[7] && q[4] && h2);
+    cover (q[6] && q[7] && q[5] && !h2);
+    cover (steady == 2'd3 && q[1]);
+    cover (ws[1] && !m_out && d);
+`elsif FIXED_IN
+    cover (q[6] && q[4] && !q[0]);
+    cover (q[6] && q[5] && !q[0]);
+    cover (q[6] && q[7] && q[4] && h2 && !q[0]);
+    cover (q[6] && q[7] && q[5] && !h2 && !q[0]);
+`else
     cover (q[6] && q[4] && !q[0]);
     cover (q[6] && q[5] && !q[0]);
     cover (q[6] && q[7] && q[4] && h2 && !q[0]);
     cover (q[6] && q[7] && q[5] && !h2 && !q[0]);
     cover (steady == 2'd3 && q[0] && q[1]);
     cover (q[0] && ws[1] && !m_out && d);
+`endif
   end
 `endif
 endmodule

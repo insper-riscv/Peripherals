@@ -28,7 +28,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | Path | Contents |
 | :--- | :--- |
 | `src/common/` | Common-Components submodule, edited only at its source |
-| `src/GPIO/soc/` | General-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising-edge, falling-edge or level interrupts |
+| `src/GPIO/soc/` | General-purpose I/O: adaptive blocks of groups (partition, fixed direction and polarity per pin from generics) with direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising-edge, falling-edge or level interrupts |
 | `src/TIMER/soc/` | Timer and PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status, and an interrupt |
 | `src/CLINT/soc/` | CLINT: 64-bit `mtime` with a registered carry, `mtimecmp`, `msip` and the timer and software interrupt outputs |
 | `src/UART/serial/` | Memory-mapped 8N1 UART: parameterized RX and TX queues, separate registers, levels, status and error flags, and an optional RX interrupt; the physical layer is the OpenCores `uart2bus`, vendored in the repository |
@@ -42,7 +42,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
 | `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,UART,display,flash_controller,video}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO, `ps2_host_tb`, with two `ps2_host` channels, `ps2_keyboard_tb`, with the keyboard and its lines reachable by cocotb, and `ps2_cable_tb`, with the keyboard and the mouse active at the same time |
-| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
+| `formal/` | SystemVerilog properties of `gpio_cell`, `gpio`, `seg_display`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
 | `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), PS/2 documents (`PS2/`), UART documents (`UART/`), the FLASH controller (`flash-controller/`), the video (`video/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
 
 ## 3. Interface
@@ -51,6 +51,8 @@ Every peripheral shares the same set of ports, following the bus of the Core con
 
 ### 3.1. GPIO Registers
 
+Each group of the block has its own 16-word (64-byte) file, and group $g$ starts at word $16g$; the detail is in `docs/en/GPIO/gpio.md`. The addresses below are those of one group.
+
 | Address | Register |
 | :--- | :--- |
 | 0 | Direction (1 = output) |
@@ -58,6 +60,7 @@ Every peripheral shares the same set of ports, following the bus of the Core con
 | 5, 6, 7 | Interrupt mask, rising-edge mask, and falling-edge mask |
 | 8 | Interrupt status (a read returns the value and clears it) |
 | 9 | Pins, after a two-stage synchronizer |
+| 10 | Per-pin interrupt level mode |
 
 ### 3.2. TIMER Registers
 
