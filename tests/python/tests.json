@@ -1022,5 +1022,512 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "HdmiI2cWriter": {
+        "toplevel": "hdmi_i2c_writer",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_i2c_writer",
+        "parameters": {
+            "clk_freq": 4000000
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiInitSeq": {
+        "toplevel": "hdmi_init_seq",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_init_seq",
+        "parameters": {
+            "init_table": "980301001520AF16",
+            "auto_start": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiInitSeqManual": {
+        "toplevel": "hdmi_init_seq",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_init_seq_manual",
+        "parameters": {
+            "init_table": "980301001520AF16",
+            "auto_start": false
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiInitSeqEmpty": {
+        "toplevel": "hdmi_init_seq",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_init_seq_empty",
+        "parameters": {
+            "auto_start": false
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxIndexed": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx",
+        "parameters": {
+            "fb_width": 24,
+            "fb_height": 16,
+            "scale": 2,
+            "addr_width": 12,
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 8,
+            "h_back_porch": 12,
+            "h_sync_positive": false,
+            "v_visible": 40,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 6,
+            "v_sync_positive": true,
+            "mode_id": 0,
+            "pixel_clock_khz": 25000,
+            "pixel_format": "indexed"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxDirect": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx",
+        "parameters": {
+            "fb_width": 24,
+            "fb_height": 16,
+            "scale": 2,
+            "addr_width": 12,
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 8,
+            "h_back_porch": 12,
+            "h_sync_positive": true,
+            "v_visible": 40,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 6,
+            "v_sync_positive": false,
+            "mode_id": 0,
+            "pixel_clock_khz": 25000,
+            "pixel_format": "direct"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxInit": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx_init",
+        "parameters": {
+            "fb_width": 24,
+            "fb_height": 16,
+            "scale": 2,
+            "addr_width": 12,
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 8,
+            "h_back_porch": 12,
+            "h_sync_positive": false,
+            "v_visible": 40,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 6,
+            "v_sync_positive": true,
+            "mode_id": 0,
+            "pixel_clock_khz": 25000,
+            "pixel_format": "indexed",
+            "init_enable": true,
+            "init_table": "980301001520AF16",
+            "clk_freq": 4000000
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxNoInit": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx_noinit",
+        "parameters": {
+            "fb_width": 24,
+            "fb_height": 16,
+            "scale": 2,
+            "addr_width": 12,
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 8,
+            "h_back_porch": 12,
+            "h_sync_positive": false,
+            "v_visible": 40,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 6,
+            "v_sync_positive": true,
+            "mode_id": 0,
+            "pixel_clock_khz": 25000,
+            "pixel_format": "direct"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxCea640x480": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx_cea",
+        "parameters": {
+            "fb_width": 320,
+            "fb_height": 240,
+            "scale": 2,
+            "h_visible": 640,
+            "h_front_porch": 16,
+            "h_sync": 96,
+            "h_back_porch": 48,
+            "h_sync_positive": false,
+            "v_visible": 480,
+            "v_front_porch": 10,
+            "v_sync": 2,
+            "v_back_porch": 33,
+            "v_sync_positive": false,
+            "mode_id": 1,
+            "pixel_clock_khz": 25200,
+            "pixel_format": "indexed"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxCea720x480": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx_cea",
+        "parameters": {
+            "fb_width": 360,
+            "fb_height": 240,
+            "scale": 2,
+            "h_visible": 720,
+            "h_front_porch": 16,
+            "h_sync": 62,
+            "h_back_porch": 60,
+            "h_sync_positive": false,
+            "v_visible": 480,
+            "v_front_porch": 9,
+            "v_sync": 6,
+            "v_back_porch": 30,
+            "v_sync_positive": false,
+            "mode_id": 2,
+            "pixel_clock_khz": 27000,
+            "pixel_format": "indexed"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxCea1280x720": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx_cea",
+        "parameters": {
+            "fb_width": 320,
+            "fb_height": 180,
+            "scale": 4,
+            "h_visible": 1280,
+            "h_front_porch": 110,
+            "h_sync": 40,
+            "h_back_porch": 220,
+            "h_sync_positive": true,
+            "v_visible": 720,
+            "v_front_porch": 5,
+            "v_sync": 5,
+            "v_back_porch": 20,
+            "v_sync_positive": true,
+            "mode_id": 4,
+            "pixel_clock_khz": 74250,
+            "pixel_format": "indexed"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxCea1920x1080": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx_cea",
+        "parameters": {
+            "fb_width": 320,
+            "fb_height": 180,
+            "scale": 6,
+            "h_visible": 1920,
+            "h_front_porch": 88,
+            "h_sync": 44,
+            "h_back_porch": 148,
+            "h_sync_positive": true,
+            "v_visible": 1080,
+            "v_front_porch": 4,
+            "v_sync": 5,
+            "v_back_porch": 36,
+            "v_sync_positive": true,
+            "mode_id": 16,
+            "pixel_clock_khz": 148500,
+            "pixel_format": "indexed"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiOut": {
+        "toplevel": "hdmi_out",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/soc/hdmi_out.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_out",
+        "parameters": {
+            "h_sync_positive": false,
+            "v_sync_positive": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiScanoutIndexed": {
+        "toplevel": "hdmi_scanout",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_scanout_indexed",
+        "parameters": {
+            "fb_width": 8,
+            "fb_height": 3,
+            "pixel_format": "indexed"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiScanoutDirect": {
+        "toplevel": "hdmi_scanout",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_scanout_direct",
+        "parameters": {
+            "fb_width": 8,
+            "fb_height": 3,
+            "pixel_format": "direct"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiRegs": {
+        "toplevel": "hdmi_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_regs",
+        "parameters": {
+            "addr_width": 11,
+            "init_entries": 4,
+            "mode_id": 4,
+            "pixel_clock_khz": 74250
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }
