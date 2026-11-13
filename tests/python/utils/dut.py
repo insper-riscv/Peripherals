@@ -316,3 +316,37 @@ class MouseOperationDecoderDut(Protocol):
 
 class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
+
+
+class I2cDut(IrqDut, Protocol):
+    """Signals of the I2C master testbench."""
+
+    i_slave_scl_low: LogicObject
+    i_slave_sda_low: LogicObject
+    o_scl: LogicObject
+    o_sda: LogicObject
+
+
+class I2cCoreDut(ResettableDut, Protocol):
+    """Signals of the line state machine of the I2C master."""
+
+    i_enable: LogicObject
+    i_abort: LogicObject
+    i_divider: LogicArrayObject
+    i_cmd_valid: LogicObject
+    i_cmd_start: LogicObject
+    i_cmd_stop: LogicObject
+    i_cmd_read: LogicObject
+    i_cmd_write: LogicObject
+    i_cmd_nack: LogicObject
+    i_tx_data: LogicArrayObject
+    i_scl: LogicObject
+    i_sda: LogicObject
+    o_busy: LogicObject
+    o_bus_active: LogicObject
+    o_done: LogicObject
+    o_nack: LogicObject
+    o_arb_lost: LogicObject
+    o_rx_data: LogicArrayObject
+    o_scl_low: LogicObject
+    o_sda_low: LogicObject

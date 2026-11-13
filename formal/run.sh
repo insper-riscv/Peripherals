@@ -482,6 +482,9 @@ mutant console "$cp_" console_equiv '' console_read_strobe "s/i_read     => i_re
 mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        => i_we,/i_we        => i_re,/" 30 "${console_srcs[@]}" -- "${cgen_jtag[@]}"
 
 
+# I2C master (own file).
+source "$root/formal/i2c.sh"
+
 # PLIC (own file, like the external interrupt controller).
 source "$root/formal/plic.sh"
 

@@ -1022,5 +1022,83 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "I2cMaster": {
+        "toplevel": "i2c_master_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/I2C/soc/i2c_consts.vhd",
+            "src/I2C/soc/i2c_core.vhd",
+            "src/I2C/soc/i2c_master.vhd",
+            "tests/vhdl/i2c_master_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.I2C.i2c_master",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "I2cCore": {
+        "toplevel": "i2c_core",
+        "sources": [
+            "src/I2C/soc/i2c_core.vhd"
+        ],
+        "test_module": "tests.python.unittests.I2C.i2c_core",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "I2cMasterFast": {
+        "toplevel": "i2c_master_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/I2C/soc/i2c_consts.vhd",
+            "src/I2C/soc/i2c_core.vhd",
+            "src/I2C/soc/i2c_master.vhd",
+            "tests/vhdl/i2c_master_tb.vhd"
+        ],
+        "parameters": {
+            "clk_freq": 100000000,
+            "scl_freq": 400000
+        },
+        "test_module": "tests.python.unittests.I2C.divider",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "I2cMasterSlowClock": {
+        "toplevel": "i2c_master_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/I2C/soc/i2c_consts.vhd",
+            "src/I2C/soc/i2c_core.vhd",
+            "src/I2C/soc/i2c_master.vhd",
+            "tests/vhdl/i2c_master_tb.vhd"
+        ],
+        "parameters": {
+            "clk_freq": 1000,
+            "scl_freq": 100000
+        },
+        "test_module": "tests.python.unittests.I2C.divider",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }
