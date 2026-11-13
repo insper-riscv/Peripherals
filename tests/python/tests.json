@@ -1022,5 +1022,207 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "AudioMaster": {
+        "toplevel": "audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "rx_fifo_depth": 8
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AudioClocks": {
+        "toplevel": "audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio_clocks",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "rx_fifo_depth": 8
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AudioSlave": {
+        "toplevel": "audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "rx_fifo_depth": 8,
+            "master": false
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AudioTight": {
+        "toplevel": "audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "rx_fifo_depth": 8,
+            "slot_bits": 16,
+            "word_bits": 16
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AudioAutostart": {
+        "toplevel": "audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio_autostart",
+        "parameters": {
+            "autostart": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AudioXckGen": {
+        "toplevel": "audio_xck_gen",
+        "sources": [
+            "src/audio/soc/audio_xck_gen.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio_xck_gen",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AudioFrameClocks": {
+        "toplevel": "audio_frame_clocks",
+        "sources": [
+            "src/audio/soc/audio_frame_clocks.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio_frame_clocks",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AudioTone": {
+        "toplevel": "audio_tone",
+        "sources": [
+            "src/audio/soc/audio_tone.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio_tone",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AudioI2sTx": {
+        "toplevel": "audio_i2s_tx",
+        "sources": [
+            "src/audio/soc/audio_i2s_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio_i2s_tx",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AudioI2sRx": {
+        "toplevel": "audio_i2s_rx",
+        "sources": [
+            "src/audio/soc/audio_i2s_rx.vhd"
+        ],
+        "test_module": "tests.python.unittests.audio.audio_i2s_rx",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }

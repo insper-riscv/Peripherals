@@ -4,13 +4,14 @@
 repository: Peripherals
 references:
   - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
-  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/PS2/host, src/PS2/keyboard, src/PS2/mouse, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/video/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/ps2_host_tb.vhd, tests/vhdl/ps2_keyboard_tb.vhd, tests/vhdl/ps2_mouse_top_tb.vhd, tests/vhdl/ps2_cable_tb.vhd, tests/vhdl/gpio_zero_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd]}
-  - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/uart_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}
+  - {name: entry points, paths: [tests/python/runner.py, src/audio/soc, tests/python/unittests/audio, tests/python/utils/i2s_codec.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/PS2/host, src/PS2/keyboard, src/PS2/mouse, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/video/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/ps2_host_tb.vhd, tests/vhdl/ps2_keyboard_tb.vhd, tests/vhdl/ps2_mouse_top_tb.vhd, tests/vhdl/ps2_cable_tb.vhd, tests/vhdl/gpio_zero_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd]}
+  - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/uart_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, formal/audio_xck_gen_props.sv, formal/audio_frame_clocks_props.sv, formal/audio_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}
   - {name: CLINT documents, paths: [docs/pt-br/CLINT/clint.md, docs/en/CLINT/clint.md]}
   - {name: PLIC documents, paths: [docs/pt-br/PLIC/plic.md, docs/en/PLIC/plic.md]}
   - {name: FLASH controller documents, paths: [docs/pt-br/flash-controller/flash_controller.md, docs/en/flash-controller/flash_controller.md]}
   - {name: serial UART documents, paths: [docs/pt-br/UART/serial_uart.md, docs/en/UART/serial_uart.md]}
   - {name: display documents, paths: [docs/pt-br/display/seg_display.md, docs/en/display/seg_display.md]}
+  - {name: audio documents, paths: [docs/pt-br/audio/audio.md, docs/en/audio/audio.md]}
   - {name: video documents, paths: [docs/pt-br/video/video.md, docs/en/video/video.md]}
   - {name: GPIO documents, paths: [docs/pt-br/GPIO/gpio.md, docs/en/GPIO/gpio.md]}
   - {name: PS2 documents, paths: [docs/pt-br/PS2/ps2_host.md, docs/en/PS2/ps2_host.md, docs/pt-br/PS2/ps2_keyboard.md, docs/en/PS2/ps2_keyboard.md]}
@@ -21,6 +22,9 @@ tree:
   coverage:
     formal:
       alu_ge_unsigned: []
+      audio: []
+      audio_frame_clocks: []
+      audio_xck_gen: []
       clock_prescaler: []
       counter_overflow: []
       gpio_cell: []
@@ -102,6 +106,16 @@ provides:
     requires: [ps2_host, ps2_mouse]
     sources:
       - src/PS2/mouse/ps2_mouse_top.vhd
+  audio:
+    requires: [Common-Components/utils, Common-Components/config, Common-Components/synchronizer, UART]
+    sources:
+      - src/audio/soc/audio_consts.vhd
+      - src/audio/soc/audio_xck_gen.vhd
+      - src/audio/soc/audio_frame_clocks.vhd
+      - src/audio/soc/audio_i2s_tx.vhd
+      - src/audio/soc/audio_i2s_rx.vhd
+      - src/audio/soc/audio_tone.vhd
+      - src/audio/soc/audio.vhd
   video:
     requires: [Common-Components/utils, Common-Components/synchronizer]
     sources:

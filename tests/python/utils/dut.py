@@ -316,3 +316,75 @@ class MouseOperationDecoderDut(Protocol):
 
 class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
+
+
+class AudioDut(IrqDut, Protocol):
+    """Sinais do periférico de áudio I2S."""
+
+    o_xck: LogicObject
+    i_bclk: LogicObject
+    o_bclk: LogicObject
+    o_bclk_oe: LogicObject
+    i_adclrck: LogicObject
+    o_adclrck: LogicObject
+    i_daclrck: LogicObject
+    o_daclrck: LogicObject
+    i_adcdat: LogicObject
+    o_dacdat: LogicObject
+
+
+class AudioXckGenDut(ResettableDut, Protocol):
+    """Sinais do gerador do clock mestre do áudio."""
+
+    i_enable: LogicObject
+    i_step: LogicArrayObject
+    i_mod: LogicArrayObject
+    o_xck: LogicObject
+    o_edge: LogicObject
+
+
+class AudioFrameClocksDut(ResettableDut, Protocol):
+    """Sinais dos clocks de bit e de canal do áudio."""
+
+    i_enable: LogicObject
+    i_xck_edge: LogicObject
+    i_bclk_div: LogicArrayObject
+    i_slot_bits: LogicArrayObject
+    o_bclk: LogicObject
+    o_lrck: LogicObject
+
+
+class AudioToneDut(ResettableDut, Protocol):
+    """Sinais do gerador de tom do áudio."""
+
+    i_enable: LogicObject
+    i_half: LogicArrayObject
+    i_advance: LogicObject
+    o_level: LogicObject
+
+
+class AudioTxDut(ResettableDut, Protocol):
+    """Sinais do serializador I2S de reprodução."""
+
+    i_enable: LogicObject
+    i_bclk: LogicObject
+    i_lrck: LogicObject
+    i_available: LogicObject
+    i_data: LogicArrayObject
+    o_load: LogicObject
+    o_right_slot: LogicObject
+    o_underflow: LogicObject
+    o_sdata: LogicObject
+
+
+class AudioRxDut(ResettableDut, Protocol):
+    """Sinais do desserializador I2S de gravação."""
+
+    i_enable: LogicObject
+    i_word_bits: LogicArrayObject
+    i_bclk: LogicObject
+    i_lrck: LogicObject
+    i_sdata: LogicObject
+    o_valid: LogicObject
+    o_right: LogicObject
+    o_word: LogicArrayObject
