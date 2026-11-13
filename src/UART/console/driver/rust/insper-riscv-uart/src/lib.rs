@@ -167,23 +167,7 @@ impl Uart {
     /// ```
     pub fn status(&mut self) -> Status {
         let bits = unsafe { sys::rv32_uart_status_read(self.inner) };
-        if self.inner.backend == sys::RV32_UART_JTAG {
-            Status {
-                transmit_ready: bits & 0xff != 0,
-                receive_ready: bits & 0xff00 != 0,
-                transmit_dropped: bits & (1 << 16) != 0,
-                host_attached: Some(bits & (1 << 17) != 0),
-                receive_overrun: false,
-            }
-        } else {
-            Status {
-                transmit_ready: bits & 2 != 0,
-                receive_ready: bits & 1 != 0,
-                transmit_dropped: bits & 8 != 0,
-                host_attached: None,
-                receive_overrun: bits & 4 != 0,
-            }
-        }
+        Status::new(bits, self.inner.backend)
     }
 }
 
@@ -195,6 +179,28 @@ pub struct Status {
     pub transmit_dropped: bool,
     pub host_attached: Option<bool>,
     pub receive_overrun: bool,
+}
+
+impl Status {
+    fn new(bits: u32, backend: sys::rv32_uart_backend_t) -> Self {
+        if backend == sys::RV32_UART_JTAG {
+            Self {
+                transmit_ready: bits & 0xff != 0,
+                receive_ready: bits & 0xff00 != 0,
+                transmit_dropped: bits & (1 << 16) != 0,
+                host_attached: Some(bits & (1 << 17) != 0),
+                receive_overrun: false,
+            }
+        } else {
+            Self {
+                transmit_ready: bits & 2 != 0,
+                receive_ready: bits & 1 != 0,
+                transmit_dropped: bits & 8 != 0,
+                host_attached: None,
+                receive_overrun: bits & 4 != 0,
+            }
+        }
+    }
 }
 
 #[cfg(test)]

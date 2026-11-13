@@ -120,10 +120,10 @@ impl GPIO {
     /// # }
     /// ```
     pub fn take_interrupts(&self) -> Interrupts {
-        Interrupts {
-            bits: unsafe { sys::rv32_gpio_irq_read_clear(self.inner) },
-            pin_count: self.pin_count,
-        }
+        Interrupts::new(
+            unsafe { sys::rv32_gpio_irq_read_clear(self.inner) },
+            self.pin_count,
+        )
     }
 }
 
@@ -135,6 +135,10 @@ pub struct Interrupts {
 }
 
 impl Interrupts {
+    fn new(bits: u32, pin_count: usize) -> Self {
+        Self { bits, pin_count }
+    }
+
     /// ```no_run
     /// use insper_riscv_gpio::{GPIO, GPIOError, Instance, Direction, InterruptMode};
     /// # fn example() -> Result<(), GPIOError> {
