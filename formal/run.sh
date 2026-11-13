@@ -131,7 +131,7 @@ expose() {
     nm="${s%%:*}"; w=""; [ "$s" != "$nm" ] && w="[${s#*:}:0] "
     ports+=",
    output ${w}dbg_$nm"
-    if printf '%s' "$top" | grep -qE "(wire|reg)[^;]*[[:space:]]$nm;"; then
+    if grep -qE "(wire|reg)[^;]*[[:space:]]$nm;" <<< "$top"; then
       assigns+="  assign dbg_$nm = $nm;
 "
     else
@@ -155,14 +155,17 @@ expose() {
   grep -q "dbg_${1%%:*}" "$v" || true
 }
 
+# A here-string above avoids SIGPIPE under pipefail when grep finds an early declaration in a large netlist.
 # open_pin <netlist>: the bidirectional pin of the GPIO cell becomes an input (what the pin is worth) and an
 # output (what the cell drives), and a floating tristate output becomes zero. The logic is the same.
 open_pin() {
-  sed -i -e 's/inout  io_gpio_pin);/input  i_pin,\n   output o_pin_drv);/' \
-         -e 's/^  assign io_gpio_pin = /  assign o_pin_drv = /' \
-         -e 's/ = io_gpio_pin;/ = i_pin;/' \
-         -e "s/1'bz/1'b0/" "$1"
-  grep -q 'o_pin_drv' "$1" && grep -q 'i_pin' "$1" || { echo "open_pin: the pin of $1 was not found"; exit 1; }
+  # GHDL 7 can read the pin in a ternary expression, not only a direct assignment.
+  # Rename every remaining read after separating the port and its driver.
+  perl -0pi -e 's/inout[ \t]+io_gpio_pin\);/input i_pin,\n   output o_pin_drv);/;
+    s/assign io_gpio_pin = /assign o_pin_drv = /g;
+    s/\bio_gpio_pin\b/i_pin/g;
+    s/1\x27bz/1\x27b0/g' "$1"
+  grep -q 'o_pin_drv' "$1" && grep -q 'input i_pin' "$1" || { echo "open_pin: the pin of $1 was not found"; exit 1; }
 }
 
 # prove <netlist> <props> <mode: prove|bmc|cover> <depth> <defines> <tag>  ->  PASS, FAIL, SKIP or ERROR
