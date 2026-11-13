@@ -122,7 +122,8 @@ netlist() {
 expose() {
   local v="$1"; shift
   local ports="" assigns="" s w nm top
-  # The text of the top module, the last one: a mutant can leave a signal without a reader, and GHDL then does not
+  # The text of the top module, the last one (searched through a here-string, because a pipe from printf dies of
+  # SIGPIPE when grep -q stops early on a large netlist, and pipefail then reads it as no match): a mutant can leave a signal without a reader, and GHDL then does not
   # write it. The proof still states its value, and an undeclared name would be an implicit wire without a driver
   # (a warning), so the output of a signal that is not there is the constant zero. The mutant is still caught by
   # the properties of the signals it does change.
@@ -131,7 +132,7 @@ expose() {
     nm="${s%%:*}"; w=""; [ "$s" != "$nm" ] && w="[${s#*:}:0] "
     ports+=",
    output ${w}dbg_$nm"
-    if printf '%s' "$top" | grep -qE "(wire|reg)[^;]*[[:space:]]$nm;"; then
+    if grep -qE "(wire|reg)[^;]*[[:space:]]$nm;" <<< "$top"; then
       assigns+="  assign dbg_$nm = $nm;
 "
     else
@@ -184,6 +185,9 @@ prove() {
   local engine_lines script_lines options_lines="" rc=0 verdict began ended
   case "$engine" in
     abc-bmc3)
+      if [ "${multiclock:-0}" = 1 ]; then
+        printf 'SKIP\t-\t0\n' > "$6.res"; echo "SKIP abc-bmc3 has no multiclock"; return
+      fi
       if [ "$3" != bmc ]; then
         printf 'SKIP\t-\t0\n' > "$6.res"; echo "SKIP abc-bmc3 has no $3"; return
       fi
@@ -196,6 +200,7 @@ prove() {
     # SymbiYosys reports as a wire used with no driver: setundef gives that branch the value zero.
     *) engine_lines="smtbmc $engine"; script_lines=$'tribuf -formal\nmemory_map\nsetundef -undriven -zero' ;;
   esac
+  [ "${multiclock:-0}" = 1 ] && options_lines+=$'\nmulticlock on'
   cat > "$6.sby" <<EOS
 [options]
 mode $3
@@ -484,6 +489,9 @@ mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        
 
 # PLIC (own file, like the external interrupt controller).
 source "$root/formal/plic.sh"
+
+# Ethernet MAC (own file).
+source "$root/formal/eth.sh"
 
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }
