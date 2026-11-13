@@ -48,6 +48,8 @@ timer_srcs=(alu_ge_unsigned counter_overflow clock_prescaler timer_operation_dec
 gpio_srcs=(gpio_operation_decoder gpio_cell gpio)
 clint_srcs=(alu_ge_unsigned clint_consts config_pkg counter64 clint)
 fifo_srcs=(uart_fifo)
+ir_fifo_srcs=(ir_fifo)
+ir_regs_srcs=(config_pkg ir_consts ir_fifo ir_regs)
 flash_srcs=(flash_controller)
 uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart)
 declare -A path_of
@@ -60,6 +62,7 @@ for n in clint_consts clint; do path_of[$n]="$root/src/CLINT/soc/$n.vhd"; done
 for n in config_pkg counter64; do path_of[$n]="$root/src/common/src/$n.vhd"; done
 path_of[uart]="$root/src/UART/serial/uart.vhd"
 path_of[uart_fifo]="$root/src/UART/serial/uart_fifo.vhd"
+for n in ir_consts ir_fifo ir_regs; do path_of[$n]="$root/src/IR/soc/$n.vhd"; done
 path_of[flash_controller]="$root/src/flash-controller/soc/flash_controller.vhd"
 mut_from=""; mut_to=""
 
@@ -299,6 +302,19 @@ build uart_fifo fifo "${fifo_srcs[@]}" -- "${fgen[@]}"
 expect "level, flags and acceptances follow a shifting reference queue; the oldest word is the first one in (bounded, 14 cycles, 3 words)" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" bmc 14 '' fifo_safety)"
 expect "cover: a push and a pop on a full queue, a push refused when full, and a push with a pop on an empty queue are reachable" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" cover 14 '-DCOVER' fifo_cover)"
 
+echo "ir_fifo"
+mut_expose=()
+irgen=(-gdata_width=8 -gdepth=3)
+build ir_fifo irfifo "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+expect "level, flags and refusal follow a shifting reference queue, a flush empties it; the oldest word is the first one in (bounded, 14 cycles, 3 words)" PASS "$(prove irfifo.v "$f/ir_fifo_props.sv" bmc 14 '' irfifo_safety)"
+expect "cover: a push refused when full (with and without a pop) and a flush of a queue with two words are reachable" PASS "$(prove irfifo.v "$f/ir_fifo_props.sv" cover 14 '-DCOVER' irfifo_cover)"
+
+echo "ir_regs"
+irrgen=(-gfifo_depth=3)
+build ir_regs irregs "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+expect "control, status, sticky bits, queue, raw widths and IRQ follow the ideal model of the registers (bounded, 12 cycles, 3 frames)" PASS "$(prove irregs.v "$f/ir_regs_props.sv" bmc 12 '' irregs_safety)"
+expect "cover: overflow, each IRQ source, a flush of a queue with two frames and a read that pops are reachable" PASS "$(prove irregs.v "$f/ir_regs_props.sv" cover 12 '-DCOVER' irregs_cover)"
+
 echo "flash_controller"
 mut_expose=()
 build flash_controller flashc "${flash_srcs[@]}" -- -gpage_bytes=16
@@ -445,6 +461,24 @@ mutant uart_fifo "$fp" uart_fifo '' fifo_push_not_counted "s/count <= count + 1;
 mutant uart_fifo "$fp" uart_fifo '' fifo_pop_keeps_head "s/read_pointer <= next_pointer(read_pointer);/read_pointer <= 0;/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
 mutant uart_fifo "$fp" uart_fifo '' fifo_empty_shows_data "s/else (others => '0');/else memory(read_pointer);/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
 mutant uart_fifo "$fp" uart_fifo '' fifo_pop_when_empty "s/i_pop = '1' and count > 0/i_pop = '1'/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+
+mut_expose=()
+ifp="$f/ir_fifo_props.sv"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_no_wrap "s/return 0;/return pointer;/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_overwrite_when_full "s/do_push <= '1' when i_push = '1' and count < depth else '0';/do_push <= i_push;/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_flush_ignored "s/if i_rst = '1' or i_flush = '1' then/if i_rst = '1' then/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_refusal_silent "s/o_refused <= '1' when i_push = '1' and count = depth else '0';/o_refused <= '0';/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_empty_shows_data "s/else (others => '0');/else memory(rd_ptr);/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+irp="$f/ir_regs_props.sv"
+mutant ir_regs "$irp" ir_regs '' irregs_overflow_clear_bit "s/if i_data_in(STAT_OVERFLOW) = '1' then/if i_data_in(STAT_FRAME_ERR) = '1' then/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_irq_mask_ignored "s/(frame_ie_r and not empty)/(not empty)/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_flush_wrong_bit "s/flush <= wr_ctrl and i_data_in(CTRL_FLUSH);/flush <= wr_ctrl and i_data_in(CTRL_RAW_IE);/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_ext_reset_off "s/ext_en_r <= '1';/ext_en_r <= '0';/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_full_is_empty "s/v(STAT_FULL) := full;/v(STAT_FULL) := empty;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_error_not_sticky "s/frame_err_r <= '1';/null;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_overflow_not_set "s/overflow_r <= '1';/null;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_pop_on_any_read "s/rd_data <= '1' when i_read = '1' and i_address = ADDR_DATA else '0';/rd_data <= i_read;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_raw_swapped "s/raw_mark_r <= i_width;/raw_space_r <= i_width;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
 
 mut_expose=(); jp="$f/jtag_uart_props.sv"
 mutant jtag_uart "$jp" jtag_uart '' jtagu_tx_empty_inverted "s/(tx_empty and tx_irq_enable)/((not tx_empty) and tx_irq_enable)/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2

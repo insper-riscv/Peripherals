@@ -316,3 +316,9 @@ class MouseOperationDecoderDut(Protocol):
 
 class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
+
+
+class IrDut(IrqDut, Protocol):
+    """Signals of the infrared receiver."""
+
+    i_irda_rxd: LogicObject
