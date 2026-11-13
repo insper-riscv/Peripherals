@@ -1,0 +1,138 @@
+[project]
+name = "riscv-peripherals"
+version = "0.8.0"
+description = "Memory-mapped peripherals of the RV32 SoC (GPIO, TIMER, CLINT and UART) with per-entity cocotb tests."
+license = "Apache-2.0"
+# Same Python as the ci-vhdl image of Infra, which also carries riscv-tools.
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    # tests/python/runner.py runs the entity tests with cocotb (and its cocotb_tools),
+    # at the version of the ci-vhdl image. riscv-tools comes from the image, not from here.
+    "cocotb==2.1.0",
+]
+
+[dependency-groups]
+# Tools of the python-static-analysis job that run with `uv run`, in the environment of the project.
+dev = [
+    "deptry>=0.20",
+    "pylint>=4.1.3",
+    "pyright[nodejs]>=1.1",
+]
+
+[tool.uv]
+package = false
+
+# deptry skips `tests` by default, and the Python of this project is all under it.
+[tool.deptry]
+exclude = ["\\.venv", "build", "src/common", "sim_build"]
+
+# codeclone: the runner.py of the src/common submodule (Common-Components) is gated by its own
+# repository. The pattern matches from the right, so it covers both files of a clone between the two
+# runners and nothing else.
+[tool.codeclone]
+golden_fixture_paths = ["tests/python/runner.py"]
+
+# Static analysis of the Python (runner and tests), as run by the python-static-analysis job of the CI.
+[tool.ruff]
+target-version = "py314"
+line-length = 79
+extend-exclude = ["src/common", "build", "sim_build"]
+
+[tool.ruff.lint]
+select = [
+    # Core
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+
+    # Security
+    "S",    # flake8-bandit (Security Scanning/SAST)
+    "BLE",  # flake8-blind-except
+
+    # Import orders and formatting
+    "I",    # isort
+    "Q",    # flake8-quotes
+    "D",    # pydocstyle
+
+    # Standards and Moderization
+    "UP",   # update-checker
+    "N",    # pep8-naming,
+    "PTH",  # flake8-pathlib
+    "TID",  # flake8-tidy-imports (absolute imports only)
+
+    # Quality and Simplification
+    "B",    # flake8-bugbear
+    "G",    # flake8-logging-format
+    "PERF", # perflint
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return
+    "PL",   # pylint
+    "RUF",  # ruff linting rules
+
+    # Cleanup and Unused Code
+    "ERA",  # flake8-eradicate
+    "ARG",  # flake8-arg-names (unused-arguments)
+]
+
+# PEP 257 rules the numpy convention turns off.
+extend-select = [
+    "D107",  # docstring in __init__
+    "D402",  # summary line must not repeat the signature
+]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 79
+max-doc-length = 72
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-statements = 50
+max-returns = 6
+max-branches = 12
+max-locals = 15
+max-public-methods = 10
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-line-length = 72
+
+[tool.complexipy]
+paths = ["tests"]
+max-complexity-allowed = 10
+
+# Pylint reads the whole tree; the VHDL submodules and build output are not Python of this project.
+[tool.pylint.main]
+recursive = true
+ignore = [".venv", "build", "sim_build"]
+ignore-paths = ["^src/common/"]
+init-hook = "import sys; sys.path.append('.')"
+
+[tool.pylint.basic]
+# The test packages carry the name of the peripheral they exercise (GPIO, TIMER, UART).
+module-rgx = "[A-Za-z_][A-Za-z0-9_]*$"
+
+[tool.pylint.design]
+# The protocols of tests/python/utils/dut.py only declare signals, and Config mirrors one record of tests.json.
+min-public-methods = 0
+max-attributes = 8
+
+# Type checking of the Python (runner and tests), strict in both checkers.
+[tool.pyright]
+include = ["tests"]
+exclude = ["**/sim_build", "**/.venv"]
+typeCheckingMode = "strict"
+pythonVersion = "3.14"
+
+[tool.pyrefly]
+project-includes = ["tests"]
+search-path = ["."]
+python-version = "3.14"
+preset = "strict"
