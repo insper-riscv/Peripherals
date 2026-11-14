@@ -24,6 +24,7 @@ The formal proofs run in SymbiYosys on the Verilog netlist that GHDL synthesizes
 | `eth_crc32` | `eth_crc32_props.sv` | induction | The state is the mirror of an independent CRC-32 model (non-reflected register); `o_residue_ok` holds exactly at the residue `0xDEBB20E3`; absorbing the complement of any state leads to the residue |
 | `eth_async_fifo` | `eth_async_fifo_props.sv` | bounded, 30 steps, free clocks, 4 words | Occupancy stays between zero and the depth; without `o_full` there is still room and without `o_empty` there is still a word; the pointers are Gray codes of the binaries and change one bit per edge |
 | `eth_regs` | `eth_regs_props.sv` | induction | Control, mask, pending flags, MAC address, length, pointer and transmitter state follow an ideal model; the interrupt is pending and enabled; a send start needs a free transmitter and a non-zero length |
+| `eth_speed` | `eth_speed_props.sv` | induction and bounded, 14 steps | The mode is the data written to `SPEED`; the speed in use is the learned or the forced one and never 11; the word read is exact; the query reads register 17 of the PHY at address 16, never in the cycle of a request of the program; the learned speed changes only with an answer, link and resolved speed |
 | `flash_controller` | `flash_controller_props.sv` | bounded, 14 cycles, 4-word page | The command pulse comes only from a write to register 0, with the three low bits of the data and the stored address; the read of each address returns the command address, the chip state, the buffer index or the interrupt registers, and zero in the other addresses and without a read; the chip finishing and refusing become status bits that only a write of one clears, and `o_irq` is the OR of status and enable; the buffer index advances at each data write and is set by a write to register 3; the chip reads from the buffer, one edge later, the word the write left at the index |
 
 Each entity has a cover that shows the proved situation is reachable.
@@ -57,9 +58,10 @@ Each deliberate defect of the VHDL must make a proof fail. `formal/run.sh` appli
 | `jtag_uart` | `jtagu_tx_empty_inverted`, `jtagu_error_mask_ignored`, `jtagu_control_bit_swapped`, `jtagu_lost_stays` |
 | `uart` | `uart_overrun_ignored`, `uart_drop_not_flagged`, `uart_w1c_wrong_bit`, `uart_tx_pops_when_busy`, `uart_rx_pops_on_any_read`, `uart_irq_mask_ignored`, `uart_irq_tx_empty_inverted`, `uart_irq_error_ignores_drop`, `uart_irq_error_mask_ignored`, `uart_control_bit_swapped`, `uart_status_ready_inverted`, `uart_idle_ignores_phy`, `uart_levels_swapped`, `uart_tx_stop_low`, `uart_tx_start_high`, `uart_tx_short_frame`, `uart_rx_early_sample`, `uart_rx_late_sample`, `uart_rx_msb_first` |
 | `console` | `console_tx_polarity`, `console_rx_polarity`, `console_address_bits`, `console_read_strobe`, `console_jtag_write_strobe` |
-| `eth_crc32` | `ethcrc_poly`, `ethcrc_residue`, `ethcrc_bit_order`, `ethcrc_clear_ignored` |
-| `eth_async_fifo` | `ethfifo_write_when_full`, `ethfifo_binary_pointer`, `ethfifo_never_empty`, `ethfifo_full_compare`, `ethfifo_read_when_empty` |
+| `eth_crc32` | `ethcrc_poly`, `ethcrc_residue`, `ethcrc_bit_order`, `ethcrc_clear_ignored`, `ethcrc_wide_ignored`, `ethcrc_wide_low_twice`, `ethcrc_wide_order` |
+| `eth_async_fifo` | `ethfifo_write_when_full`, `ethfifo_binary_pointer`, `ethfifo_never_empty`, `ethfifo_full_compare`, `ethfifo_read_when_empty`, `ethfifo_full_next_never` |
 | `eth_regs` | `ethregs_start_while_busy`, `ethregs_start_zero_length`, `ethregs_irq_or_enable`, `ethregs_ctrl_shift`, `ethregs_length_while_busy`, `ethregs_busy_never_set`, `ethregs_error_not_pending`, `ethregs_reset_ctrl` |
+| `eth_speed` | `ethspeed_forced_ignored`, `ethspeed_link_ignored`, `ethspeed_reserved_code`, `ethspeed_start_over_request`, `ethspeed_hold_idle`, `ethspeed_mode_shift`, `ethspeed_wrong_register` |
 
 ## 4. Running
 

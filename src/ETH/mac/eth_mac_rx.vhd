@@ -1,9 +1,11 @@
 -- =============================================================================
--- Receptor MAC em MII (domínio do RX_CLK do PHY)
+-- Receptor MAC em MII e GMII (domínio do RX_CLK do PHY)
 --
--- Procura o SFD (nibble 0xD depois de nibbles 0x5) enquanto RX_DV está ativo,
--- junta os nibbles em bytes (o baixo chega primeiro), confere o CRC-32 sobre
--- todos os bytes, FCS incluso, e entrega os bytes do quadro sem o FCS à FIFO
+-- Procura o SFD (nibble 0xD depois de nibbles 0x5, ou byte 0xD5 depois de bytes
+-- 0x55) enquanto RX_DV está ativo, junta os nibbles em bytes (o baixo chega
+-- primeiro) ou recebe um byte por ciclo com i_wide em '1' (GMII de
+-- 1000 Mbit/s, em que i_rxd tem os oito bits), confere o CRC-32 sobre todos os
+-- bytes, FCS incluso, e entrega os bytes do quadro sem o FCS à FIFO
 -- assíncrona. Uma linha de atraso de quatro bytes retém o FCS. Ao fim do quadro
 -- (RX_DV volta a '0') entrega uma palavra final com o bit 8 em '1' e as flags
 -- do quadro nos bits 5 a 0 (índices RXF_* de eth_consts).
@@ -27,8 +29,10 @@ entity eth_mac_rx is
         i_clk     : in    std_logic;
         -- Reset síncrono, ativo em '1'.
         i_rst     : in    std_logic;
-        -- Dados do MII vindos do PHY.
-        i_rxd     : in    std_logic_vector(3 downto 0);
+        -- '1' recebe um byte por ciclo em i_rxd, '0' um nibble nos quatro bits baixos.
+        i_wide    : in    std_logic := '0';
+        -- Dados vindos do PHY: o byte do GMII ou o nibble do MII nos quatro bits baixos.
+        i_rxd     : in    std_logic_vector(7 downto 0);
         -- RX_DV do MII.
         i_rx_dv   : in    std_logic;
         -- RX_ER do MII.
@@ -38,7 +42,9 @@ entity eth_mac_rx is
         -- Palavra a escrever na FIFO.
         o_wr_data : out   std_logic_vector(8 downto 0);
         -- A FIFO está cheia.
-        i_full    : in    std_logic
+        i_full    : in    std_logic;
+        -- A FIFO ficará cheia com a escrita já registrada; em '1' por padrão, o que atrasa a escrita seguinte um ciclo.
+        i_full_next : in  std_logic := '1'
     );
 end entity eth_mac_rx;
 
@@ -52,7 +58,7 @@ architecture rtl of eth_mac_rx is
     -- Estado atual.
     signal state        : state_t := S_WAIT;
     -- Dados do MII registrados.
-    signal rxd_q        : std_logic_vector(3 downto 0) := (others => '0');
+    signal rxd_q        : std_logic_vector(7 downto 0) := (others => '0');
     -- RX_DV registrado.
     signal dv_q         : std_logic := '0';
     -- RX_ER registrado.
@@ -84,6 +90,10 @@ architecture rtl of eth_mac_rx is
 
     -- A FIFO está cheia ou vai ficar com a escrita já registrada.
     signal full_now     : std_logic;
+    -- O elemento recebido é o último do SFD (nibble 0xD ou byte 0xD5).
+    signal sfd_seen     : std_logic;
+    -- O elemento recebido é do preâmbulo (nibble 0x5 ou byte 0x55).
+    signal preamble_seen : std_logic;
 
     -- Escrita registrada na FIFO.
     signal wr_en_reg    : std_logic := '0';
@@ -92,7 +102,12 @@ architecture rtl of eth_mac_rx is
 
 begin
 
-    full_now <= i_full or wr_en_reg;
+    full_now <= i_full or (wr_en_reg and i_full_next);
+
+    sfd_seen      <= '1' when (i_wide = '1' and rxd_q = BYTE_SFD)
+                          or (i_wide = '0' and rxd_q(3 downto 0) = NIBBLE_SFD_HIGH) else '0';
+    preamble_seen <= '1' when (i_wide = '1' and rxd_q = BYTE_PREAMBLE)
+                          or (i_wide = '0' and rxd_q(3 downto 0) = NIBBLE_PREAMBLE) else '0';
 
     crc_clear  <= '1' when state /= S_DATA else '0';
     crc_enable <= '1' when state = S_DATA and dv_q = '1' else '0';
@@ -103,7 +118,9 @@ begin
             i_rst        => i_rst,
             i_clear      => crc_clear,
             i_enable     => crc_enable,
-            i_nibble     => rxd_q,
+            i_nibble     => rxd_q(3 downto 0),
+            i_wide       => i_wide,
+            i_nibble_hi  => rxd_q(7 downto 4),
             o_crc        => open,
             o_residue_ok => residue_ok
         );
@@ -145,14 +162,14 @@ begin
                         total_bytes <= 0;
                         flags       <= (others => '0');
                         if dv_q = '1' then
-                            if rxd_q = NIBBLE_SFD_HIGH then
+                            if sfd_seen = '1' then
                                 if pending_last = '1' then
                                     missed <= '1';
                                     state  <= S_IGNORE;
                                 else
                                     state <= S_DATA;
                                 end if;
-                            elsif rxd_q /= NIBBLE_PREAMBLE then
+                            elsif preamble_seen = '0' then
                                 state <= S_IGNORE;
                             end if;
                         end if;
@@ -167,12 +184,16 @@ begin
                             if er_q = '1' then
                                 flags(RXF_PHY) <= '1';
                             end if;
-                            if phase = '0' then
-                                low_nibble <= rxd_q;
+                            if phase = '0' and i_wide = '0' then
+                                low_nibble <= rxd_q(3 downto 0);
                                 phase      <= '1';
                             else
                                 phase <= '0';
-                                byte  := rxd_q & low_nibble;
+                                if i_wide = '1' then
+                                    byte := rxd_q;
+                                else
+                                    byte := rxd_q(3 downto 0) & low_nibble;
+                                end if;
                                 if total_bytes < MIN_RX_BYTES then
                                     total_bytes <= total_bytes + 1;
                                 end if;

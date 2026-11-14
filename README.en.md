@@ -20,6 +20,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 - [docs/en/PS2/ps2_mouse.md](docs/en/PS2/ps2_mouse.md): the PS/2 mouse (initialization, 3-byte packets, saturating displacement accumulators, buttons, interrupt, channel 1 and the Y cable).
 - [docs/en/video/video.md](docs/en/video/video.md): the 640x480 at 60 Hz VGA video peripheral (dual-clock dual-port framebuffer, pixel magnification, optional palette, frame counter and register map).
 - [docs/en/ETH/eth.md](docs/en/ETH/eth.md): the 10/100 Mbit/s Ethernet MAC over MII with an MDIO master (sending with preamble, padding and FCS, receiving with a filter and a Gray-code asynchronous FIFO, frame buffers, counters, interrupts and the pins of the DE2-115 ports).
+- [docs/en/ETH/eth_rgmii.md](docs/en/ETH/eth_rgmii.md): the same MAC at 10, 100 and 1000 Mbit/s over RGMII (RGMII layer, DDR registers, `SPEED` register, clock delay, synthesis result and constraint plan).
 - [docs/en/flash-controller/flash_controller.md](docs/en/flash-controller/flash_controller.md): the FLASH controller (command, address, status and page buffer registers).
 - [contracts/01-es-de-placa.md](docs/en/contracts/01-es-de-placa.md) and [contracts/02-console.md](docs/en/contracts/02-console.md): contracts K8 (I/O vectors by role, normalized polarity, zero width) and K9 (`jtag` or `pinos` console).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/en/contracts/02-barramento-e-memoria.md): bus protocol adopted by the peripherals.
