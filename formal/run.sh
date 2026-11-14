@@ -49,7 +49,7 @@ gpio_srcs=(gpio_operation_decoder gpio_cell)
 gpio_block_srcs=(config_pkg gpio_pkg gpio_operation_decoder gpio_cell gpio_group gpio)
 clint_srcs=(alu_ge_unsigned clint_consts config_pkg counter64 clint)
 fifo_srcs=(uart_fifo)
-flash_srcs=(flash_controller)
+flash_srcs=(config_pkg flash_controller)
 uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart)
 declare -A path_of
 for n in "${common[@]}"; do path_of[$n]="$root/src/common/src/$n.vhd"; done
@@ -344,7 +344,7 @@ expect "command pulse, registers, status read and page buffer follow the referen
 expect "cover: a program command, a status with busy and refused, a write at the last word and a buffer read are reachable" PASS "$(prove flashc.v "$f/flash_controller_props.sv" cover 14 '-DCOVER' flashc_cover)"
 
 echo "jtag_uart"
-jtag_srcs=(synchronizer jtag_uart)
+jtag_srcs=(synchronizer config_pkg jtag_uart)
 path_of[jtag_uart]="$root/src/UART/jtag/jtag_uart.vhd"
 mut_expose=()
 build jtag_uart jtagu "${jtag_srcs[@]}" -- -glog2_depth=2
@@ -368,7 +368,7 @@ expect "cover: a frame of A5 is received" PASS "$(prove uart.v "$f/uart_props.sv
 echo "console"
 path_of[console]="$root/src/UART/console/console.vhd"
 path_of[console_equiv]="$root/tests/vhdl/console_equiv.vhd"
-console_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart synchronizer jtag_uart console console_equiv)
+console_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart synchronizer config_pkg jtag_uart console console_equiv)
 cp_="$f/console_props.sv"
 mut_expose=()
 cgen_pins=(-gbackend=pinos -gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3)

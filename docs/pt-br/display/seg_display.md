@@ -28,8 +28,8 @@ As portas seguem o barramento dos demais periféricos, com `o_rdata` como saída
 | :--- | :--- | :--- | :--- |
 | Controle | `i_clk`, `i_rst` | entrada | Clock do core e reset síncrono, ativo em 1 |
 | Barramento | `i_address` | entrada | Deslocamento de palavra de 8 bits dentro da janela |
-| Barramento | `i_data_in`, `i_write` | entrada | Dado de escrita de 32 bits e pulso de escrita |
-| Barramento | `o_rdata` | saída | Dado de leitura de 32 bits, combinacional no endereço |
+| Barramento | `i_data_in`, `i_write` | entrada | Dado de escrita de `XLEN` bits (`word_t`) e pulso de escrita |
+| Barramento | `o_rdata` | saída | Dado de leitura de `XLEN` bits (`word_t`), combinacional no endereço |
 | JTAG | `i_tck`, `i_tdi`, `o_tdo` | entrada, entrada, saída | Clock e dados seriais da cadeia do Virtual JTAG |
 | JTAG | `i_ir_in` | entrada | Registrador de instrução de 2 bits |
 | JTAG | `i_state_cdr`, `i_state_sdr`, `i_state_udr`, `i_state_uir` | entrada | Estados Capture-DR, Shift-DR, Update-DR e Update-IR |

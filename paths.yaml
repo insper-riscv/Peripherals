@@ -113,6 +113,7 @@ provides:
       - src/video/soc/video_dpram.vhd
       - src/video/soc/video_timing.vhd
       - src/video/soc/video_scanout.vhd
+      - src/video/soc/video_vga.vhd
       - src/video/soc/video_regs.vhd
       - src/video/soc/video.vhd
   display:
