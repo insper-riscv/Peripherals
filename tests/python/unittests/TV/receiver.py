@@ -1,7 +1,6 @@
 """Receptor BT.656: códigos, pixels, campos e erros de sincronismo."""
 
 import cocotb
-from cocotb.clock import Clock
 from cocotb.task import Task
 from cocotb.triggers import RisingEdge, Timer
 
@@ -10,6 +9,7 @@ from tests.python.unittests.TV.bt656 import (
     PREFIX,
     timing_word,
 )
+from tests.python.utils import bus
 from tests.python.utils.check import check, check_equal
 from tests.python.utils.dut import TvRxDut
 
@@ -133,13 +133,8 @@ async def start(dut: TvRxDut) -> tuple[Probe, Task[None]]:
     tuple[Probe, Task[None]]
         A coleta e a tarefa que a executa.
     """
-    cocotb.start_soon(Clock(dut.i_clk, 10, unit="ns").start())
     dut.i_data.value = BLANK_FILL[0]
-    dut.i_rst.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_rst.value = 0
+    await bus.hold_reset(dut)
     probe = Probe()
     return probe, cocotb.start_soon(probe.run(dut))
 

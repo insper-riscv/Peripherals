@@ -36,11 +36,14 @@ async def start(
     tuple[I2sCodec, list[int]]
         Modelo do codec e contadores de carga, canal direito e subfluxo.
     """
-    dut.i_enable.value = 1
-    dut.i_available.value = available
-    dut.i_data.value = WORD
-    dut.i_bclk.value = 0
-    dut.i_lrck.value = 0
+    bus.set_inputs(
+        dut,
+        i_enable=1,
+        i_available=available,
+        i_data=WORD,
+        i_bclk=0,
+        i_lrck=0,
+    )
     await bus.hold_reset(dut)
     counts = [0, 0, 0]
 

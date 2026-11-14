@@ -1,7 +1,7 @@
 """Registers of the infrared receiver driven without the decoder."""
 
 import cocotb
-from cocotb.triggers import RisingEdge, Timer
+from cocotb.triggers import Timer
 
 from tests.python.unittests.dut import Dut
 from tests.python.unittests.IR.registers import (
@@ -51,26 +51,8 @@ async def start(dut: Dut) -> None:
         "i_line_active",
     ):
         getattr(dut, name).value = 0
-    dut.i_address_f.value = 0
-    dut.i_command_f.value = 0
-    dut.i_width.value = 0
+    bus.set_inputs(dut, i_address_f=0, i_command_f=0, i_width=0)
     await bus.reset(dut)
-
-
-async def pulse(dut: Dut, name: str) -> None:
-    """Raise one decoder input for a cycle.
-
-    Parameters
-    ----------
-    dut : Dut
-        The design under test.
-    name : str
-        Name of the input port.
-    """
-    getattr(dut, name).value = 1
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    getattr(dut, name).value = 0
 
 
 async def push(dut: Dut, address: int, command: int, flags: int = 0) -> None:
@@ -87,11 +69,14 @@ async def push(dut: Dut, address: int, command: int, flags: int = 0) -> None:
     flags : int
         1 for a repeat, 2 for an extended frame.
     """
-    dut.i_address_f.value = address
-    dut.i_command_f.value = command
-    dut.i_repeat_f.value = flags & 1
-    dut.i_extended_f.value = (flags >> 1) & 1
-    await pulse(dut, "i_frame_valid")
+    bus.set_inputs(
+        dut,
+        i_address_f=address,
+        i_command_f=command,
+        i_repeat_f=flags & 1,
+        i_extended_f=(flags >> 1) & 1,
+    )
+    await bus.pulse(dut, "i_frame_valid")
 
 
 @cocotb.test()
@@ -138,7 +123,7 @@ async def test_frames_status_irq(dut: Dut) -> None:
 async def test_error_and_raw(dut: Dut) -> None:
     """Sticky error and raw flags, raw widths and their masks."""
     await start(dut)
-    await pulse(dut, "i_error_f")
+    await bus.pulse(dut, "i_error_f")
     status = await bus.read(dut, STATUS)
     check(status & STAT_FRAME_ERR != 0, "error")
     await bus.write(dut, CTRL, CTRL_ERR_IE)
@@ -148,10 +133,10 @@ async def test_error_and_raw(dut: Dut) -> None:
     check(int(dut.o_irq.value) == 0, "error irq cleared")
     dut.i_width.value = MARK_WIDTH
     dut.i_event_mark.value = 1
-    await pulse(dut, "i_event")
+    await bus.pulse(dut, "i_event")
     dut.i_width.value = SPACE_WIDTH
     dut.i_event_mark.value = 0
-    await pulse(dut, "i_event")
+    await bus.pulse(dut, "i_event")
     check(await bus.read(dut, RAW_MARK) == MARK_WIDTH, "raw mark")
     check(await bus.read(dut, RAW_SPACE) == SPACE_WIDTH, "raw space")
     status = await bus.read(dut, STATUS)

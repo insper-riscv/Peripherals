@@ -8,6 +8,8 @@ Qualquer acesso fora das regras entra na lista ``violations``, que o
 teste exige vazia.
 """
 
+from dataclasses import dataclass, field
+
 import cocotb
 from cocotb.triggers import First
 from cocotb.utils import get_sim_time
@@ -27,10 +29,26 @@ LINE_ONE_BASE = 0x00
 LINE_TWO_BASE = 0x40
 BUSY_BIT = 0x80
 ADDRESS_MASK = 0x7F
+BLANK = 0x20
+# Instante inicial bem antes do início da simulação, para que o
+# primeiro acesso não acuse tempo curto contra um evento inexistente.
+LONG_AGO_NS = -1.0e12
 
 
-class Hd44780:
-    """Estado e comportamento do chip.
+def _blank_ddram() -> list[int]:
+    """Devolve uma DDRAM preenchida com espaços.
+
+    Returns
+    -------
+    list[int]
+        As 128 posições com o código do espaço.
+    """
+    return [BLANK] * DDRAM_SIZE
+
+
+@dataclass
+class ChipState:
+    """Conteúdo e configuração do chip que os comandos alteram.
 
     Attributes
     ----------
@@ -48,6 +66,85 @@ class Hd44780:
         Função de duas linhas.
     function_set : bool
         Um function set de 8 bits já foi recebido.
+    """
+
+    ddram: list[int] = field(default_factory=_blank_ddram)
+    address: int = 0
+    display_on: bool = False
+    cursor_on: bool = False
+    increment: bool = True
+    two_lines: bool = False
+    function_set: bool = False
+
+    def write_data(self, byte: int) -> None:
+        """Grava um caractere na DDRAM e move o contador de endereço.
+
+        Parameters
+        ----------
+        byte : int
+            Código do caractere.
+        """
+        self.ddram[self.address] = byte
+        step = 1 if self.increment else -1
+        self.address = (self.address + step) & ADDRESS_MASK
+
+    def command(self, byte: int) -> None:
+        """Decodifica e executa um comando.
+
+        Parameters
+        ----------
+        byte : int
+            Byte do comando.
+        """
+        if byte & 0x80:
+            self.address = byte & ADDRESS_MASK
+        elif byte & 0x20:
+            self.function_set = True
+            self.two_lines = bool(byte & 0x08)
+        elif byte & 0x10:
+            return
+        elif byte & 0x08:
+            self.display_on = bool(byte & 0x04)
+            self.cursor_on = bool(byte & 0x02)
+        elif byte & 0x04:
+            self.increment = bool(byte & 0x02)
+        elif byte & 0x02:
+            self.address = 0
+        elif byte & 0x01:
+            self.ddram = _blank_ddram()
+            self.address = 0
+            self.increment = True
+
+
+@dataclass
+class PinTimes:
+    """Instantes, em nanossegundos, que as regras de tempo comparam.
+
+    Attributes
+    ----------
+    en_rise_ns : float
+        Última subida de EN.
+    en_fall_ns : float
+        Última descida de EN.
+    ctrl_change_ns : float
+        Última mudança de RS, RW ou do dado.
+    busy_until_ns : float
+        Fim do comando em execução.
+    """
+
+    en_rise_ns: float = LONG_AGO_NS
+    en_fall_ns: float = LONG_AGO_NS
+    ctrl_change_ns: float = LONG_AGO_NS
+    busy_until_ns: float = 0.0
+
+
+class Hd44780:
+    """Estado e comportamento do chip.
+
+    Attributes
+    ----------
+    state : ChipState
+        DDRAM, contador de endereço e configuração do chip.
     violations : list[str]
         Regras do datasheet que o controlador quebrou.
     writes : list[tuple[int, int]]
@@ -67,22 +164,12 @@ class Hd44780:
             Tempo depois da criação em que o chip aceita escritas.
         """
         self.dut = dut
-        self.ddram = [0x20] * DDRAM_SIZE
-        self.address = 0
-        self.display_on = False
-        self.cursor_on = False
-        self.increment = True
-        self.two_lines = False
-        self.function_set = False
+        self.state = ChipState()
         self.violations: list[str] = []
         self.writes: list[tuple[int, int]] = []
         self.busy_polls = 0
-        self._busy_until_ns = 0.0
-        self._en_rise_ns = -1.0e12
-        self._en_fall_ns = -1.0e12
-        self._ctrl_change_ns = -1.0e12
-        self._start_ns = float(get_sim_time(unit="ns"))
-        self._power_up_ns = power_up_ns
+        self._times = PinTimes()
+        self._ready_ns = float(get_sim_time(unit="ns")) + power_up_ns
         self._snapshot = self._pins()
         dut.i_lcd_data.value = 0
         cocotb.start_soon(self._observe())
@@ -107,7 +194,7 @@ class Hd44780:
     @property
     def busy(self) -> bool:
         """Informa se o chip está executando um comando."""
-        return float(get_sim_time(unit="ns")) < self._busy_until_ns
+        return float(get_sim_time(unit="ns")) < self._times.busy_until_ns
 
     def line(self, number: int) -> str:
         """Devolve o texto visível de uma linha.
@@ -123,7 +210,8 @@ class Hd44780:
             Os 16 caracteres visíveis.
         """
         base = LINE_TWO_BASE if number else LINE_ONE_BASE
-        return "".join(chr(self.ddram[base + i]) for i in range(LINE_WIDTH))
+        ddram = self.state.ddram
+        return "".join(chr(ddram[base + i]) for i in range(LINE_WIDTH))
 
     async def _observe(self) -> None:
         """Acompanha os pinos e reage a cada mudança."""
@@ -158,10 +246,10 @@ class Hd44780:
         pins : tuple[str, ...]
             Estado atual dos pinos.
         """
-        self._ctrl_change_ns = now
+        self._times.ctrl_change_ns = now
         if pins[2] == "1":
             self.violations.append(f"{now}: RS, RW ou dado mudou com EN alto")
-        elif now - self._en_fall_ns < HOLD_NS:
+        elif now - self._times.en_fall_ns < HOLD_NS:
             self.violations.append(f"{now}: hold menor que {HOLD_NS} ns")
 
     def _on_en_rise(self, now: float, pins: tuple[str, ...]) -> None:
@@ -174,13 +262,14 @@ class Hd44780:
         pins : tuple[str, ...]
             Estado atual dos pinos.
         """
-        if now - self._ctrl_change_ns < SETUP_NS:
+        times = self._times
+        if now - times.ctrl_change_ns < SETUP_NS:
             self.violations.append(f"{now}: setup menor que {SETUP_NS} ns")
-        if now - self._en_rise_ns < CYCLE_NS:
+        if now - times.en_rise_ns < CYCLE_NS:
             self.violations.append(
                 f"{now}: ciclo de EN menor que {CYCLE_NS} ns"
             )
-        self._en_rise_ns = now
+        times.en_rise_ns = now
         rs, rw, _, _, oe = pins
         if rw == "1":
             if oe == "1":
@@ -199,11 +288,12 @@ class Hd44780:
         rs : str
             Nível de RS da leitura.
         """
+        state = self.state
         if rs == "0":
             self.busy_polls += 1
-            value = self.address | (BUSY_BIT if self.busy else 0)
+            value = state.address | (BUSY_BIT if self.busy else 0)
         else:
-            value = self.ddram[self.address]
+            value = state.ddram[state.address]
         self.dut.i_lcd_data.value = value
 
     def _on_en_fall(self, now: float, pins: tuple[str, ...]) -> None:
@@ -216,8 +306,8 @@ class Hd44780:
         pins : tuple[str, ...]
             Estado atual dos pinos.
         """
-        self._en_fall_ns = now
-        if now - self._en_rise_ns < PULSE_NS:
+        self._times.en_fall_ns = now
+        if now - self._times.en_rise_ns < PULSE_NS:
             self.violations.append(f"{now}: EN alto menor que {PULSE_NS} ns")
         rs, rw, _, data, oe = pins
         self.dut.i_lcd_data.value = 0
@@ -237,7 +327,7 @@ class Hd44780:
         byte : int
             Byte escrito.
         """
-        if now - self._start_ns < self._power_up_ns:
+        if now < self._ready_ns:
             self.violations.append(
                 f"{now}: escrita antes de 15 ms de energização"
             )
@@ -249,48 +339,11 @@ class Hd44780:
             return
         self.writes.append((rs, byte))
         if rs:
-            self._write_data(byte)
-            self._busy_until_ns = now + EXEC_NS
+            self.state.write_data(byte)
+            self._times.busy_until_ns = now + EXEC_NS
         else:
-            self._command(byte)
+            self.state.command(byte)
             slow = byte & 0xFC == 0
-            self._busy_until_ns = now + (LONG_EXEC_NS if slow else EXEC_NS)
-
-    def _write_data(self, byte: int) -> None:
-        """Grava um caractere na DDRAM e move o contador de endereço.
-
-        Parameters
-        ----------
-        byte : int
-            Código do caractere.
-        """
-        self.ddram[self.address] = byte
-        step = 1 if self.increment else -1
-        self.address = (self.address + step) & ADDRESS_MASK
-
-    def _command(self, byte: int) -> None:
-        """Decodifica e executa um comando.
-
-        Parameters
-        ----------
-        byte : int
-            Byte do comando.
-        """
-        if byte & 0x80:
-            self.address = byte & ADDRESS_MASK
-        elif byte & 0x20:
-            self.function_set = True
-            self.two_lines = bool(byte & 0x08)
-        elif byte & 0x10:
-            return
-        elif byte & 0x08:
-            self.display_on = bool(byte & 0x04)
-            self.cursor_on = bool(byte & 0x02)
-        elif byte & 0x04:
-            self.increment = bool(byte & 0x02)
-        elif byte & 0x02:
-            self.address = 0
-        elif byte & 0x01:
-            self.ddram = [0x20] * DDRAM_SIZE
-            self.address = 0
-            self.increment = True
+            self._times.busy_until_ns = now + (
+                LONG_EXEC_NS if slow else EXEC_NS
+            )

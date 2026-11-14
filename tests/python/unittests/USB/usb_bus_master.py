@@ -79,13 +79,8 @@ async def request(dut: MasterDut, is_read: int, port: int, data: int) -> None:
     data : int
         Dado de escrita.
     """
-    dut.i_start.value = 1
-    dut.i_is_read.value = is_read
-    dut.i_port.value = port
-    dut.i_wdata.value = data
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_start.value = 0
+    bus.set_inputs(dut, i_is_read=is_read, i_port=port, i_wdata=data)
+    await bus.pulse(dut, "i_start")
 
 
 @cocotb.test()

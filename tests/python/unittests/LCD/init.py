@@ -1,7 +1,6 @@
 """lcd_init: espera de energização e os sete comandos da sequência."""
 
 import cocotb
-from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
 from tests.python.utils import bus
@@ -37,12 +36,7 @@ async def start(dut: LcdInitDut) -> None:
         Inicialização sob teste.
     """
     dut.i_phy_ready.value = 1
-    cocotb.start_soon(Clock(dut.i_clk, 10, unit="ns").start())
-    dut.i_rst.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_rst.value = 0
+    await bus.hold_reset(dut)
 
 
 async def _drive_sequence(

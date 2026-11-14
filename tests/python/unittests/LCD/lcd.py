@@ -61,7 +61,10 @@ async def powers_up_and_prints_with_busy_polling(dut: LcdDut) -> None:
     await c.text(dut, WORLD)
     await c.wait_idle(dut)
     check(chip.violations == [], f"violações {chip.violations}")
-    check(chip.display_on and chip.two_lines, "função e display ligados")
+    check(
+        chip.state.display_on and chip.state.two_lines,
+        "função e display ligados",
+    )
     check(chip.line(0).rstrip() == HELLO, f"linha 1 {chip.line(0)!r}")
     check(chip.line(1).rstrip() == WORLD, f"linha 2 {chip.line(1)!r}")
     check(chip.busy_polls > 0, "o flag de ocupado foi lido")
@@ -83,9 +86,8 @@ async def clear_and_entry_mode_take_effect(dut: LcdDut) -> None:
     await c.put(dut, c.COMMAND, c.SET_LINE_ONE | 5)
     await c.text(dut, "ab")
     await c.wait_idle(dut)
-    check(
-        chip.ddram[5] == ord("a") and chip.ddram[4] == ord("b"), "decremento"
-    )
+    ddram = chip.state.ddram
+    check(ddram[5] == ord("a") and ddram[4] == ord("b"), "decremento")
     check(chip.violations == [], f"violações {chip.violations}")
 
 

@@ -1,7 +1,6 @@
 """Controle da captura: decimação, campos, abortos e posição."""
 
 import cocotb
-from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
 from tests.python.utils import bus
@@ -64,42 +63,24 @@ async def start(
     """
     for name in ("i_start", "i_line_start", "i_field_start", "i_field_end"):
         getattr(dut, name).value = 0
-    dut.i_pix_valid.value = 0
-    dut.i_field.value = 0
-    dut.i_present.value = 1
-    dut.i_x_div.value = x_div
-    dut.i_y_div.value = y_div
-    dut.i_field_sel.value = sel
-    dut.i_format.value = 0
-    dut.i_y.value = 0
-    dut.i_cb.value = 0
-    dut.i_cr.value = 0
-    cocotb.start_soon(Clock(dut.i_clk, 10, unit="ns").start())
-    dut.i_rst.value = 1
-    await bus.cycles(dut, 3)
-    dut.i_rst.value = 0
+    bus.set_inputs(
+        dut,
+        i_pix_valid=0,
+        i_field=0,
+        i_present=1,
+        i_x_div=x_div,
+        i_y_div=y_div,
+        i_field_sel=sel,
+        i_format=0,
+        i_y=0,
+        i_cb=0,
+        i_cr=0,
+    )
+    await bus.hold_reset(dut)
     recorder = Recorder()
     cocotb.start_soon(recorder.run(dut))
-    await pulse(dut, "i_start")
+    await bus.pulse(dut, "i_start")
     return recorder
-
-
-async def pulse(dut: TvCaptureDut, *names: str) -> None:
-    """Levante sinais por um ciclo.
-
-    Parameters
-    ----------
-    dut : TvCaptureDut
-        Projeto sob teste.
-    *names : str
-        Nomes dos sinais.
-    """
-    for name in names:
-        getattr(dut, name).value = 1
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    for name in names:
-        getattr(dut, name).value = 0
 
 
 def marker(row: int, col: int) -> int:
@@ -141,14 +122,14 @@ async def field(
         names = (
             ("i_line_start", "i_field_start") if n == 0 else ("i_line_start",)
         )
-        await pulse(dut, *names)
+        await bus.pulse(dut, *names)
         await bus.cycles(dut, GAP)
         row = 2 * n + number if both else n
         for col in range(SRC_WIDTH + 3):
             dut.i_y.value = marker(row, col) & 0xFF
-            await pulse(dut, "i_pix_valid")
+            await bus.pulse(dut, "i_pix_valid")
         await bus.cycles(dut, GAP)
-    await pulse(dut, "i_field_end")
+    await bus.pulse(dut, "i_field_end")
     await bus.cycles(dut, GAP)
 
 
@@ -205,7 +186,7 @@ async def test_abort_out_of_order(dut: TvCaptureDut) -> None:
     """Um segundo início de campo com o mesmo F aborta a captura."""
     rec = await start(dut, 1, 1, 0)
     await field(dut, 0)
-    await pulse(dut, "i_line_start", "i_field_start")
+    await bus.pulse(dut, "i_line_start", "i_field_start")
     await bus.cycles(dut, 3)
     check(rec.done == [0], f"fim {rec.done}")
 
@@ -214,7 +195,7 @@ async def test_abort_out_of_order(dut: TvCaptureDut) -> None:
 async def test_field_end_without_start(dut: TvCaptureDut) -> None:
     """Um fim de campo sem início não completa o quadro."""
     rec = await start(dut, 1, 1, 1)
-    await pulse(dut, "i_field_end")
+    await bus.pulse(dut, "i_field_end")
     await bus.cycles(dut, 3)
     check_equal(len(rec.done), 0)
     check_equal(int(dut.o_busy.value), 1)

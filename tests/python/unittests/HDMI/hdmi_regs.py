@@ -3,7 +3,6 @@
 from typing import Protocol
 
 import cocotb
-from cocotb.clock import Clock
 from cocotb.handle import LogicArrayObject, LogicObject
 from cocotb.triggers import RisingEdge, Timer
 
@@ -20,6 +19,7 @@ from tests.python.unittests.HDMI.hdmi_bench import (
     SEQ_COUNT,
     SEQ_CTRL,
 )
+from tests.python.utils import bus
 from tests.python.utils.check import check
 
 CLOCK_NS = 10
@@ -58,7 +58,6 @@ async def start(dut: RegsDut) -> None:
     dut : RegsDut
         Registradores sob teste.
     """
-    cocotb.start_soon(Clock(dut.i_clk, CLOCK_NS, unit="ns").start())
     for name in (
         "i_write",
         "i_address",
@@ -72,11 +71,7 @@ async def start(dut: RegsDut) -> None:
         "i_seq_nacks",
     ):
         getattr(dut, name).value = 0
-    dut.i_rst.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_rst.value = 0
+    await bus.hold_reset(dut, 3, CLOCK_NS)
 
 
 async def write(dut: RegsDut, address: int, data: int) -> None:
@@ -134,10 +129,9 @@ async def read(dut: RegsDut, address: int) -> int:
 async def test_read_map(dut: RegsDut) -> None:
     """Cada palavra lê o que o contrato diz e as outras leem zero."""
     await start(dut)
-    dut.i_seq_sent.value = 3
-    dut.i_seq_nacks.value = 1
-    dut.i_seq_done.value = 1
-    dut.i_seq_nack.value = 1
+    bus.set_inputs(
+        dut, i_seq_sent=3, i_seq_nacks=1, i_seq_done=1, i_seq_nack=1
+    )
     check(
         await read(dut, MODE) == MODE_VALUE, "modo 4, sincronismos positivos"
     )

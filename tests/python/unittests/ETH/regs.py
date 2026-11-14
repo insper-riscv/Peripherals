@@ -34,26 +34,8 @@ async def start(dut: Dut) -> None:
     """
     for name in QUIET:
         getattr(dut, name).value = 0
-    dut.i_rx_len.value = 0
-    dut.i_rx_ram_data.value = 0
-    dut.i_mdio_rdata.value = 0
+    bus.set_inputs(dut, i_rx_len=0, i_rx_ram_data=0, i_mdio_rdata=0)
     await bus.reset(dut)
-
-
-async def pulse_input(dut: Dut, name: str) -> None:
-    """Raise one input for exactly one clock edge.
-
-    Parameters
-    ----------
-    dut : Dut
-        The design under test.
-    name : str
-        Name of the input port.
-    """
-    getattr(dut, name).value = 1
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    getattr(dut, name).value = 0
 
 
 @cocotb.test()
@@ -104,7 +86,7 @@ async def test_transmit_commands(dut: Dut) -> None:
     check_equal(await bus.read(dut, reg.TX_LEN), 12)
     await bus.write(dut, reg.TX_CMD, reg.TX_START)
     check_equal(await bus.read(dut, reg.IRQ_STATUS) & reg.IRQ_ERROR, 4)
-    await pulse_input(dut, "i_tx_done")
+    await bus.pulse(dut, "i_tx_done")
     check_equal(await bus.read(dut, reg.STATUS) & reg.STATUS_TX_BUSY, 0)
     check_equal(await bus.read(dut, reg.CNT_TX), 1)
     check_equal(await bus.read(dut, reg.TX_DATA), 0)
@@ -114,9 +96,7 @@ async def test_transmit_commands(dut: Dut) -> None:
 async def test_receive_port(dut: Dut) -> None:
     """RX_DATA walks the buffer, and the commands rewind and release."""
     await start(dut)
-    dut.i_rx_ready.value = 1
-    dut.i_rx_len.value = 100
-    dut.i_rx_ram_data.value = 0xCAFE
+    bus.set_inputs(dut, i_rx_ready=1, i_rx_len=100, i_rx_ram_data=0xCAFE)
     check_equal(await bus.read(dut, reg.RX_LEN), 100)
     check_equal(int(dut.o_rx_ram_addr.value), 0)
     check_equal(await bus.read(dut, reg.RX_DATA), 0xCAFE)
@@ -143,14 +123,19 @@ async def test_mdio_registers(dut: Dut) -> None:
     await bus.write(dut, reg.MDIO_DATA, 0x6789)
     command = (1 << 10) | (0x11 << 5) | 0x13
     await bus.write(dut, reg.MDIO_CMD, command)
-    check_equal(int(dut.o_mdio_start.value), 1)
-    check_equal(int(dut.o_mdio_write.value), 1)
-    check_equal(int(dut.o_mdio_phy_addr.value), 0x11)
-    check_equal(int(dut.o_mdio_reg_addr.value), 0x13)
-    check_equal(int(dut.o_mdio_wdata.value), 0x6789)
+    check_equal(
+        (
+            int(dut.o_mdio_start.value),
+            int(dut.o_mdio_write.value),
+            int(dut.o_mdio_phy_addr.value),
+            int(dut.o_mdio_reg_addr.value),
+            int(dut.o_mdio_wdata.value),
+        ),
+        (1, 1, 0x11, 0x13, 0x6789),
+    )
     await bus.write(dut, reg.MDIO_CMD, (0x11 << 5) | 0x02)
     dut.i_mdio_rdata.value = 0x0141
-    await pulse_input(dut, "i_mdio_done")
+    await bus.pulse(dut, "i_mdio_done")
     check_equal(await bus.read(dut, reg.MDIO_DATA), 0x0141)
     check_equal(await bus.read(dut, reg.IRQ_STATUS) & reg.IRQ_MDIO_DONE, 8)
     dut.i_mdio_busy.value = 1
@@ -170,17 +155,17 @@ async def test_counters_and_interrupts(dut: Dut) -> None:
         ("i_ev_dropped", reg.CNT_DROP),
         ("i_ev_filtered", reg.CNT_FILTER),
     ):
-        await pulse_input(dut, name)
-        await pulse_input(dut, name)
+        await bus.pulse(dut, name)
+        await bus.pulse(dut, name)
         check_equal(await bus.read(dut, address), 2)
         await bus.write(dut, address, 0)
         check_equal(await bus.read(dut, address), 0)
     check_equal(int(dut.o_irq.value), 0)
     await bus.write(dut, reg.IRQ_STATUS, 0xF)
     await bus.write(dut, reg.IRQ_ENABLE, reg.IRQ_RX_FRAME | reg.IRQ_PHY)
-    await pulse_input(dut, "i_ev_crc")
+    await bus.pulse(dut, "i_ev_crc")
     check_equal(int(dut.o_irq.value), 0)
-    await pulse_input(dut, "i_ev_frame")
+    await bus.pulse(dut, "i_ev_frame")
     check_equal(int(dut.o_irq.value), 1)
     await bus.write(dut, reg.IRQ_STATUS, 0xF)
     check_equal(int(dut.o_irq.value), 0)

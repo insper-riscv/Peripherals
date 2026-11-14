@@ -47,7 +47,9 @@ async def initializes_then_drains_the_queue(dut: LcdDut) -> None:
     check(
         chip.writes == [*INIT_WRITES, (1, ord("A"))], f"escritas {chip.writes}"
     )
+    state = chip.state
     check(
-        chip.two_lines and chip.display_on and chip.increment, "estado do chip"
+        state.two_lines and state.display_on and state.increment,
+        "estado do chip",
     )
     check(chip.line(0).startswith("A"), f"linha 1 {chip.line(0)!r}")

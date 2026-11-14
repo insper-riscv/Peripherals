@@ -1,8 +1,6 @@
 """lcd_phy: escrita, leitura do ocupado, atraso e tempo limite."""
 
 import cocotb
-from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, Timer
 
 from tests.python.utils import bus
 from tests.python.utils.check import check
@@ -26,20 +24,38 @@ async def setup(dut: LcdPhyDut) -> None:
     dut : LcdPhyDut
         Camada física sob teste.
     """
-    dut.i_start.value = 0
-    dut.i_rs.value = 0
-    dut.i_data.value = 0
-    dut.i_poll.value = 0
-    dut.i_delay.value = 0
-    dut.i_busy_flag.value = 0
-    cocotb.start_soon(Clock(dut.i_clk, 10, unit="ns").start())
-    dut.i_rst.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_rst.value = 0
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
+    bus.set_inputs(
+        dut,
+        i_start=0,
+        i_rs=0,
+        i_data=0,
+        i_poll=0,
+        i_delay=0,
+        i_busy_flag=0,
+    )
+    await bus.hold_reset(dut)
+    await bus.cycles(dut, 1)
+
+
+async def request(
+    dut: LcdPhyDut, word: tuple[int, int], poll: int, delay: int
+) -> None:
+    """Apresenta um pedido e dá o pulso de início por um ciclo.
+
+    Parameters
+    ----------
+    dut : LcdPhyDut
+        Camada física sob teste.
+    word : tuple[int, int]
+        RS e byte do pedido.
+    poll : int
+        Espera pelo flag de ocupado.
+    delay : int
+        Atraso fixo em ciclos.
+    """
+    rs, data = word
+    bus.set_inputs(dut, i_rs=rs, i_data=data, i_poll=poll, i_delay=delay)
+    await bus.pulse(dut, "i_start")
 
 
 async def run(
@@ -69,13 +85,7 @@ async def run(
     list[tuple[int, int, int, int, int]]
         Por ciclo, RS, RW, EN, dado e habilitação, até o repouso.
     """
-    dut.i_rs.value, dut.i_data.value = word
-    dut.i_poll.value = poll
-    dut.i_delay.value = delay
-    dut.i_start.value = 1
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_start.value = 0
+    await request(dut, word, poll, delay)
     trace: list[tuple[int, int, int, int, int]] = []
     reads = 0
     for _ in range(MAX_CYCLES):
@@ -153,13 +163,7 @@ async def busy_timeout(dut: LcdPhyDut) -> None:
     """Desista com o ocupado preso e acenda o tempo limite."""
     await setup(dut)
     seen = False
-    dut.i_rs.value = 1
-    dut.i_data.value = 0x11
-    dut.i_poll.value = 1
-    dut.i_start.value = 1
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_start.value = 0
+    await request(dut, (1, 0x11), 1, 0)
     for _ in range(MAX_CYCLES):
         if int(dut.o_lcd_en.value) and int(dut.o_lcd_rw.value):
             dut.i_busy_flag.value = 1

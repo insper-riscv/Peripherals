@@ -26,9 +26,7 @@ async def run(dut: AudioXckGenDut, step: int, modulus: int) -> int:
     int
         Quantidade de pulsos de o_edge na janela.
     """
-    dut.i_enable.value = 1
-    dut.i_step.value = step
-    dut.i_mod.value = modulus
+    bus.set_inputs(dut, i_enable=1, i_step=step, i_mod=modulus)
     await bus.hold_reset(dut)
     flips = 0
     last = int(dut.o_xck.value)
