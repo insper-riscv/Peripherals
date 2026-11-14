@@ -10,7 +10,7 @@ The peripheral is made of three blocks.
 
 | Block | Function |
 | :--- | :--- |
-| `sd_spi_phy` | One-byte SPI master in mode 0 (SCLK idles low, MOSI changes on the falling edge and the card samples on the rising edge), with the divider captured at the start of each byte |
+| `sd_spi_phy` | The generic SPI master (`spi_master`, see [spi.md](../SPI/spi.md)) fixed at mode 0 (SCLK idles low, MOSI changes on the falling edge and the card samples on the rising edge), with an 8-bit word, most significant bit first and the divider captured at the start of each byte |
 | `uart_fifo` | Synchronous byte queue, one instance for transmit and one for receive |
 | `sd_spi` | Top with the MISO synchronizer, the registers, the sticky flags and the interrupt |
 
