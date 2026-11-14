@@ -713,6 +713,9 @@ mutant audio "$ap2" audio '' audio_w1c_wrong_bit "s/if i_data_in(STAT_TX_DROPPED
 mutant audio "$ap2" audio '' audio_word_bits_lost "s/word_sel <= i_data_in(9 downto 8);/word_sel <= i_data_in(8 downto 7);/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
 mutant audio "$ap2" audio '' audio_clock_not_gated "s/i_enable => clk_en,/i_enable => '1',/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
 
+# MAX 10 ADC peripheral (own file).
+source "$root/formal/adc.sh"
+
 # PLIC (own file, like the external interrupt controller).
 source "$root/formal/plic.sh"
 

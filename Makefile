@@ -5,7 +5,7 @@ WDIR  := build/ghdl
 
 # The peripherals use the blocks of Common-Components, included as a submodule in src/common. The Quartus
 # shells of src/*/cyclone-v/ need Intel's megafunctions, which the toolchain image does not carry.
-VHDL      := $(shell find src tests/vhdl -name '*.vhd' -not -path 'src/common/*' -not -path '*/cyclone-v/*' | sort) $(sort $(wildcard src/common/src/*.vhd))
+VHDL      := $(shell find src tests/vhdl -name '*.vhd' -not -path 'src/common/*' -not -path '*/cyclone-v/*' -not -path '*/max10/*' | sort) $(sort $(wildcard src/common/src/*.vhd))
 
 .PHONY: check test driver-test usb-driver-test paths formal clean
 

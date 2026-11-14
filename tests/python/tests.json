@@ -2030,6 +2030,61 @@
             "--std=08"
         ]
     },
+    "Max10Adc": {
+        "toplevel": "max10_adc_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/ADC/soc/max10_adc_consts.vhd",
+            "src/ADC/soc/max10_adc_sequencer.vhd",
+            "src/ADC/soc/max10_adc.vhd",
+            "tests/vhdl/max10_adc_core_model.vhd",
+            "tests/vhdl/max10_adc_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.max10_adc",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Max10AdcLateResponse": {
+        "toplevel": "max10_adc_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/ADC/soc/max10_adc_consts.vhd",
+            "src/ADC/soc/max10_adc_sequencer.vhd",
+            "src/ADC/soc/max10_adc.vhd",
+            "tests/vhdl/max10_adc_core_model.vhd",
+            "tests/vhdl/max10_adc_tb.vhd"
+        ],
+        "parameters": {
+            "rsp_late": true
+        },
+        "test_module": "tests.python.unittests.ADC.late_response",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Max10AdcSequencer": {
+        "toplevel": "max10_adc_sequencer",
+        "sources": [
+            "src/ADC/soc/max10_adc_consts.vhd",
+            "src/ADC/soc/max10_adc_sequencer.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.sequencer",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "LCD": {
         "toplevel": "lcd",
         "sources": [
