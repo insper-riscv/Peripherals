@@ -432,6 +432,42 @@ expect "a byte has exactly 8 rising edges of SCLK, SCLK moves only while busy an
 expect "cover: the done interrupt, the receive interrupt and a dropped write are reachable" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" cover 40 '-DCOVER' sdspi_cover)"
 expect "cover: a complete byte of 8 rising edges is reachable" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" cover 40 '-DBYTE -DCOVER' sdspi_byte_cover)"
 
+echo "sd_native"
+path_of[sd_native_pkg]="$root/src/SD/native/sd_native_pkg.vhd"
+path_of[sd_crc7]="$root/src/SD/native/sd_crc7.vhd"
+path_of[sd_crc16]="$root/src/SD/native/sd_crc16.vhd"
+path_of[sd_cmd]="$root/src/SD/native/sd_cmd.vhd"
+mut_expose=(); mut_open=0
+cp7="$f/sd_crc_props.sv"; cmdp="$f/sd_cmd_props.sv"
+sdcmd_srcs=(sd_native_pkg sd_crc7 sd_cmd)
+sdcmdgen=(-gncr_clocks=4 -ggap_clocks=2)
+build sd_crc7 sdcrc7 sd_crc7 --
+expect "CRC7 register is the remainder of the long division of the message by x^7 + x^3 + 1 (bounded, 52 cycles, 48-bit messages)" PASS "$(prove sdcrc7.v "$cp7" bmc 52 '' sdcrc7_ref)"
+expect "CRC7: a message followed by its own CRC7 leaves the register at zero (bounded, 56 cycles)" PASS "$(prove sdcrc7.v "$cp7" bmc 56 '-DRESIDUE' sdcrc7_residue)"
+expect "CRC7 of the 40 bits of CMD0 is 0x4A (bounded, 44 cycles)" PASS "$(prove sdcrc7.v "$cp7" bmc 44 '-DVEC' sdcrc7_vec)"
+expect "cover: a message of 5 bits with a zero and a non-zero CRC7 is reachable" PASS "$(prove sdcrc7.v "$cp7" cover 12 '-DCOVER' sdcrc7_cover)"
+expect "cover: the CRC7 residue check is reachable" PASS "$(prove sdcrc7.v "$cp7" cover 24 '-DRESIDUE -DCOVER' sdcrc7_residue_cover)"
+build sd_crc16 sdcrc16 sd_crc16 --
+expect "CRC16 register is the remainder of the long division of the message by x^16 + x^12 + x^5 + 1 (bounded, 52 cycles, 48-bit messages)" PASS "$(prove sdcrc16.v "$cp7" bmc 52 '-DCRC16' sdcrc16_ref)"
+expect "CRC16: a message followed by its own CRC16 leaves the register at zero (bounded, 70 cycles)" PASS "$(prove sdcrc16.v "$cp7" bmc 70 '-DCRC16 -DRESIDUE' sdcrc16_residue)"
+expect "CRC16 of the 72 bits of 123456789 is 0x31C3 (bounded, 76 cycles)" PASS "$(prove sdcrc16.v "$cp7" bmc 76 '-DCRC16 -DVEC' sdcrc16_vec)"
+expect "cover: a message of 5 bits with a zero and a non-zero CRC16 is reachable" PASS "$(prove sdcrc16.v "$cp7" cover 12 '-DCRC16 -DCOVER' sdcrc16_cover)"
+expect "cover: the CRC16 residue check is reachable" PASS "$(prove sdcrc16.v "$cp7" cover 40 '-DCRC16 -DRESIDUE -DCOVER' sdcrc16_residue_cover)"
+build sd_cmd sdcmd "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+expect "with a free start and any strobe spacing, outputs move on falling edges only, the header bits are those of the accepted command and errors clear on start (bounded, 56 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 56 '' sdcmd_frame_free)"
+expect "command frame is exactly 48 bits (start, transmission, index, argument, CRC7, end) at one strobe per cycle (bounded, 106 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 106 '-DFAST' sdcmd_frame)"
+expect "without a response the timeout error comes after exactly ncr_clocks + gap_clocks rises, with no other error (bounded, 124 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 124 '-DTIMEOUT' sdcmd_timeout)"
+expect "a valid short response (R1, R6, R7) is accepted with its index and argument and no error (bounded, 208 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 208 '-DFAST -DRESP' sdcmd_resp_short)"
+expect "a short response without CRC7 and index checks (R3) is accepted whatever its CRC7 and index (bounded, 208 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 208 '-DFAST -DRESP -DNOCRC -DRSP=2' sdcmd_resp_nocrc)"
+expect "a wrong CRC7 in a short response is reported as a CRC error and never as a valid response (bounded, 208 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 208 '-DFAST -DRESP -DBADCRC' sdcmd_resp_badcrc)"
+expect "a wrong index in a short response is reported as an index error and never as a valid response (bounded, 208 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 208 '-DFAST -DRESP -DBADIDX' sdcmd_resp_badidx)"
+expect "a short response whose end bit is low is reported as a frame error and never as a valid response (bounded, 208 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 208 '-DFAST -DRESP -DBADEND' sdcmd_resp_badend)"
+expect "after a response the command waits for DAT0 high or the timeout before it ends (bounded, 216 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 216 '-DFAST -DRESP -DBUSY' sdcmd_resp_busy)"
+expect "abort returns the command to idle on the next cycle, with no end of command (bounded, 24 cycles)" PASS "$(prove sdcmd.v "$cmdp" bmc 24 '-DABORT' sdcmd_abort)"
+expect "cover: the frame is sent and a command ends" PASS "$(prove sdcmd.v "$cmdp" cover 110 '-DFAST -DCOVER' sdcmd_frame_cover)"
+expect "cover: a command ends in a timeout" PASS "$(prove sdcmd.v "$cmdp" cover 124 '-DTIMEOUT -DCOVER' sdcmd_timeout_cover)"
+expect "cover: a valid response is accepted and the command ends" PASS "$(prove sdcmd.v "$cmdp" cover 208 '-DFAST -DRESP -DCOVER' sdcmd_resp_cover)"
+
 echo "console"
 path_of[console]="$root/src/UART/console/console.vhd"
 path_of[console_equiv]="$root/tests/vhdl/console_equiv.vhd"
@@ -758,6 +794,39 @@ mutant audio "$ap2" audio '' audio_clock_not_gated "s/i_enable => clk_en,/i_enab
 
 # MAX 10 ADC peripheral (own file).
 source "$root/formal/adc.sh"
+
+mut_expose=()
+c7="$f/sd_crc_props.sv"; cm="$f/sd_cmd_props.sv"
+mutant sd_crc7 "$c7" sd_crc7 '' sdcrc7_poly "s/:= \"0001001\";/:= \"0001011\";/" 52 sd_crc7 --
+mutant sd_crc7 "$c7" sd_crc7 '-DVEC' sdcrc7_poly_vec "s/:= \"0001001\";/:= \"0001101\";/" 44 sd_crc7 --
+mutant sd_crc7 "$c7" sd_crc7 '' sdcrc7_no_feedback_input "s/feedback := crc(6) xor i_bit;/feedback := crc(6);/" 52 sd_crc7 --
+mutant sd_crc7 "$c7" sd_crc7 '' sdcrc7_clear_ignored "s/if i_rst = '1' or i_clear = '1' then/if i_rst = '1' then/" 52 sd_crc7 --
+mutant sd_crc7 "$c7" sd_crc7 '' sdcrc7_enable_ignored "s/elsif i_enable = '1' then/elsif true then/" 52 sd_crc7 --
+mutant sd_crc7 "$c7" sd_crc7 '-DRESIDUE' sdcrc7_shift_right "s/crc <= crc(5 downto 0) \& '0';/crc <= '0' \& crc(6 downto 1);/" 56 sd_crc7 --
+mutant sd_crc16 "$c7" sd_crc16 '-DCRC16' sdcrc16_poly "s/:= \"0001000000100001\";/:= \"0001000000100011\";/" 52 sd_crc16 --
+mutant sd_crc16 "$c7" sd_crc16 '-DCRC16 -DVEC' sdcrc16_poly_vec "s/:= \"0001000000100001\";/:= \"0001000000100101\";/" 76 sd_crc16 --
+mutant sd_crc16 "$c7" sd_crc16 '-DCRC16' sdcrc16_no_feedback_input "s/feedback := crc(15) xor i_bit;/feedback := crc(15);/" 52 sd_crc16 --
+mutant sd_crc16 "$c7" sd_crc16 '-DCRC16' sdcrc16_clear_ignored "s/if i_rst = '1' or i_clear = '1' then/if i_rst = '1' then/" 52 sd_crc16 --
+mutant sd_crc16 "$c7" sd_crc16 '-DCRC16' sdcrc16_enable_ignored "s/elsif i_enable = '1' then/elsif true then/" 52 sd_crc16 --
+mutant sd_crc16 "$c7" sd_crc16 '-DCRC16 -DRESIDUE' sdcrc16_shift_right "s/crc <= crc(14 downto 0) \& '0';/crc <= '0' \& crc(15 downto 1);/" 70 sd_crc16 --
+
+mutant sd_cmd "$cm" sd_cmd '-DFAST' sdcmd_end_bit_low "s/state <= S_SEND_END;/state <= S_SEND_END; cmd_out <= '0';/" 106 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST' sdcmd_crc_bit_order "s/cmd_out <= crc_value(CMD_LAST_POS - 1 - pos);/cmd_out <= crc_value(pos - CMD_HEADER_BITS);/" 106 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST' sdcmd_short_header "s/if pos < CMD_HEADER_BITS then/if pos < CMD_HEADER_BITS - 1 then/" 106 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST' sdcmd_crc_wrong_bit "s/crc_bit <= frame(CMD_HEADER_BITS - 1);/crc_bit <= frame(CMD_HEADER_BITS - 2);/" 106 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST' sdcmd_launch_on_rise "s/if i_fall = '1' then/if i_rise = '1' then/" 106 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DTIMEOUT' sdcmd_timeout_late "s/elsif wait_cnt = ncr_clocks - 1 then/elsif wait_cnt = ncr_clocks then/" 124 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DTIMEOUT' sdcmd_gap_short "s/if wait_cnt = gap_clocks - 1 then/if wait_cnt = gap_clocks - 2 then/" 124 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP' sdcmd_crc_check_inverted "s/and rx_crc \/= crc_value then/and rx_crc = crc_value then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP -DBADIDX' sdcmd_index_check_off "s/if response_r = RSP_SHORT and rsp_shift(37 downto 32) \/= index_r then/if response_r = RSP_NONE and rsp_shift(37 downto 32) \/= index_r then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP' sdcmd_body_first_late "s/if pos >= body_first and pos <= body_last then/if pos > body_first and pos <= body_last then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP' sdcmd_crc_range_short "s/bit_cnt <= SHORT_HEAD_LAST then/bit_cnt < SHORT_HEAD_LAST then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP' sdcmd_rx_crc_range "s/if pos > body_last and pos <= crc_last then/if pos >= body_last and pos <= crc_last then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP -DBADEND' sdcmd_end_check_off "s/if i_cmd \/= '1' then/if i_cmd \/= '1' and false then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP -DBADCRC' sdcmd_ok_on_error "s/resp_ok <= not (crc_bad or index_bad or frame_bad);/resp_ok <= '1';/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP -DBUSY' sdcmd_busy_polarity "s/if i_dat0 = '1' then/if i_dat0 = '0' then/" 216 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DABORT' sdcmd_abort_ignored "s/if i_rst = '1' or i_abort = '1' then/if i_rst = '1' then/" 24 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+
 
 # PLIC (own file, like the external interrupt controller).
 source "$root/formal/plic.sh"

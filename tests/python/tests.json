@@ -392,6 +392,114 @@
             "--std=08"
         ]
     },
+    "SDCrc7": {
+        "toplevel": "sd_crc7",
+        "sources": [
+            "src/SD/native/sd_crc7.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_crc",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDCrc16": {
+        "toplevel": "sd_crc16",
+        "sources": [
+            "src/SD/native/sd_crc16.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_crc",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDClockGen": {
+        "toplevel": "sd_clock_gen",
+        "sources": [
+            "src/SD/native/sd_clock_gen.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_clock_gen",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDBlockBuffer": {
+        "toplevel": "sd_block_buffer",
+        "sources": [
+            "src/SD/native/sd_native_pkg.vhd",
+            "src/SD/native/sd_block_buffer.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_block_buffer",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDCmd": {
+        "toplevel": "sd_cmd",
+        "sources": [
+            "src/SD/native/sd_native_pkg.vhd",
+            "src/SD/native/sd_crc7.vhd",
+            "src/SD/native/sd_cmd.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_cmd",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDData": {
+        "toplevel": "sd_data",
+        "sources": [
+            "src/SD/native/sd_native_pkg.vhd",
+            "src/SD/native/sd_crc16.vhd",
+            "src/SD/native/sd_data.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_data",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDNative": {
+        "toplevel": "sd_native",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/SD/native/sd_native_pkg.vhd",
+            "src/SD/native/sd_crc7.vhd",
+            "src/SD/native/sd_crc16.vhd",
+            "src/SD/native/sd_clock_gen.vhd",
+            "src/SD/native/sd_cmd.vhd",
+            "src/SD/native/sd_data.vhd",
+            "src/SD/native/sd_block_buffer.vhd",
+            "src/SD/native/sd_native.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_native",
+        "parameters": {
+            "CLOCK_HZ": "3200000"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "UART": {
         "toplevel": "uart",
         "sources": [
