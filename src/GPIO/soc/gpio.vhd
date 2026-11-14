@@ -1,26 +1,45 @@
 -- =============================================================================
--- Módulo de E/S de uso geral
+-- Bloco de E/S de uso geral com partição adaptativa
 --
--- Liga o processador a um conjunto de pinos bidirecionais. Integra várias
--- instâncias de gpio_cell, um decodificador das operações mapeadas em memória e
--- um multiplexador para a leitura de volta. Suporta controle de direção,
--- operações de saída e configuração de interrupção. A lógica interna depende de
--- data_width.
+-- Reúne pin_count pinos em group_count grupos. Cada grupo é um gpio_group com o
+-- seu arquivo de registradores de 64 bytes, em passos de 64 bytes a partir da
+-- base do bloco, e o bloco ocupa uma única janela do interconector, de
+-- group_count * 64 bytes arredondado para potência de dois. O bit k dos
+-- registradores de um grupo é o k-ésimo pino da lista do grupo, na ordem escrita.
+-- Um pino fora de todos os grupos fica desligado: se é só saída, é mantido no
+-- nível inativo da placa; senão, fica em alta impedância e não é lido.
+--
+-- As listas vêm em generics vetoriais, sem tipo da VHDL-2008, para o Quartus
+-- Prime Lite aceitar o bloco. Uma lista de números tem um campo de 8 bits por
+-- elemento (o elemento k nos bits 8k+7 a 8k), e uma lista de direções tem 2 bits
+-- por pino. O formato completo está em docs/pt-br/GPIO/gpio.md.
 -- =============================================================================
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 library work;
+use work.config_pkg.all;
+use work.gpio_pkg.all;
 
 entity gpio is
     generic (
-        -- Largura do barramento de dados e número de pinos;
-        -- zero deixa o módulo sem pino, sem registrador e sem interrupção.
-        data_width : natural := 32;
-        -- Polaridade dos pinos: verdadeiro faz o programa ver e escrever ativo em '1'
-        -- sobre pinos ativos em nível baixo.
-        active_low : boolean := false
+        -- Pinos do bloco, numerados de 0 a pin_count - 1 (de 1 a 255).
+        pin_count      : positive range 1 to 255                                    := 32;
+        -- Grupos do bloco (de 1 a 255, cada um com 1 a 32 pinos).
+        group_count    : positive range 1 to 255                                    := 1;
+        -- Total de índices de pino listados em group_members, a soma de group_sizes.
+        member_count   : positive range 1 to 255                                    := 32;
+        -- Pinos de cada grupo, um campo de 8 bits por grupo: o grupo g nos bits 8g+7 a 8g.
+        group_sizes    : std_logic_vector(8 * group_count - 1 downto 0)             := x"20";
+        -- Índices de pino de todos os grupos, em sequência e na ordem escrita, um campo de 8 bits por membro.
+        group_members  : std_logic_vector(8 * member_count - 1 downto 0)            :=
+            x"1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100";
+        -- Direção fixa de cada pino, 2 bits por pino (0 livre, 1 só entrada, 2 só saída): o pino p nos bits 2p+1 a 2p.
+        pin_dirs       : std_logic_vector(2 * pin_count - 1 downto 0)               := (others => '0');
+        -- Polaridade de cada pino: '1' é ativo em nível baixo e '0' é ativo em nível alto; o pino p no bit p.
+        pin_active_low : std_logic_vector(pin_count - 1 downto 0)                   := (others => '0')
     );
     port (
         -- Clock do módulo.
@@ -30,10 +49,10 @@ entity gpio is
         i_rst : in    std_logic;
 
         -- Dado de escrita vindo do processador.
-        i_data_in : in    std_logic_vector(data_width - 1 downto 0);
+        i_data_in : in    word_t;
 
-        -- Endereço de palavra acessado pelo processador.
-        i_address : in    std_logic_vector(3 downto 0);
+        -- Endereço de palavra dentro da janela: o grupo nos bits altos e a palavra do grupo nos 4 bits baixos.
+        i_address : in    std_logic_vector(block_addr_width(group_count) - 1 downto 0);
 
         -- Pulso de escrita do processador ('1' = escreve).
         i_write : in    std_logic;
@@ -42,130 +61,157 @@ entity gpio is
         i_read : in    std_logic;
 
         -- Dado de leitura para o processador.
-        o_data_out : out   std_logic_vector(data_width - 1 downto 0);
+        o_data_out : out   word_t;
 
-        -- Requisição de interrupção, ativa em '1'.
+        -- Requisição de interrupção, ativa em '1' enquanto algum grupo tem pendência.
         o_irq : out   std_logic;
 
         -- Pinos de E/S físicos (bidirecionais).
-        io_gpio_pins : inout std_logic_vector(data_width - 1 downto 0)
+        io_gpio_pins : inout std_logic_vector(pin_count - 1 downto 0)
     );
 end entity gpio;
 
 architecture rtl of gpio is
 
-    -- Habilitações de escrita dos registradores.
-    signal wr_en  : std_logic_vector(7 downto 0);
-    -- Operação do registrador de saída.
-    signal wr_op  : std_logic_vector(1 downto 0);
-    -- Seletor do multiplexador de leitura.
-    signal rd_sel : std_logic_vector(2 downto 0);
+    -- Matriz das palavras de leitura, uma por grupo.
+    type rdata_array_t is array (0 to group_count - 1) of word_t;
 
-    -- Registrador de direção de todas as células.
-    signal dir_reg       : std_logic_vector(data_width - 1 downto 0);
-    -- Registrador de saída de todas as células.
-    signal out_reg       : std_logic_vector(data_width - 1 downto 0);
-    -- Entradas dos pinos sincronizadas.
-    signal pins_input    : std_logic_vector(data_width - 1 downto 0);
-    -- Máscaras globais de interrupção de todas as células.
-    signal irq_mask      : std_logic_vector(data_width - 1 downto 0);
-    -- Máscaras de borda de subida de todas as células.
-    signal irq_rise_mask : std_logic_vector(data_width - 1 downto 0);
-    -- Máscaras de borda de descida de todas as células.
-    signal irq_fall_mask : std_logic_vector(data_width - 1 downto 0);
-    -- Status de interrupção de todas as células.
-    signal irq_status    : std_logic_vector(data_width - 1 downto 0);
-    -- Modos de nível de todas as células.
-    signal irq_level     : std_logic_vector(data_width - 1 downto 0);
-    -- O endereço lido é o do modo de nível.
-    signal rd_level      : std_logic;
-    -- Modo de nível entregue ao multiplexador de leitura (zero fora do seu endereço).
-    signal level_read    : std_logic_vector(data_width - 1 downto 0);
-
-    -- Estado interno de cada célula, oito bits por célula.
-    type dout_array_t is array (0 to data_width - 1) of std_logic_vector(7 downto 0);
-
-    -- Estado interno lido de cada célula.
-    signal dout_array : dout_array_t;
-
-    -- Dado de leitura escolhido pelo seletor.
-    signal   selected_read : std_logic_vector(data_width - 1 downto 0);
-    -- Vetor de zeros para as leituras não usadas.
-    constant ZERO_VECTOR   : std_logic_vector(data_width - 1 downto 0) := (others => '0');
+    -- Palavras de leitura de cada grupo, zero quando o grupo não é o endereçado.
+    signal group_rdata : rdata_array_t;
+    -- Interrupção de cada grupo.
+    signal group_irq   : std_logic_vector(group_count - 1 downto 0);
+    -- Índice do grupo endereçado.
+    signal group_sel   : natural range 0 to 2 ** group_index_bits(group_count) - 1;
 
 begin
 
-    -----------------------------------------------------------------------------
-    -- Decodificador de operações do GPIO
-    -----------------------------------------------------------------------------
-    u_gpio_operation_decoder : entity work.gpio_operation_decoder
-        port map (
-            i_address  => i_address,
-            i_write    => i_write,
-            i_read     => i_read,
-            o_wr_en    => wr_en,
-            o_wr_op    => wr_op,
-            o_rd_sel   => rd_sel,
-            o_rd_level => rd_level
-        );
+    -- O índice do grupo são os bits do endereço acima dos 4 da palavra; com um grupo só, é zero.
+    gen_sel_one : if group_count = 1 generate
+        group_sel <= 0;
+    end generate gen_sel_one;
+
+    gen_sel_many : if group_count > 1 generate
+        group_sel <= to_integer(unsigned(i_address(i_address'high downto GROUP_WORD_BITS)));
+    end generate gen_sel_many;
 
     -----------------------------------------------------------------------------
-    -- Instâncias de gpio_cell, uma por pino
+    -- Grupos
     -----------------------------------------------------------------------------
+    gen_groups : for g in 0 to group_count - 1 generate
 
-    gen_cells : for i in 0 to data_width - 1 generate
+        -- Pinos do grupo.
+        constant SIZE  : positive := field_value(group_sizes, g);
+        -- Posição do primeiro membro do grupo na lista de membros.
+        constant FIRST : natural  := field_sum(group_sizes, g);
+
+        -- O grupo é o endereçado.
+        signal hit    : std_logic;
+        -- Valor de cada pino do grupo.
+        signal pins_i : std_logic_vector(SIZE - 1 downto 0);
+        -- Valor que o grupo dirige a cada pino.
+        signal pins_d : std_logic_vector(SIZE - 1 downto 0);
+        -- Habilitação do tristate de cada pino do grupo.
+        signal pins_e : std_logic_vector(SIZE - 1 downto 0);
+        -- Palavra de leitura do grupo.
+        signal rdata  : word_t;
+
     begin
 
-        u_gpio_cell : entity work.gpio_cell
+        hit <= '1' when group_sel = g else '0';
+
+        u_group : entity work.gpio_group
             generic map (
-                active_low => active_low
+                width      => SIZE,
+                dir_modes  => member_dirs(pin_dirs, group_members, FIRST, SIZE),
+                active_low => member_lows(pin_active_low, group_members, FIRST, SIZE)
             )
             port map (
-                i_clk        => i_clk,
-                i_rst        => i_rst,
-                i_data_in    => i_data_in(i),
-                o_data_out   => dout_array(i),
-                i_wr_signals => wr_en,
-                i_wr_op      => wr_op,
-                io_gpio_pin  => io_gpio_pins(i)
+                i_clk      => i_clk,
+                i_rst      => i_rst,
+                i_data_in  => i_data_in,
+                i_address  => i_address(GROUP_WORD_BITS - 1 downto 0),
+                i_write    => i_write and hit,
+                i_read     => i_read and hit,
+                o_data_out => rdata,
+                o_irq      => group_irq(g),
+                i_pins     => pins_i,
+                o_pins_drv => pins_d,
+                o_pins_en  => pins_e
             );
 
-        dir_reg(i)       <= dout_array(i)(0);
-        out_reg(i)       <= dout_array(i)(1);
-        pins_input(i)    <= dout_array(i)(2);
-        irq_mask(i)      <= dout_array(i)(3);
-        irq_rise_mask(i) <= dout_array(i)(4);
-        irq_fall_mask(i) <= dout_array(i)(5);
-        irq_status(i)    <= dout_array(i)(6);
-        irq_level(i)     <= dout_array(i)(7);
-    end generate gen_cells;
+        group_rdata(g) <= rdata when hit = '1' else (others => '0');
+
+        gen_pins : for k in 0 to SIZE - 1 generate
+            -- Índice do pino do k-ésimo membro do grupo.
+            constant PIN : natural := field_value(group_members, FIRST + k);
+        begin
+
+            pins_i(k)          <= io_gpio_pins(PIN);
+            io_gpio_pins(PIN) <= pins_d(k) when pins_e(k) = '1' else 'Z';
+
+        end generate gen_pins;
+
+    end generate gen_groups;
 
     -----------------------------------------------------------------------------
-    -- Multiplexador de leitura
+    -- Leitura: a palavra do grupo endereçado; um endereço de grupo inexistente lê zero.
     -----------------------------------------------------------------------------
-    u_read_mux : entity work.mux_8x1
-        generic map (
-            data_width => data_width
-        )
-        port map (
-            i_d0  => dir_reg,
-            i_d1  => out_reg,
-            i_d2  => pins_input,
-            i_d3  => irq_status,
-            i_d4  => irq_mask,
-            i_d5  => irq_rise_mask,
-            i_d6  => irq_fall_mask,
-            i_d7  => level_read,
-            i_sel => rd_sel,
-            o_d   => selected_read
-        );
+    p_read : process (group_rdata) is
 
-    level_read <= irq_level when rd_level = '1' else ZERO_VECTOR;
-    o_data_out <= selected_read;
+        -- Acumulador do OU das palavras.
+        variable acc : word_t;
+
+    begin
+
+        acc := (others => '0');
+
+        for g in 0 to group_count - 1 loop
+
+            acc := acc or group_rdata(g);
+
+        end loop;
+
+        o_data_out <= acc;
+
+    end process p_read;
+
+    p_irq : process (group_irq) is
+
+        -- Acumulador do OU das interrupções.
+        variable acc : std_logic;
+
+    begin
+
+        acc := '0';
+
+        for g in 0 to group_count - 1 loop
+
+            acc := acc or group_irq(g);
+
+        end loop;
+
+        o_irq <= acc;
+
+    end process p_irq;
+
     -----------------------------------------------------------------------------
-    -- Lógica de geração da interrupção.
-    -- A interrupção sobe se qualquer bit de status de interrupção estiver ligado (OU de redução).
+    -- Pinos desligados: só saída é mantida no nível inativo, o resto fica solto
     -----------------------------------------------------------------------------
-    o_irq      <= '1' when irq_status /= ZERO_VECTOR else '0';
+    gen_off : for p in 0 to pin_count - 1 generate
+    begin
+
+        gen_off_pin : if not is_member(group_members, member_count, p) generate
+
+            gen_hold : if to_mode(pin_dirs(2 * p + 1 downto 2 * p)) = DIR_OUTPUT generate
+                io_gpio_pins(p) <= pin_active_low(p);
+            end generate gen_hold;
+
+            gen_float : if to_mode(pin_dirs(2 * p + 1 downto 2 * p)) /= DIR_OUTPUT generate
+                io_gpio_pins(p) <= 'Z';
+            end generate gen_float;
+
+        end generate gen_off_pin;
+
+    end generate gen_off;
 
 end architecture rtl;

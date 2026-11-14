@@ -73,6 +73,14 @@ class PlicArbiterDut(Protocol):
     o_valid: LogicObject
 
 
+class GpioGroupDut(IrqDut, Protocol):
+    """Signals of one GPIO group, which does not touch the pads."""
+
+    i_pins: LogicArrayObject
+    o_pins_drv: LogicArrayObject
+    o_pins_en: LogicArrayObject
+
+
 class GpioDut(IrqDut, Protocol):
     """Signals of the GPIO testbench."""
 

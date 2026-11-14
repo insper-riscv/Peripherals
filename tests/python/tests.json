@@ -15,6 +15,8 @@
     "GPIO": {
         "toplevel": "gpio_tb",
         "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
             "src/common/src/flip_flop.vhd",
             "src/common/src/generic_register.vhd",
             "src/common/src/clearable_register.vhd",
@@ -22,9 +24,12 @@
             "src/common/src/mux_8x1.vhd",
             "src/common/src/tristate_buffer_1bit.vhd",
             "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
             "src/GPIO/soc/gpio_operation_decoder.vhd",
             "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd",
             "src/GPIO/soc/gpio.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
             "tests/vhdl/gpio_tb.vhd"
         ],
         "test_module": "tests.python.unittests.GPIO.gpio",
@@ -38,6 +43,8 @@
     "GPIOActiveLow": {
         "toplevel": "gpio_tb",
         "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
             "src/common/src/flip_flop.vhd",
             "src/common/src/generic_register.vhd",
             "src/common/src/clearable_register.vhd",
@@ -45,14 +52,17 @@
             "src/common/src/mux_8x1.vhd",
             "src/common/src/tristate_buffer_1bit.vhd",
             "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
             "src/GPIO/soc/gpio_operation_decoder.vhd",
             "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd",
             "src/GPIO/soc/gpio.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
             "tests/vhdl/gpio_tb.vhd"
         ],
         "test_module": "tests.python.unittests.GPIO.gpio_active_low",
         "parameters": {
-            "ACTIVE_LOW": true
+            "polarity": "llllllll"
         },
         "build_args": [
             "--std=08"
@@ -61,9 +71,11 @@
             "--std=08"
         ]
     },
-    "GPIOZeroWidth": {
-        "toplevel": "gpio_zero_tb",
+    "GPIOSolo": {
+        "toplevel": "gpio_tb",
         "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
             "src/common/src/flip_flop.vhd",
             "src/common/src/generic_register.vhd",
             "src/common/src/clearable_register.vhd",
@@ -71,12 +83,157 @@
             "src/common/src/mux_8x1.vhd",
             "src/common/src/tristate_buffer_1bit.vhd",
             "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
             "src/GPIO/soc/gpio_operation_decoder.vhd",
             "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd",
             "src/GPIO/soc/gpio.vhd",
-            "tests/vhdl/gpio_zero_tb.vhd"
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "tests/vhdl/gpio_tb.vhd"
         ],
-        "test_module": "tests.python.unittests.GPIO.gpio_zero",
+        "test_module": "tests.python.unittests.GPIO.gpio_solo",
+        "parameters": {
+            "pins": 4,
+            "partition": "0/1/2/3",
+            "directions": "ffff",
+            "polarity": "hhhh"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GPIOPairs": {
+        "toplevel": "gpio_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd",
+            "src/GPIO/soc/gpio.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "tests/vhdl/gpio_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_pairs",
+        "parameters": {
+            "pins": 6,
+            "partition": "0,1/2,3/4,5",
+            "directions": "ffffff",
+            "polarity": "hhhhhh"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GPIOExplicit": {
+        "toplevel": "gpio_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd",
+            "src/GPIO/soc/gpio.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "tests/vhdl/gpio_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_explicit",
+        "parameters": {
+            "pins": 7,
+            "partition": "0,1,2,3/5,6",
+            "directions": "fffffff",
+            "polarity": "hhhhhhh"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GPIOReversed": {
+        "toplevel": "gpio_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd",
+            "src/GPIO/soc/gpio.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "tests/vhdl/gpio_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_all_reversed",
+        "parameters": {
+            "pins": 6,
+            "partition": "5,4,3,2,1,0",
+            "directions": "ffffff",
+            "polarity": "hhhhhh"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GPIOMixed": {
+        "toplevel": "gpio_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd",
+            "src/GPIO/soc/gpio.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "tests/vhdl/gpio_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_mixed",
+        "parameters": {
+            "pins": 8,
+            "partition": "0,1,2,3/4,5/7",
+            "directions": "oooofioi",
+            "polarity": "hlhhlhlh"
+        },
         "build_args": [
             "--std=08"
         ],
@@ -238,6 +395,9 @@
     "SegDisplay": {
         "toplevel": "seg_display",
         "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
             "src/display/soc/hex_to_seg7.vhd",
             "src/common/src/synchronizer.vhd",
             "src/display/soc/seg_display.vhd"
@@ -251,16 +411,194 @@
         ]
     },
     "SegDisplayThreeDigits": {
-        "toplevel": "seg_display",
+        "toplevel": "seg_display_tb",
         "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
             "src/display/soc/hex_to_seg7.vhd",
             "src/common/src/synchronizer.vhd",
-            "src/display/soc/seg_display.vhd"
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
         ],
         "test_module": "tests.python.unittests.display.seg_display_variant",
         "parameters": {
             "DIGITS": 3,
-            "ACTIVE_LOW": false
+            "ACTIVE_LOW": false,
+            "PARTITION": "0,1,2"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayOneDigit": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_one_digit",
+        "parameters": {
+            "digits": 6,
+            "partition": "1"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayExplicit": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_explicit",
+        "parameters": {
+            "digits": 8,
+            "partition": "0,1,2,3/5,6"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayReversed": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_reversed",
+        "parameters": {
+            "digits": 6,
+            "partition": "3,2,1,0/5,4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayDecimalPoint": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_dp",
+        "parameters": {
+            "digits": 8,
+            "partition": "0,1,2,3/5,6",
+            "has_dp": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayDecimalPointHigh": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_dp_high",
+        "parameters": {
+            "digits": 3,
+            "active_low": false,
+            "partition": "0,1,2",
+            "has_dp": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayGroupsWithDecimalPoint": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_groups_dp",
+        "parameters": {
+            "digits": 8,
+            "partition": "0,1,2,3/5,6",
+            "has_dp": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayWithoutDecimalPoint": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_no_dp",
+        "parameters": {
+            "digits": 6,
+            "partition": "0,1,2,3,4,5"
         },
         "build_args": [
             "--std=08"
@@ -272,6 +610,9 @@
     "SegDisplayZeroDigits": {
         "toplevel": "seg_display_zero_tb",
         "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
             "src/display/soc/hex_to_seg7.vhd",
             "src/common/src/synchronizer.vhd",
             "src/display/soc/seg_display.vhd",
@@ -333,6 +674,7 @@
     "GpioCell": {
         "toplevel": "gpio_cell_tb",
         "sources": [
+            "src/common/src/utils_pkg.vhd",
             "src/common/src/flip_flop.vhd",
             "src/common/src/generic_register.vhd",
             "src/common/src/clearable_register.vhd",
@@ -343,6 +685,79 @@
             "tests/vhdl/gpio_cell_tb.vhd"
         ],
         "test_module": "tests.python.unittests.GPIO.gpio_cell",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GpioCellFixedInput": {
+        "toplevel": "gpio_cell_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "tests/vhdl/gpio_cell_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_cell_fixed",
+        "parameters": {
+            "dir_mode": 1
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GpioCellFixedOutput": {
+        "toplevel": "gpio_cell_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "tests/vhdl/gpio_cell_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_cell_fixed",
+        "parameters": {
+            "dir_mode": 2
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GpioGroup": {
+        "toplevel": "gpio_group",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_group",
         "build_args": [
             "--std=08"
         ],

@@ -19,14 +19,15 @@ The board may wire an LED, a key or a segment in inverted logic, and each periph
 
 | Peripheral | Generic | Default | Effect |
 | :--- | :--- | :--- | :--- |
-| `gpio` | `active_low` | false | Inverts both directions of the pin inside the `gpio_cell`. The program reads and writes active at `'1'` |
+| `gpio` | `pin_active_low`, one bit per pin | zeros | Inverts both directions of the pin inside the `gpio_cell`. The program reads and writes active at `'1'` |
 | `seg_display` | `active_low` | true | Picks the level that lights a segment on `o_hex`. True lights at `'0'`, as on the DE boards |
+| `seg_display` | `has_dp` | false | Eight-segment digits, with the decimal point on `o_hex` and the point bit in word 1 of each group |
 
 The generated top picks the value of these generics according to the board and the peripheral knows no board polarity beyond its own generic.
 
 ## 4. Width and absent role
 
-The width of each vector is a generic of the peripheral, and the default value comes from the package generated from `board.yaml`. A role absent from the board has width zero, and the peripheral that uses it is omitted from the SoC. The zero-width vector generates no port on the top.
+The width of each vector is a generic of the peripheral (`pin_count` in the `gpio` and `digits` in the `seg_display`), with the value coming from `board.yaml`. The partition of the pins and of the digits into groups, the fixed direction and the polarity of each pin also arrive as generics, described in `docs/en/GPIO/gpio.md` and `docs/en/display/seg_display.md`. A role absent from the board leaves the peripheral that uses it out of the SoC.
 
 ---
 

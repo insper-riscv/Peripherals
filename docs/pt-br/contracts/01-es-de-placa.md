@@ -19,14 +19,15 @@ A placa pode ligar um LED, uma tecla ou um segmento em lógica invertida, e cada
 
 | Periférico | Generic | Padrão | Efeito |
 | :--- | :--- | :--- | :--- |
-| `gpio` | `active_low` | falso | Inverte os dois sentidos do pino dentro da `gpio_cell`. O programa lê e escreve ativo em `'1'` |
+| `gpio` | `pin_active_low`, um bit por pino | zeros | Inverte os dois sentidos do pino dentro da `gpio_cell`. O programa lê e escreve ativo em `'1'` |
 | `seg_display` | `active_low` | verdadeiro | Escolhe o nível que acende o segmento em `o_hex`. Verdadeiro acende em `'0'`, como nas placas DE |
+| `seg_display` | `has_dp` | falso | Dígitos de oito segmentos, com o ponto decimal em `o_hex` e o bit do ponto na palavra 1 de cada grupo |
 
 O topo gerado escolhe o valor desses generics conforme a placa e o periférico não conhece a polaridade da placa além do próprio generic.
 
 ## 4. Largura e papel ausente
 
-A largura de cada vetor é um generic do periférico, e o valor padrão vem do pacote gerado a partir do `board.yaml`. Um papel ausente na placa tem largura zero, e o periférico que o usa é omitido do SoC. O vetor de largura zero não gera porta no topo.
+A largura de cada vetor é um generic do periférico (`pin_count` no `gpio` e `digits` no `seg_display`), com o valor vindo do `board.yaml`. A partição dos pinos e dos dígitos em grupos, a direção fixa e a polaridade de cada pino também chegam por generics, descritos em `docs/pt-br/GPIO/gpio.md` e `docs/pt-br/display/seg_display.md`. Um papel ausente na placa deixa o periférico que o usa fora do SoC.
 
 ---
 
