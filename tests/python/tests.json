@@ -190,6 +190,204 @@
             "--std=08"
         ]
     },
+    "SpiMaster": {
+        "toplevel": "spi_master",
+        "sources": [
+            "src/SPI/master/spi_master.vhd"
+        ],
+        "test_module": "tests.python.unittests.SPI.spi_master",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Spi": {
+        "toplevel": "spi",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/SPI/master/spi.vhd"
+        ],
+        "test_module": "tests.python.unittests.SPI.spi",
+        "parameters": {
+            "CLOCK_HZ": "4000000",
+            "RESET_SCLK_HZ": "1000000",
+            "CS_COUNT": "3",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AdcSweep": {
+        "toplevel": "adc_sweep",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/ADC/sweep/adc_sweep.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.adc_sweep",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AdcSweepNoLatency": {
+        "toplevel": "adc_sweep",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/ADC/sweep/adc_sweep.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.adc_sweep",
+        "parameters": {
+            "CHANNEL_LATENCY": "0"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Adc128s022": {
+        "toplevel": "adc128s022",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/ADC/sweep/adc_sweep.vhd",
+            "src/ADC/adc128s022/adc128s022.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.adc128s022",
+        "parameters": {
+            "CLOCK_HZ": "100000000"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Ltc2308": {
+        "toplevel": "ltc2308",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/ADC/sweep/adc_sweep.vhd",
+            "src/ADC/ltc2308/ltc2308.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.ltc2308",
+        "parameters": {
+            "CLOCK_HZ": "100000000"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Adxl345": {
+        "toplevel": "adxl345",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/ADXL345/adxl345.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADXL345.adxl345",
+        "parameters": {
+            "CLOCK_HZ": "4000000",
+            "SCLK_HZ": "250000",
+            "SAMPLE_HZ": "6666",
+            "CS_HIGH_NS": "500"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Adxl345FourWire": {
+        "toplevel": "adxl345",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/ADXL345/adxl345.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADXL345.adxl345",
+        "parameters": {
+            "CLOCK_HZ": "4000000",
+            "SCLK_HZ": "250000",
+            "SAMPLE_HZ": "6666",
+            "CS_HIGH_NS": "500",
+            "THREE_WIRE": "false"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDSpiPhy": {
+        "toplevel": "sd_spi_phy",
+        "sources": [
+            "src/SPI/master/spi_master.vhd",
+            "src/SD/spi/sd_spi_phy.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_spi_phy",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDSpi": {
+        "toplevel": "sd_spi",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/SD/spi/sd_spi_phy.vhd",
+            "src/SD/spi/sd_spi.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_spi",
+        "parameters": {
+            "CLOCK_HZ": "3200000",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "UART": {
         "toplevel": "uart",
         "sources": [
