@@ -6,7 +6,7 @@ for n in eth_dpram eth_async_fifo; do path_of[$n]="$root/src/ETH/mac/$n.vhd"; do
 echo "eth_crc32"
 eth_crc_srcs=(eth_consts eth_crc32)
 ecp="$f/eth_crc32_props.sv"
-mut_expose=(); mut_open=0
+mut_expose=()
 build eth_crc32 ethcrc "${eth_crc_srcs[@]}" --
 expect "the state mirrors an independent non-reflected CRC-32 model, o_residue_ok is exactly the residue, and the complement of any state leads to the residue (induction)" PASS "$(prove ethcrc.v "$ecp" prove 2 '' ethcrc_safety)"
 expect "cover: the residue is reached and the register returns to its initial value" PASS "$(prove ethcrc.v "$ecp" cover 20 '-DCOVER' ethcrc_cover)"
