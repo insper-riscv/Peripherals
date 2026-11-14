@@ -388,7 +388,7 @@ expect "CONTROL reads back its three bits; the interrupt is transmit-empty or er
 expect "cover: a transmit-empty and an error interrupt, and a queue with bytes that holds the line low, are reachable" PASS "$(prove jtagu.v "$f/jtag_uart_props.sv" cover 14 '-DCOVER' jtagu_cover)"
 
 echo "uart"
-uart_exp=(rx_overrun tx_dropped rx_irq_enable tx_irq_enable err_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7 phy_tx_data:7 rx_fifo_data:7 rx_fifo_level:1 tx_fifo_level:1)
+uart_exp=(rx_overrun tx_dropped rx_irq_enable tx_irq_enable err_irq_enable phy_new_rx_data phy_tx_busy phy_new_tx_data phy_rx_data:7 phy_tx_data:7 rx_fifo_data:7 rx_fifo_level:1 tx_fifo_level:1 frame_error parity_error parity_enable parity_odd stop_bits_2 line_irq_enable phy_frame_error phy_parity_error)
 mut_expose=("${uart_exp[@]}")
 ugen=(-gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3)
 build uart uart "${uart_srcs[@]}" -- "${ugen[@]}"
@@ -400,6 +400,24 @@ expect "transmit frame: start, 8 data bits LSB first, stop, 16 cycles per bit (b
 expect "cover: a frame of 5A is transmitted" PASS "$(prove uart.v "$f/uart_props.sv" cover 100 '-DTXF -DCOVER' uart_tx_cover)"
 expect "receive: the byte is sampled mid-bit despite noise at the edges, once, none lost (bounded, 200 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 200 '-DRXF' uart_rx)"
 expect "cover: a frame of A5 is received" PASS "$(prove uart.v "$f/uart_props.sv" cover 200 '-DRXF -DCOVER' uart_rx_cover)"
+expect "transmit frame with even parity: start, 8 data bits, the parity bit that the byte asks for, stop (bounded, 210 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 210 '-DTXF -DCFGSET -DPEN=1' uart_tx_even)"
+expect "transmit frame with odd parity and two stop bits (bounded, 230 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 230 '-DTXF -DCFGSET -DPEN=1 -DPODD=1 -DS2=1' uart_tx_odd2)"
+expect "transmit frame without parity and two stop bits (bounded, 220 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 220 '-DTXF -DCFGSET -DS2=1' uart_tx_stop2)"
+expect "cover: a frame of 5A with even parity is transmitted" PASS "$(prove uart.v "$f/uart_props.sv" cover 175 '-DTXF -DCFGSET -DPEN=1 -DCOVER' uart_tx_even_cover)"
+expect "receive with even parity: the byte arrives once and no error is flagged (bounded, 240 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 240 '-DRXF -DCFGSET -DPEN=1' uart_rx_even)"
+expect "receive with odd parity and two stop bits: the byte arrives once and no error is flagged (bounded, 260 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 260 '-DRXF -DCFGSET -DPEN=1 -DPODD=1 -DS2=1' uart_rx_odd2)"
+expect "receive with a wrong parity bit: the byte arrives and exactly one parity error is flagged, sticky (bounded, 240 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 240 '-DRXF -DCFGSET -DPEN=1 -DBADPAR=1' uart_rx_badpar)"
+expect "receive with the first stop bit low: the byte arrives and exactly one frame error is flagged, sticky (bounded, 240 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 240 '-DRXF -DBADSTOP=1' uart_rx_badstop)"
+expect "cover: a frame with a wrong parity bit is received and flagged" PASS "$(prove uart.v "$f/uart_props.sv" cover 240 '-DRXF -DCFGSET -DPEN=1 -DBADPAR=1 -DCOVER' uart_rx_badpar_cover)"
+expect "cover: a frame with the first stop bit low is received" PASS "$(prove uart.v "$f/uart_props.sv" cover 240 '-DRXF -DBADSTOP=1 -DCOVER' uart_rx_badstop_cover)"
+
+echo "uart flow control"
+uart_flow_exp=(flow_enable rts_inactive cts_ok phy_new_tx_data phy_tx_busy phy_new_rx_data rts_threshold:7 cts_sync:1 rx_fifo_level:1 tx_fifo_level:1)
+mut_expose=("${uart_flow_exp[@]}")
+ufgen=(-gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3 -ghas_flow_control=true)
+build uart uartf "${uart_srcs[@]}" -- "${ufgen[@]}"
+expect "flow control: no byte reaches the PHY with the flow on and CTS inactive; RTS is the registered 'flow on and receive level at or above the threshold'; flow off ignores CTS and keeps RTS active; the registers read back (bounded, 14 cycles)" PASS "$(prove uartf.v "$f/uart_flow_props.sv" bmc 14 '' uart_flow)"
+expect "cover: a blocked transmit queue, a byte sent with the flow on, RTS inactive with the flow on and RTS inactive by a zero threshold are reachable" PASS "$(prove uartf.v "$f/uart_flow_props.sv" cover 40 '-DCOVER' uart_flow_cover)"
 
 echo "sd_spi"
 path_of[sd_spi_phy]="$root/src/SD/spi/sd_spi_phy.vhd"
@@ -624,12 +642,37 @@ mutant uart "$up" uart '-DREGS -DANYSTATE' uart_control_bit_swapped "s/tx_irq_en
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_status_ready_inverted "s/value(1) := not tx_fifo_full;/value(1) := tx_fifo_full;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_idle_ignores_phy "s/value(6) := tx_fifo_empty and not phy_tx_busy;/value(6) := tx_fifo_empty;/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uart "$up" uart '-DREGS -DANYSTATE' uart_levels_swapped "s/to_unsigned(rx_fifo_level, 8)/to_unsigned(tx_fifo_level, 8)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uartTx "$up" uart '-DTXF' uart_tx_stop_low "s/dataBuf <= '1' \& dataBuf(8 downto 1);/dataBuf <= '0' \& dataBuf(8 downto 1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uartTx "$up" uart '-DTXF' uart_tx_start_high "s/dataBuf <= txData \& '0';/dataBuf <= txData \& '1';/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uartTx "$up" uart '-DTXF' uart_tx_short_frame "s/bitCount = \"1001\"/bitCount = \"1000\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF -DCFGSET -DS2=1' uart_tx_stop_low "s/dataBuf <= '1' \& dataBuf(9 downto 1);/dataBuf <= '0' \& dataBuf(9 downto 1);/" 220 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF' uart_tx_start_high "s/dataBuf <= parityBit \& txData \& '0';/dataBuf <= parityBit \& txData \& '1';/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF' uart_tx_short_frame "s/lastBit <= \"1001\";/lastBit <= \"1000\";/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_early_sample "s/count16 = \"0111\"/count16 = \"0000\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_late_sample "s/count16 = \"0111\"/count16 = \"1110\"/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_msb_first "s/dataBuf <= inSync(1) \& dataBuf(7 downto 1);/dataBuf <= dataBuf(6 downto 0) \& inSync(1);/" 200 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF -DCFGSET -DPEN=1' uart_tx_parity_inverted "s/xor cfgParityOdd when/xor not cfgParityOdd when/" 210 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF -DCFGSET -DPEN=1 -DPODD=1' uart_tx_parity_always_even "s/xor cfgParityOdd when/when/" 210 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF -DCFGSET -DS2=1' uart_tx_stop2_ignored "s/lastBit <= \"1010\";/lastBit <= \"1001\";/" 220 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartTx "$up" uart '-DTXF -DCFGSET -DPEN=1' uart_tx_parity_skipped "s/dataBuf <= parityBit \& txData \& '0';/dataBuf <= '1' \& txData \& '0';/" 210 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartRx "$up" uart '-DRXF -DCFGSET -DPEN=1 -DBADPAR=1' uart_rx_parity_never_flagged "s/parityErr <= (xor dataBuf) xor inSync(1) xor cfgParityOdd;/parityErr <= '0';/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartRx "$up" uart '-DRXF -DCFGSET -DPEN=1 -DPODD=1' uart_rx_parity_sense_inverted "s/xor inSync(1) xor cfgParityOdd/xor inSync(1)/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartRx "$up" uart '-DRXF -DBADSTOP=1' uart_rx_frame_never_flagged "s/frameErr <= '1';/frameErr <= '0';/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartRx "$up" uart '-DRXF' uart_rx_frame_flagged_on_good_stop "s/(inSync(1) = '0')) then/(inSync(1) = '1')) then/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartRx "$up" uart '-DRXF -DCFGSET -DPEN=1' uart_rx_parity_bit_in_data "s/(unsigned(bitCount) < 8)/(unsigned(bitCount) < 9)/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_line_irq_mask_ignored "s/((frame_error or parity_error) and line_irq_enable)/(frame_error or parity_error)/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_frame_w1c_wrong_bit "s/if i_data_in(7) = '1' then/if i_data_in(6) = '1' then/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uart "$up" uart '-DREGS -DANYSTATE' uart_parity_flag_not_sticky "s/parity_error <= '1';/parity_error <= '0';/" 4 "${uart_srcs[@]}" -- "${ugen[@]}"
+mut_expose=("${uart_flow_exp[@]}")
+fp="$f/uart_flow_props.sv"
+mutant uart "$fp" uart '' flow_tx_ignores_cts "s/and tx_fifo_empty = '0' and cts_ok = '1'/and tx_fifo_empty = '0'/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mutant uart "$fp" uart '' flow_cts_polarity "s/or cts_sync(1) = '0' else/or cts_sync(1) = '1' else/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mutant uart "$fp" uart '' flow_cts_ignores_enable "s/or flow_enable = '0' or cts_sync/or cts_sync/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mutant uart "$fp" uart '' flow_rts_strict_threshold "s/rx_fifo_level >= to_integer(rts_threshold)/rx_fifo_level > to_integer(rts_threshold)/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mutant uart "$fp" uart '' flow_rts_ignores_enable "s/if flow_enable = '1' and rx_fifo_level/if rx_fifo_level/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mutant uart "$fp" uart '' flow_rts_inverted "s/rts_inactive <= '1';/rts_inactive <= '0';/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mutant uart "$fp" uart '' flow_rts_fixed_threshold "s/to_integer(rts_threshold)/reset_threshold/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mutant uart "$fp" uart '' flow_enable_not_written "s/flow_enable <= i_data_in(7);/flow_enable <= '0';/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mutant uart "$fp" uart '' flow_threshold_wrong_bits "s/rts_threshold <= unsigned(i_data_in(15 downto 8));/rts_threshold <= unsigned(i_data_in(7 downto 0));/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mutant uart "$fp" uart '' flow_cts_status_inverted "s/value(25) := not cts_sync(1);/value(25) := cts_sync(1);/" 14 "${uart_srcs[@]}" -- "${ufgen[@]}"
+mut_expose=("${uart_exp[@]}")
 
 mut_expose=()
 cp_="$f/console_props.sv"

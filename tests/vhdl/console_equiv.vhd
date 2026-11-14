@@ -99,6 +99,7 @@ begin
             o_irq       => o_irq_dut,
             i_rx        => i_rx,
             o_tx        => o_tx_dut,
+            o_rts       => open,
             i_tck       => i_clk,
             i_tdi       => '0',
             o_tdo       => o_tdo_dut,
@@ -130,7 +131,8 @@ begin
                 o_data_out => o_rdata_ref,
                 o_irq      => o_irq_ref,
                 i_uart_rx  => ref_rx,
-                o_uart_tx  => ref_tx
+                o_uart_tx  => ref_tx,
+                o_uart_rts => open
             );
 
         o_tx_ref  <= not ref_tx when tx_invert else ref_tx;

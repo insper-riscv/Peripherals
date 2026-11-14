@@ -418,6 +418,59 @@
             "--std=08"
         ]
     },
+    "UARTFormat": {
+        "toplevel": "uart",
+        "sources": [
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.uart_format",
+        "parameters": {
+            "DATA_WIDTH": "32",
+            "BAUD_FREQ": "1",
+            "BAUD_LIMIT": "0",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "UARTFlow": {
+        "toplevel": "uart",
+        "sources": [
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.uart_flow",
+        "parameters": {
+            "DATA_WIDTH": "32",
+            "BAUD_FREQ": "1",
+            "BAUD_LIMIT": "0",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4",
+            "HAS_FLOW_CONTROL": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "UARTDefaultBaud": {
         "toplevel": "uart",
         "sources": [

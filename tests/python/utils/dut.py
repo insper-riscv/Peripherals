@@ -633,3 +633,10 @@ class Max10AdcSequencerDut(ResettableDut, Protocol):
     o_sample_valid: LogicObject
     o_sample_channel: LogicArrayObject
     o_sample_data: LogicArrayObject
+
+
+class UartFlowDut(UartDut, Protocol):
+    """Signals of the UART with the RTS and CTS lines."""
+
+    i_uart_cts: LogicObject
+    o_uart_rts: LogicObject
