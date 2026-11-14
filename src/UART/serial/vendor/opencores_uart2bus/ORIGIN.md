@@ -13,7 +13,8 @@ declarations and `uartTop`. The upstream parser and UART-to-bus master are not
 included.
 
 The archive downloaded from OpenCores did not contain revision metadata. The
-logic of the physical blocks is preserved as downloaded. Line endings and
+logic of the physical blocks is preserved as downloaded, apart from the local
+changes listed at the end of this file. Line endings and
 trailing whitespace were normalized, and unused `uartParser`/`uart2BusTop`
 component declarations were removed from `uart2BusTop_pkg.vhd`; no physical
 UART behavior was changed. Project-specific behavior lives in `UART/UART.vhd`.
@@ -24,3 +25,13 @@ values (`counter >= baudLimit`) is made between `unsigned(counter)` and
 unexpected, and a warning is an error in this repository. For vectors of `'0'`
 and `'1'` of equal length the result is the same, and the change is noted in the
 header of the file. The authors and the license are unchanged.
+Local change in `uartTx.vhd`, `uartRx.vhd`, `uartTop.vhd` and `uart2BusTop_pkg.vhd`: the
+frame format is configurable. `uartTx` takes `cfgParityEn`, `cfgParityOdd` and
+`cfgStop2` (parity bit after the data and a second stop bit); `uartRx` takes
+`cfgParityEn` and `cfgParityOdd` and gives the pulses `frameErr` (stop bit sampled
+at zero) and `parityErr` (parity bit that does not match the byte); `uartTop` passes
+them through. The data shift register of `uartRx` takes only the eight data bits.
+The configuration inputs default to `'0'`, and with them at `'0'` the frame, the
+byte and its timing are the 8N1 of the upstream modules, bit for bit. The authors
+and the license are unchanged.
+

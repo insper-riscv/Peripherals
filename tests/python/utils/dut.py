@@ -316,3 +316,10 @@ class MouseOperationDecoderDut(Protocol):
 
 class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
+
+
+class UartFlowDut(UartDut, Protocol):
+    """Signals of the UART with the RTS and CTS lines."""
+
+    i_uart_cts: LogicObject
+    o_uart_rts: LogicObject
