@@ -19,6 +19,9 @@ package uart2BusTop_pkg is
       ce16 : in  std_logic;
       txData : in  std_logic_vector(7 downto 0);
       newTxData : in  std_logic;
+      cfgParityEn  : in  std_logic := '0';
+      cfgParityOdd : in  std_logic := '0';
+      cfgStop2     : in  std_logic := '0';
       serOut : out  std_logic;
       txBusy : out  std_logic);
   end component;
@@ -29,8 +32,12 @@ package uart2BusTop_pkg is
       clk       : in  std_logic;
       ce16      : in  std_logic;
       serIn     : in  std_logic;
+      cfgParityEn  : in  std_logic := '0';
+      cfgParityOdd : in  std_logic := '0';
       rxData    : out std_logic_vector(7 downto 0);
-      newRxData : out std_logic);
+      newRxData : out std_logic;
+      frameErr  : out std_logic;
+      parityErr : out std_logic);
   end component;
 
   component uartTop
@@ -41,10 +48,15 @@ package uart2BusTop_pkg is
            newTxData : in  std_logic;
            baudFreq  : in  std_logic_vector(11 downto 0);
            baudLimit : in  std_logic_vector(15 downto 0);
+           cfgParityEn  : in  std_logic := '0';
+           cfgParityOdd : in  std_logic := '0';
+           cfgStop2     : in  std_logic := '0';
            serOut    : out std_logic;
            txBusy    : out std_logic;
            rxData    : out std_logic_vector(7 downto 0);
            newRxData : out std_logic;
+           frameErr  : out std_logic;
+           parityErr : out std_logic;
            baudClk   : out std_logic);
   end component;
 

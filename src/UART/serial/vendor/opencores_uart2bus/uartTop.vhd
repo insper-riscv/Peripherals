@@ -24,6 +24,13 @@ entity uartTop is
          -- baud rate configuration register - see baudGen.vhd for details
          baudFreq  : in  std_logic_vector(11 downto 0); -- baud rate setting registers - see header description
          baudLimit : in  std_logic_vector(15 downto 0); -- baud rate setting registers - see header description
+         -- frame format: parity and second stop bit, all at '0' for 8N1
+         cfgParityEn  : in  std_logic := '0';
+         cfgParityOdd : in  std_logic := '0';
+         cfgStop2     : in  std_logic := '0';
+         -- receive error pulses: stop bit at '0' and parity mismatch
+         frameErr  : out std_logic;
+         parityErr : out std_logic;
          baudClk   : out std_logic);
 end uartTop;
 
@@ -48,6 +55,9 @@ architecture Behavioral of uartTop is
         ce16 => ce16,
         txData => txData,
         newTxData => newTxData,
+        cfgParityEn => cfgParityEn,
+        cfgParityOdd => cfgParityOdd,
+        cfgStop2 => cfgStop2,
         serOut => serOut,
         txBusy => txBusy);
     -- uart transmitter
@@ -57,7 +67,11 @@ architecture Behavioral of uartTop is
         clk => clk,
         ce16 => ce16,
         serIn => serIn,
+        cfgParityEn => cfgParityEn,
+        cfgParityOdd => cfgParityOdd,
         rxData => rxData,
-        newRxData => newRxData);
+        newRxData => newRxData,
+        frameErr => frameErr,
+        parityErr => parityErr);
     baudClk <= ce16;
   end Behavioral;
