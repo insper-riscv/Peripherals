@@ -73,6 +73,14 @@ class PlicArbiterDut(Protocol):
     o_valid: LogicObject
 
 
+class GpioGroupDut(IrqDut, Protocol):
+    """Signals of one GPIO group, which does not touch the pads."""
+
+    i_pins: LogicArrayObject
+    o_pins_drv: LogicArrayObject
+    o_pins_en: LogicArrayObject
+
+
 class GpioDut(IrqDut, Protocol):
     """Signals of the GPIO testbench."""
 
@@ -318,9 +326,32 @@ class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
 
 
+class SdSpiDut(IrqDut, Protocol):
+    """Signals of the SD card controller in SPI mode."""
+
+    o_sd_sclk: LogicObject
+    o_sd_mosi: LogicObject
+    i_sd_miso: LogicObject
+    o_sd_cs_n: LogicObject
+
+
+class SdSpiPhyDut(ResettableDut, Protocol):
+    """Signals of the one-byte SPI master of the SD controller."""
+
+    i_divider: LogicArrayObject
+    i_start: LogicObject
+    i_tx_data: LogicArrayObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_rx_data: LogicArrayObject
+    o_sclk: LogicObject
+    o_mosi: LogicObject
+    i_miso: LogicObject
+class IrDut(IrqDut, Protocol):
+    """Signals of the infrared receiver."""
+    i_irda_rxd: LogicObject
 class LcdDut(IrqDut, Protocol):
     """Signals of the LCD controller."""
-
     i_lcd_data: LogicArrayObject
     o_lcd_data: LogicArrayObject
     o_lcd_data_oe: LogicObject
@@ -329,11 +360,8 @@ class LcdDut(IrqDut, Protocol):
     o_lcd_en: LogicObject
     o_lcd_on: LogicObject
     o_lcd_blon: LogicObject
-
-
 class LcdRegsDut(BusDut, Protocol):
     """Signals of the LCD registers."""
-
     o_irq: LogicObject
     o_push: LogicObject
     o_push_rs: LogicObject
@@ -350,12 +378,8 @@ class LcdRegsDut(BusDut, Protocol):
     o_delay_long: LogicArrayObject
     o_lcd_on: LogicObject
     o_lcd_blon: LogicObject
-
-
 class LcdPhyDut(ResettableDut, Protocol):
     """Signals of the LCD physical layer."""
-
-    i_start: LogicObject
     i_rs: LogicObject
     i_data: LogicArrayObject
     i_poll: LogicObject
@@ -368,13 +392,9 @@ class LcdPhyDut(ResettableDut, Protocol):
     o_lcd_en: LogicObject
     o_lcd_data: LogicArrayObject
     o_lcd_data_oe: LogicObject
-
-
 class LcdInitDut(ResettableDut, Protocol):
     """Signals of the LCD initialization sequence."""
-
     i_phy_ready: LogicObject
     o_start: LogicObject
     o_data: LogicArrayObject
     o_delay: LogicArrayObject
-    o_busy: LogicObject
