@@ -80,8 +80,10 @@ tree:
   vhdl_style:
     # The generated IP altera_modular_adc (max10_adc_core) and the Verilog PLL max10_adc_pll enter as component, and their
     # names are not yet in vendor_primitives.yaml of riscv-tools; the two files that declare them are left out like the
-    # other generated IP.
-    exclude: [src/ADC/max10/max10_adc_ip.vhd, src/ADC/max10/max10_adc_shell.vhd]
+    # other generated IP. The two DDR registers of the RGMII board build wrap the megafunctions altddio_in and
+    # altddio_out (library altera_mf), which also enter as component and are not in that list either.
+    exclude: [src/ADC/max10/max10_adc_ip.vhd, src/ADC/max10/max10_adc_shell.vhd, src/ETH/rgmii/altera/eth_ddr_in.vhd,
+      src/ETH/rgmii/altera/eth_ddr_out.vhd]
 
 provides:
   # Each component lists its sources in GHDL dependency order and the components it needs. A requires with the
