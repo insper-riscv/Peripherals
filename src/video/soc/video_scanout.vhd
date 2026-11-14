@@ -1,24 +1,24 @@
 -- =============================================================================
--- Caminho de pixel do VGA: endereço, decodificação de cor e saída registrada
+-- Caminho de pixel do vídeo: endereço, escolha do pixel e decodificação de cor
 --
 -- Domínio do clock de pixel. Converte as coordenadas do framebuffer em
 -- endereço de palavra da memória (o_fb_addr), escolhe o pixel dentro da
--- palavra lida e o converte em três canais de CHANNEL_BITS bits:
---   - pixel_bits = 16: RGB444 nos 12 bits menos significativos do pixel
---     (vermelho 11:8, verde 7:4, azul 3:0); os 4 bits altos são ignorados;
---   - pixel_bits = 8: o byte é o índice de uma paleta de 256 entradas RGB444,
---     lida pela porta o_pal_addr e i_pal_data.
+-- palavra lida e o converte em uma cor de 3 x channel_bits bits (vermelho nos
+-- bits mais altos, depois verde e azul nos mais baixos), conforme o formato:
+--   - "direct": o pixel guarda a cor nos 3 x channel_bits bits menos
+--     significativos, em 16 bits (até 5 bits por canal) ou 32 bits; os bits
+--     altos restantes são ignorados;
+--   - "indexed": o byte é o índice de uma paleta de 256 entradas de
+--     3 x channel_bits bits, lida pela porta o_pal_addr e i_pal_data.
 -- Os pixels de uma palavra seguem a ordem do barramento: o pixel de menor
 -- índice ocupa os bits menos significativos.
 --
--- Latência: as memórias leem em um ciclo, a escolha do pixel leva outro e a
--- saída registrada um terceiro. Os sinais i_hs, i_vs e i_image atravessam o
--- mesmo número de estágios, de modo que as cores e os sincronismos saem
--- alinhados, três ciclos depois das coordenadas. Com i_enable = '0' ou fora do
--- retângulo da imagem as três cores saem pretas.
---
--- Prioridade: i_rst = '1' (síncrono) leva as saídas registradas ao nível de
--- repouso (cores pretas, sincronismos em '1').
+-- Latência: as memórias leem em um ciclo e a escolha do pixel leva outro, de
+-- modo que a cor e os sinais de controle (sincronismos, área visível, marca de
+-- imagem acesa) saem alinhados, dois ciclos depois das coordenadas, e o backend
+-- de saída os registra em um terceiro. A marca o_lit vale '1' dentro do
+-- retângulo da imagem com a exibição habilitada; fora dela o backend apaga as
+-- cores.
 -- =============================================================================
 
 library ieee;
@@ -32,69 +32,76 @@ use work.video_consts.all;
 entity video_scanout is
     generic (
         -- Largura do framebuffer em pixels.
-        fb_width   : positive := 320;
+        fb_width     : positive := 320;
         -- Altura do framebuffer em pixels.
-        fb_height  : positive := 200;
-        -- Bits por pixel do framebuffer (16 = RGB444, 8 = índice de paleta).
-        pixel_bits : positive := 16
+        fb_height    : positive := 200;
+        -- Bits de cada canal de cor (vermelho, verde e azul).
+        channel_bits : positive := 4;
+        -- Formato do pixel do framebuffer: "indexed" (índice de paleta) ou "direct" (cor no pixel).
+        pixel_format : string   := "indexed"
     );
     port (
         -- Clock de pixel.
         i_clk : in    std_logic;
-        -- Reset síncrono em i_clk, ativo em '1'.
-        i_rst : in    std_logic;
 
         -- Exibição habilitada, já sincronizada em i_clk ('0' = cores pretas).
-        i_enable : in    std_logic;
-        -- Sincronismo horizontal vindo do gerador de temporização (nível baixo ativo).
-        i_hs     : in    std_logic;
-        -- Sincronismo vertical vindo do gerador de temporização (nível baixo ativo).
-        i_vs     : in    std_logic;
+        i_enable  : in    std_logic;
+        -- Sincronismo horizontal vindo do gerador de temporização.
+        i_hs      : in    std_logic;
+        -- Sincronismo vertical vindo do gerador de temporização.
+        i_vs      : in    std_logic;
+        -- O pixel atual está dentro da área visível do modo ('1').
+        i_visible : in    std_logic;
         -- O pixel atual está dentro do retângulo da imagem ('1').
-        i_image  : in    std_logic;
+        i_image   : in    std_logic;
         -- Coluna do framebuffer que cobre o pixel atual.
-        i_fb_x   : in    std_logic_vector(log2_ceil(fb_width + 1) - 1 downto 0);
+        i_fb_x    : in    std_logic_vector(log2_ceil(fb_width + 1) - 1 downto 0);
         -- Linha do framebuffer que cobre o pixel atual.
-        i_fb_y   : in    std_logic_vector(log2_ceil(fb_height + 1) - 1 downto 0);
+        i_fb_y    : in    std_logic_vector(log2_ceil(fb_height + 1) - 1 downto 0);
 
         -- Endereço de palavra a ler na memória do framebuffer.
-        o_fb_addr : out   std_logic_vector(log2_ceil(fb_words(fb_width, fb_height, pixel_bits)) - 1 downto 0);
+        o_fb_addr  : out   std_logic_vector(
+            log2_ceil(fb_words(fb_width, fb_height, pixel_storage_bits(pixel_format, channel_bits))) - 1 downto 0);
         -- Palavra lida da memória do framebuffer (registrada, um ciclo depois de o_fb_addr).
-        i_fb_data : in    std_logic_vector(31 downto 0);
-        -- Índice a ler na paleta (só tem efeito com pixel_bits = 8).
+        i_fb_data  : in    std_logic_vector(31 downto 0);
+        -- Índice a ler na paleta (só tem efeito no formato indexado).
         o_pal_addr : out   std_logic_vector(PALETTE_ADDR_BITS - 1 downto 0);
-        -- Cor RGB444 lida da paleta (registrada, um ciclo depois de o_pal_addr).
-        i_pal_data : in    std_logic_vector(COLOR_BITS - 1 downto 0);
+        -- Cor lida da paleta (registrada, um ciclo depois de o_pal_addr).
+        i_pal_data : in    std_logic_vector(3 * channel_bits - 1 downto 0);
 
-        -- Canal vermelho do conversor da placa.
-        o_vga_r  : out   std_logic_vector(CHANNEL_BITS - 1 downto 0);
-        -- Canal verde do conversor da placa.
-        o_vga_g  : out   std_logic_vector(CHANNEL_BITS - 1 downto 0);
-        -- Canal azul do conversor da placa.
-        o_vga_b  : out   std_logic_vector(CHANNEL_BITS - 1 downto 0);
-        -- Sincronismo horizontal da placa, ativo em nível baixo.
-        o_vga_hs : out   std_logic;
-        -- Sincronismo vertical da placa, ativo em nível baixo.
-        o_vga_vs : out   std_logic
+        -- Cor decodificada do pixel, sem o apagamento fora da imagem.
+        o_color   : out   std_logic_vector(3 * channel_bits - 1 downto 0);
+        -- A cor deve ser exibida neste pixel (dentro da imagem e com a exibição habilitada).
+        o_lit     : out   std_logic;
+        -- Área visível alinhada com a cor.
+        o_visible : out   std_logic;
+        -- Sincronismo horizontal alinhado com a cor.
+        o_hs      : out   std_logic;
+        -- Sincronismo vertical alinhado com a cor.
+        o_vs      : out   std_logic
     );
 end entity video_scanout;
 
 architecture rtl of video_scanout is
 
+    -- Bits que cada pixel ocupa no framebuffer.
+    constant PIXEL_BITS   : positive := pixel_storage_bits(pixel_format, channel_bits);
     -- Pixels por palavra de 32 bits.
-    constant PPW         : positive := pixels_per_word(pixel_bits);
+    constant PPW          : positive := pixels_per_word(PIXEL_BITS);
     -- Palavras por linha do framebuffer.
-    constant ROW_STRIDE   : positive := row_words(fb_width, pixel_bits);
+    constant ROW_STRIDE   : positive := row_words(fb_width, PIXEL_BITS);
     -- Largura do endereço de palavra do framebuffer.
-    constant ADDR_BITS   : positive := log2_ceil(fb_words(fb_width, fb_height, pixel_bits));
-    -- Bits do vetor de controle que acompanha o pixel: sincronismo horizontal, vertical e marca de imagem.
-    constant CTRL_BITS   : positive := 3;
+    constant ADDR_BITS    : positive := log2_ceil(fb_words(fb_width, fb_height, PIXEL_BITS));
+    -- Bits do vetor de controle que acompanha o pixel: sincronismos, área visível e marca de imagem.
+    constant CTRL_BITS    : positive := 4;
     -- Posição do sincronismo horizontal no vetor de controle.
-    constant CTRL_HS     : natural  := 0;
+    constant CTRL_HS      : natural  := 0;
     -- Posição do sincronismo vertical no vetor de controle.
-    constant CTRL_VS     : natural  := 1;
+    constant CTRL_VS      : natural  := 1;
     -- Posição da marca de imagem no vetor de controle.
-    constant CTRL_IMAGE  : natural  := 2;
+    constant CTRL_IMAGE   : natural  := 2;
+    -- Posição da marca de área visível no vetor de controle.
+    constant CTRL_VISIBLE : natural  := 3;
 
     -- Posição do pixel dentro da palavra lida, registrada junto com a leitura da memória.
     signal sel_q   : natural range 0 to PPW - 1 := 0;
@@ -102,21 +109,20 @@ architecture rtl of video_scanout is
     signal ctrl_s1 : std_logic_vector(CTRL_BITS - 1 downto 0) := (others => '0');
     -- Vetor de controle atrasado de dois estágios (acompanha a cor decodificada).
     signal ctrl_s2 : std_logic_vector(CTRL_BITS - 1 downto 0) := (others => '0');
-    -- Pixel escolhido na palavra lida, de pixel_bits bits.
-    signal pixel   : std_logic_vector(pixel_bits - 1 downto 0);
-    -- Cor RGB444 decodificada, alinhada com ctrl_s2.
-    signal color   : std_logic_vector(COLOR_BITS - 1 downto 0);
-    -- A imagem é exibida neste pixel (dentro do retângulo e com a exibição habilitada).
-    signal lit     : std_logic;
-    -- Máscara dos canais de cor: todos os bits iguais a lit.
-    signal lit_vec : std_logic_vector(CHANNEL_BITS - 1 downto 0);
+    -- Pixel escolhido na palavra lida, de PIXEL_BITS bits.
+    signal pixel   : std_logic_vector(PIXEL_BITS - 1 downto 0);
+    -- Cor decodificada, alinhada com ctrl_s2.
+    signal color   : std_logic_vector(3 * channel_bits - 1 downto 0);
 
 begin
 
-    assert 32 mod pixel_bits = 0 and (pixel_bits = 8 or pixel_bits = 16)
-        report "video_scanout: pixel_bits deve ser 8 ou 16"
+    assert is_valid_format(pixel_format)
+        report "video_scanout: pixel_format deve ser indexed ou direct"
         severity failure;
-    assert (fb_width * pixel_bits) mod 32 = 0
+    assert channel_bits <= MAX_CHANNEL_BITS
+        report "video_scanout: três canais devem caber em 32 bits"
+        severity failure;
+    assert (fb_width * PIXEL_BITS) mod 32 = 0
         report "video_scanout: uma linha do framebuffer deve ocupar um número inteiro de palavras"
         severity failure;
 
@@ -128,11 +134,12 @@ begin
     begin
 
         if rising_edge(i_clk) then
-            sel_q                <= to_integer(unsigned(i_fb_x)) mod PPW;
-            ctrl_s1(CTRL_HS)     <= i_hs;
-            ctrl_s1(CTRL_VS)     <= i_vs;
-            ctrl_s1(CTRL_IMAGE)  <= i_image;
-            ctrl_s2              <= ctrl_s1;
+            sel_q                 <= to_integer(unsigned(i_fb_x)) mod PPW;
+            ctrl_s1(CTRL_HS)      <= i_hs;
+            ctrl_s1(CTRL_VS)      <= i_vs;
+            ctrl_s1(CTRL_IMAGE)   <= i_image;
+            ctrl_s1(CTRL_VISIBLE) <= i_visible;
+            ctrl_s2               <= ctrl_s1;
         end if;
 
     end process p_stage1;
@@ -146,20 +153,20 @@ begin
         for i in 0 to PPW - 1 loop
 
             if sel_q = i then
-                pixel <= i_fb_data(i * pixel_bits + pixel_bits - 1 downto i * pixel_bits);
+                pixel <= i_fb_data(i * PIXEL_BITS + PIXEL_BITS - 1 downto i * PIXEL_BITS);
             end if;
 
         end loop;
 
     end process p_pick;
 
-    gen_direct : if pixel_bits = 16 generate
-        -- Os 12 bits baixos do pixel são o RGB444, registrados para alinhar com ctrl_s2.
+    gen_direct : if not is_indexed(pixel_format) generate
+        -- Os 3 x channel_bits bits baixos do pixel são a cor, registrados para alinhar com ctrl_s2.
         p_color : process (i_clk) is
         begin
 
             if rising_edge(i_clk) then
-                color <= pixel(COLOR_BITS - 1 downto 0);
+                color <= pixel(3 * channel_bits - 1 downto 0);
             end if;
 
         end process p_color;
@@ -167,34 +174,16 @@ begin
         o_pal_addr <= (others => '0');
     end generate gen_direct;
 
-    gen_palette : if pixel_bits = 8 generate
+    gen_indexed : if is_indexed(pixel_format) generate
         -- O pixel indexa a paleta; a saída registrada da memória da paleta já é a cor alinhada com ctrl_s2.
         o_pal_addr <= pixel(PALETTE_ADDR_BITS - 1 downto 0);
         color      <= i_pal_data;
-    end generate gen_palette;
+    end generate gen_indexed;
 
-    lit     <= ctrl_s2(CTRL_IMAGE) and i_enable;
-    lit_vec <= (others => lit);
-
-    p_output : process (i_clk) is
-    begin
-
-        if rising_edge(i_clk) then
-            if i_rst = '1' then
-                o_vga_r  <= (others => '0');
-                o_vga_g  <= (others => '0');
-                o_vga_b  <= (others => '0');
-                o_vga_hs <= '1';
-                o_vga_vs <= '1';
-            else
-                o_vga_r  <= color(3 * CHANNEL_BITS - 1 downto 2 * CHANNEL_BITS) and lit_vec;
-                o_vga_g  <= color(2 * CHANNEL_BITS - 1 downto CHANNEL_BITS) and lit_vec;
-                o_vga_b  <= color(CHANNEL_BITS - 1 downto 0) and lit_vec;
-                o_vga_hs <= ctrl_s2(CTRL_HS);
-                o_vga_vs <= ctrl_s2(CTRL_VS);
-            end if;
-        end if;
-
-    end process p_output;
+    o_color   <= color;
+    o_lit     <= ctrl_s2(CTRL_IMAGE) and i_enable;
+    o_visible <= ctrl_s2(CTRL_VISIBLE);
+    o_hs      <= ctrl_s2(CTRL_HS);
+    o_vs      <= ctrl_s2(CTRL_VS);
 
 end architecture rtl;
