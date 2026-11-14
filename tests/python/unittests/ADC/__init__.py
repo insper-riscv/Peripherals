@@ -1,1 +1,1 @@
-"""Package ADC of the peripheral tests."""
+"""Package of the ADC tests (MAX 10 and eight-channel controllers)."""

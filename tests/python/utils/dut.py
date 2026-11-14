@@ -737,3 +737,74 @@ class SdBufferDut(ClockedDut, Protocol):
     i_write_data: LogicArrayObject
     i_read_address: LogicArrayObject
     o_read_data: LogicArrayObject
+
+
+class SpiMasterDut(ResettableDut, Protocol):
+    """Signals of the generic SPI master engine."""
+
+    i_cpol: LogicObject
+    i_cpha: LogicObject
+    i_lsb_first: LogicObject
+    i_word_bits: LogicArrayObject
+    i_divider: LogicArrayObject
+    i_tx_drive: LogicObject
+    i_start: LogicObject
+    i_tx_data: LogicArrayObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_rx_data: LogicArrayObject
+    o_sclk: LogicObject
+    o_mosi: LogicObject
+    o_mosi_oe: LogicObject
+    i_miso: LogicObject
+
+
+class SpiDut(IrqDut, Protocol):
+    """Signals of the memory-mapped SPI master."""
+
+    o_sclk: LogicObject
+    o_mosi: LogicObject
+    o_mosi_oe: LogicObject
+    i_miso: LogicObject
+    o_cs_n: LogicArrayObject
+
+
+class AdcSweepDut(IrqDut, Protocol):
+    """Signals of the shared sweep machine of the eight-channel ADCs."""
+
+    channel_latency: LogicObject
+    o_frame_start: LogicObject
+    o_frame_channel: LogicArrayObject
+    i_frame_done: LogicObject
+    i_frame_data: LogicArrayObject
+    o_divider: LogicArrayObject
+
+
+class Adc128Dut(IrqDut, Protocol):
+    """Signals of the ADC128S022 controller."""
+
+    o_adc_cs_n: LogicObject
+    o_adc_sclk: LogicObject
+    o_adc_saddr: LogicObject
+    i_adc_sdat: LogicObject
+
+
+class Ltc2308Dut(IrqDut, Protocol):
+    """Signals of the LTC2308 controller."""
+
+    o_adc_convst: LogicObject
+    o_adc_sck: LogicObject
+    o_adc_sdi: LogicObject
+    i_adc_sdo: LogicObject
+
+
+class Adxl345Dut(IrqDut, Protocol):
+    """Signals of the ADXL345 controller."""
+
+    three_wire: LogicObject
+    o_adxl_cs_n: LogicObject
+    o_adxl_sclk: LogicObject
+    o_adxl_mosi: LogicObject
+    o_adxl_mosi_oe: LogicObject
+    i_adxl_miso: LogicObject
+    i_adxl_int1: LogicObject
