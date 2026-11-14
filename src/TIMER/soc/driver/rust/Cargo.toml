@@ -1,0 +1,3 @@
+[workspace]
+members = ["insper-riscv-timer", "insper-riscv-timer-sys"]
+resolver = "2"

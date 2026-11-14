@@ -24,7 +24,7 @@ A prioridade 0 nunca interrompe. A janela de endereços tem no mínimo `0x200008
 | :--- | :--- | :--- |
 | `i_clk`, `i_rst` | entrada | Clock e reset síncrono, ativo em 1 |
 | `i_sources` | entrada | Linhas de nível das fontes, o bit $n$ é a fonte $n$, ativas em 1, síncronas a `i_clk` |
-| `i_data_in`, `i_address` | entrada | Dado de escrita de 32 bits e endereço de palavra de `addr_width` bits |
+| `i_data_in`, `i_address` | entrada | Dado de escrita de `XLEN` bits (`word_t`) e endereço de palavra de `addr_width` bits |
 | `i_write`, `i_read` | entrada | Pulsos de escrita e de leitura |
 | `o_data_out` | saída | Dado de leitura, combinacional no endereço |
 | `o_meip` | saída | `MEIP`, 1 quando existe uma fonte candidata |

@@ -27,6 +27,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+library work;
+use work.config_pkg.all;
+
 entity console is
     generic (
         -- Backend do console: "jtag" ou "pinos".
@@ -55,13 +58,13 @@ entity console is
         -- Endereço de palavra do acesso (o backend "pinos" usa os dois bits baixos).
         i_addr  : in    std_logic_vector(7 downto 0);
         -- Dado de escrita.
-        i_wdata : in    std_logic_vector(31 downto 0);
+        i_wdata : in    word_t;
         -- Escrita ('1').
         i_we    : in    std_logic;
         -- Leitura ('1').
         i_re    : in    std_logic;
         -- Dado lido.
-        o_rdata : out   std_logic_vector(31 downto 0);
+        o_rdata : out   word_t;
         -- Requisição de interrupção de nível do console.
         o_irq   : out   std_logic;
 

@@ -26,6 +26,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
+use work.config_pkg.all;
 use work.plic_consts.all;
 
 entity plic is
@@ -45,7 +46,7 @@ entity plic is
         -- Linhas de interrupção de nível das fontes, o bit n é a fonte n, ativas em '1'.
         i_sources  : in    std_logic_vector(n_sources downto 1);
         -- Dado de escrita vindo do processador.
-        i_data_in  : in    std_logic_vector(31 downto 0);
+        i_data_in  : in    word_t;
         -- Endereço de palavra dentro do periférico.
         i_address  : in    std_logic_vector(addr_width - 1 downto 0);
         -- Pulso de escrita do processador ('1' = escreve).
@@ -53,7 +54,7 @@ entity plic is
         -- Pulso de leitura do processador (a leitura do claim limpa o pendente).
         i_read     : in    std_logic;
         -- Dado de leitura para o processador.
-        o_data_out : out   std_logic_vector(31 downto 0);
+        o_data_out : out   word_t;
         -- Interrupção externa de máquina (MEIP), ativa em '1'.
         o_meip     : out   std_logic
     );

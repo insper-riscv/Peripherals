@@ -9,12 +9,13 @@ from tests.python.unittests.video.registers import (
     FORMAT,
     FRAME_COUNT,
     GEOMETRY,
+    INDEXED_FLAG,
     MASK32,
     PALETTE,
-    PALETTE_PIXEL_BITS,
     STATUS,
     STATUS_VBLANK,
     STATUS_VSYNC,
+    storage_bits,
 )
 from tests.python.unittests.video.signals import RegsDut
 from tests.python.utils.bus import cycles, hold_reset
@@ -145,7 +146,11 @@ async def test_reset_and_info(dut: RegsDut) -> None:
     geometry = await read(dut, GEOMETRY)
     fmt = await read(dut, FORMAT)
     check(geometry >> 16 > 0 and geometry & 0xFFFF > 0, "geometria")
-    check((fmt & 0xFF) in (8, 16) and fmt >> 8 > 0, "formato")
+    bits = int(dut.channel_bits.value)
+    check((fmt & 0xFF) in (8, 16, 32) and (fmt >> 8) & 0xFF > 0, "formato")
+    eq((fmt >> 16) & 0xFF, bits, "bits por canal")
+    indexed = bool(fmt & INDEXED_FLAG)
+    eq(fmt & 0xFF, storage_bits(indexed, bits), "pixel")
     for address in (5, 100, 255, 300, 511, 512, 1023):
         eq(await read(dut, address), 0, f"lacuna {address}")
 
@@ -212,15 +217,22 @@ async def test_framebuffer_write(dut: RegsDut) -> None:
 
 @cocotb.test()
 async def test_palette_write(dut: RegsDut) -> None:
-    """A paleta só grava com 8 bits por pixel e meia palavra."""
+    """A paleta só grava no formato indexado e com as faixas da cor."""
     await start(dut)
-    has_palette = ((await read(dut, FORMAT)) & 0xFF) == PALETTE_PIXEL_BITS
-    for index, mask, hit in ((0, FULL, 1), (255, 0b0011, 1), (9, 0b0001, 0)):
-        await write(dut, PALETTE + index, 0xABC, mask)
+    has_palette = bool((await read(dut, FORMAT)) & INDEXED_FLAG)
+    need = (1 << ((3 * int(dut.channel_bits.value) + 7) // 8)) - 1
+    cases = (
+        (0, FULL, 1),
+        (255, need, 1),
+        (9, need >> 1, 0),
+        (10, 0b1000 | need >> 1, 0),
+    )
+    for index, mask, hit in cases:
+        await write(dut, PALETTE + index, 0xABCDEF, mask)
         expected = hit if has_palette else 0
         eq(int(dut.o_pal_we.value), expected, f"paleta {index}")
         if expected:
             eq(int(dut.o_pal_addr.value), index, "índice")
-            eq(int(dut.o_wdata.value) & 0xFFF, 0xABC, "cor")
+            eq(int(dut.o_wdata.value) & 0xFFFFFF, 0xABCDEF, "cor")
     await write(dut, PALETTE - 1, MASK32)
     eq(int(dut.o_pal_we.value), 0, "fora da paleta")

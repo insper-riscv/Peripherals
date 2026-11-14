@@ -37,6 +37,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.config_pkg.all;
 use work.utils_pkg.all;
 
 entity flash_controller is
@@ -51,7 +52,7 @@ entity flash_controller is
         i_rst : in    std_logic;
 
         -- Dado de escrita vindo do processador.
-        i_data_in  : in    std_logic_vector(31 downto 0);
+        i_data_in  : in    word_t;
         -- Endereço de palavra de 3 bits vindo do processador.
         i_address  : in    std_logic_vector(2 downto 0);
         -- Pulso de escrita do processador ('1' = escreve).
@@ -59,7 +60,7 @@ entity flash_controller is
         -- Pulso de leitura do processador ('1' = lê).
         i_read     : in    std_logic;
         -- Dado de leitura para o processador.
-        o_data_out : out   std_logic_vector(31 downto 0);
+        o_data_out : out   word_t;
         -- Requisição de interrupção de nível (comando concluído ou recusado), ativa em '1'.
         o_irq      : out   std_logic;
 
@@ -68,7 +69,7 @@ entity flash_controller is
         -- Código do comando.
         o_cmd_op    : out   std_logic_vector(2 downto 0);
         -- Endereço de byte do comando.
-        o_cmd_addr  : out   std_logic_vector(31 downto 0);
+        o_cmd_addr  : out   addr_t;
         -- O chip está ocupado ('1').
         i_busy      : in    std_logic;
         -- O latch de escrita do chip está armado ('1').
@@ -112,7 +113,7 @@ architecture rtl of flash_controller is
     -- Palavras do buffer de página, todas em 1 no início.
     signal page         : page_t                          := (others => (others => '1'));
     -- Endereço de byte do comando.
-    signal addr_reg     : std_logic_vector(31 downto 0)   := (others => '0');
+    signal addr_reg     : addr_t := (others => '0');
     -- Índice da palavra do buffer escrita por BUF_DATA.
     signal ptr          : unsigned(PTR_BITS - 1 downto 0) := (others => '0');
     -- Palavra do buffer lida pelo chip (registrada).

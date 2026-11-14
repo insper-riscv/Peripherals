@@ -19,7 +19,7 @@ Besides the common peripheral ports, the CLINT has two interrupt outputs. The ad
 | Port | Direction | Function |
 | :--- | :--- | :--- |
 | `i_clk`, `i_rst` | input | Clock and reset, active at 1 |
-| `i_data_in`, `i_address` | input | 32-bit write data and 14-bit word address |
+| `i_data_in`, `i_address` | input | `word_t` write data (`XLEN` bits) and 14-bit word address |
 | `i_write` | input | Write pulse |
 | `o_data_out` | output | Read data, combinational on the address |
 | `o_irq_timer` | output | `MTIP` |

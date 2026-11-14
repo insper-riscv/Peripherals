@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formal verification of the CLINT, the PLIC, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART and the console with SymbiYosys. Needs
+# Formal verification of the CLINT, the PLIC, the audio (master clock generator, frame clocks and registers), the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART and the console with SymbiYosys. Needs
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
@@ -45,22 +45,31 @@ expect() {
 # Sources in dependency order. The file under proof, when it is a mutant, replaces the original in the list.
 common=(utils_pkg flip_flop generic_register clearable_register synchronizer adder mux_2x1 mux_4x1 mux_8x1 tristate_buffer_1bit)
 timer_srcs=(alu_ge_unsigned counter_overflow clock_prescaler timer_operation_decoder timer)
-gpio_srcs=(gpio_operation_decoder gpio_cell gpio)
+gpio_srcs=(gpio_operation_decoder gpio_cell)
+gpio_block_srcs=(config_pkg gpio_pkg gpio_operation_decoder gpio_cell gpio_group gpio)
 clint_srcs=(alu_ge_unsigned clint_consts config_pkg counter64 clint)
 fifo_srcs=(uart_fifo)
-flash_srcs=(flash_controller)
+flash_srcs=(config_pkg flash_controller)
+ir_fifo_srcs=(ir_fifo)
+ir_regs_srcs=(config_pkg ir_consts ir_fifo ir_regs)
 uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart)
+tvr_srcs=(config_pkg tv_consts tv_regs)
+tvc_srcs=(tv_consts tv_capture)
 declare -A path_of
 for n in "${common[@]}"; do path_of[$n]="$root/src/common/src/$n.vhd"; done
 for n in "${timer_srcs[@]}"; do path_of[$n]="$root/src/TIMER/soc/$n.vhd"; done
-for n in "${gpio_srcs[@]}"; do path_of[$n]="$root/src/GPIO/soc/$n.vhd"; done
+for n in gpio_pkg gpio_operation_decoder gpio_cell gpio_group gpio; do path_of[$n]="$root/src/GPIO/soc/$n.vhd"; done
 for n in baudGen uartRx uartTx uart2BusTop_pkg uartTop; do path_of[$n]="$root/src/UART/serial/vendor/opencores_uart2bus/$n.vhd"; done
 for n in clint_consts clint; do path_of[$n]="$root/src/CLINT/soc/$n.vhd"; done
 # The mtime counter of the CLINT is the counter64 of Common-Components, proved there on its own.
 for n in config_pkg counter64; do path_of[$n]="$root/src/common/src/$n.vhd"; done
+for n in tv_consts tv_regs tv_capture; do path_of[$n]="$root/src/TV/soc/$n.vhd"; done
 path_of[uart]="$root/src/UART/serial/uart.vhd"
 path_of[uart_fifo]="$root/src/UART/serial/uart_fifo.vhd"
+for n in ir_consts ir_fifo ir_regs; do path_of[$n]="$root/src/IR/soc/$n.vhd"; done
 path_of[flash_controller]="$root/src/flash-controller/soc/flash_controller.vhd"
+usb_srcs=(config_pkg usb_consts usb_bus_master usb_regs usb_bridge)
+for n in usb_consts usb_bus_master usb_regs usb_bridge; do path_of[$n]="$root/src/USB/soc/$n.vhd"; done
 mut_from=""; mut_to=""
 
 # A warning is an error. GHDL, Yosys and SymbiYosys print a warning for code that is out of the norm or at its
@@ -131,7 +140,9 @@ expose() {
     nm="${s%%:*}"; w=""; [ "$s" != "$nm" ] && w="[${s#*:}:0] "
     ports+=",
    output ${w}dbg_$nm"
-    if printf '%s' "$top" | grep -qE "(wire|reg)[^;]*[[:space:]]$nm;"; then
+    # A here-string, not a pipe: grep -q leaves at the first match, and with a long netlist printf would then
+    # die of SIGPIPE and, under pipefail, make the test fail.
+    if grep -qE "(wire|reg)[^;]*[[:space:]]$nm;" <<< "$top"; then
       assigns+="  assign dbg_$nm = $nm;
 "
     else
@@ -155,16 +166,6 @@ expose() {
   grep -q "dbg_${1%%:*}" "$v" || true
 }
 
-# open_pin <netlist>: the bidirectional pin of the GPIO cell becomes an input (what the pin is worth) and an
-# output (what the cell drives), and a floating tristate output becomes zero. The logic is the same.
-open_pin() {
-  sed -i -e 's/inout  io_gpio_pin);/input  i_pin,\n   output o_pin_drv);/' \
-         -e 's/^  assign io_gpio_pin = /  assign o_pin_drv = /' \
-         -e 's/ = io_gpio_pin;/ = i_pin;/' \
-         -e "s/1'bz/1'b0/" "$1"
-  grep -q 'o_pin_drv' "$1" && grep -q 'i_pin' "$1" || { echo "open_pin: the pin of $1 was not found"; exit 1; }
-}
-
 # prove <netlist> <props> <mode: prove|bmc|cover> <depth> <defines> <tag>  ->  PASS, FAIL, SKIP or ERROR
 # PASS is sby exit code 0, FAIL is 2 (a counterexample or a goal that cannot be covered) and any other code
 # (4 unknown, 8 timeout, 16 error, 124 the FORMAL_TIMEOUT) is ERROR: the tool did not reach a verdict. The
@@ -184,6 +185,9 @@ prove() {
   local engine_lines script_lines options_lines="" rc=0 verdict began ended
   case "$engine" in
     abc-bmc3)
+      if [ "${multiclock:-0}" = 1 ]; then
+        printf 'SKIP\t-\t0\n' > "$6.res"; echo "SKIP abc-bmc3 has no multiclock"; return
+      fi
       if [ "$3" != bmc ]; then
         printf 'SKIP\t-\t0\n' > "$6.res"; echo "SKIP abc-bmc3 has no $3"; return
       fi
@@ -196,6 +200,7 @@ prove() {
     # SymbiYosys reports as a wire used with no driver: setundef gives that branch the value zero.
     *) engine_lines="smtbmc $engine"; script_lines=$'tribuf -formal\nmemory_map\nsetundef -undriven -zero' ;;
   esac
+  [ "${multiclock:-0}" = 1 ] && options_lines+=$'\nmulticlock on'
   cat > "$6.sby" <<EOS
 [options]
 mode $3
@@ -233,22 +238,31 @@ EOS
 }
 
 src="$root/src"; f="$root/formal"
-# Setup of the mutants of the block being proved: the sources, the generics, the signals exposed and whether the pin is opened.
-mut_srcs=(); mut_gen=(); mut_expose=(); mut_open=0
+# Setup of the mutants of the block being proved: the sources, the generics, the signals exposed and.
+mut_srcs=(); mut_gen=(); mut_expose=(); mut_pins=0
 
-# build <entity> <name> <sources...> -- [generics]: netlist plus the exposure and the pin opening of the block.
+# open_pins <netlist>: the bidirectional pin vector of the GPIO block becomes an input (what each pin is worth) and an
+# output (what the block drives; a floating pin is zero, as build turns 1'bz into zero). The logic is the same.
+open_pins() {
+  sed -i -E -e 's/inout  \[([0-9]+):0\] io_gpio_pins\);/input  [\1:0] i_pins,\n   output [\1:0] o_pins_drv);/' \
+         -e 's/^  assign io_gpio_pins = /  assign o_pins_drv = /' \
+         -e '/o_pins_drv|i_pins,/! s/io_gpio_pins/i_pins/g' "$1"
+  grep -q 'o_pins_drv' "$1" && grep -q 'i_pins' "$1" || { echo "open_pins: the pins of $1 were not found"; exit 1; }
+}
+
+# build <entity> <name> <sources...> -- [generics]: netlist plus the exposure of the block.
 build() {
   netlist "$@"
   # A floating (tri-state) output has no value to prove and Yosys warns about it: it becomes zero, as the pin of the
-  # GPIO cell does in open_pin. The properties look at the registers behind such an output, not at the output.
-  sed -i "s/1'bz/1'b0/" "$2.v"
+  # pin of the GPIO tristate does. The properties look at the registers behind such an output, not at the output.
+  sed -i "s/1'b[zZ]/1'b0/g" "$2.v"
   [ "${#mut_expose[@]}" -gt 0 ] && expose "$2.v" "${mut_expose[@]}"
-  [ "$mut_open" = 1 ] && open_pin "$2.v"
+  [ "$mut_pins" = 1 ] && open_pins "$2.v"
   return 0
 }
 
 echo "alu_ge_unsigned"
-mut_expose=(); mut_open=0
+mut_expose=()
 build alu_ge_unsigned alu alu_ge_unsigned -- -gdata_width=8
 expect "o_ge is exactly a >= b, unsigned, for every input (8 bits, induction)" PASS "$(prove alu.v "$f/alu_ge_unsigned_props.sv" prove 2 '-DWIDTH=8' alu_safety)"
 expect "cover: greater, equal and less are reachable" PASS "$(prove alu.v "$f/alu_ge_unsigned_props.sv" cover 2 '-DWIDTH=8 -DCOVER' alu_cover)"
@@ -283,14 +297,52 @@ expect "cover: MTIP rises and falls, MSIP is raised and the high half advances" 
 expect "cover: the port sequence ends with the mtime above the old value" PASS "$(prove clint.v "$f/clint_props.sv" cover 20 '-DTICK=3 -DSEQ -DCOVER' clint_seq_cover)"
 
 echo "gpio_cell"
-mut_expose=(); mut_open=1
+mut_expose=()
 build gpio_cell cell gpio_cell -- 
 expect "direction, output and masks change only by writes; pin read is the synchronized pin; status (bounded, 16 cycles)" PASS "$(prove cell.v "$f/gpio_cell_props.sv" bmc 16 '' cell_safety)"
 expect "cover: a rise and a fall interrupt and a stable output are reachable" PASS "$(prove cell.v "$f/gpio_cell_props.sv" cover 14 '-DCOVER' cell_cover)"
 build gpio_cell cell_low gpio_cell -- -gactive_low=true
 expect "active low: the pin read is the inverted pin and the cell drives the inverted output (bounded, 16 cycles)" PASS "$(prove cell_low.v "$f/gpio_cell_props.sv" bmc 16 '-DACTIVE_LOW' cell_low_safety)"
 expect "active low cover: a rise and a fall interrupt and a stable output are reachable" PASS "$(prove cell_low.v "$f/gpio_cell_props.sv" cover 14 '-DACTIVE_LOW -DCOVER' cell_low_cover)"
-mut_open=0
+build gpio_cell cell_in gpio_cell -- -gdir_mode=1
+expect "fixed input: DIR reads zero whatever is written, the pin is never driven (bounded, 16 cycles)" PASS "$(prove cell_in.v "$f/gpio_cell_props.sv" bmc 16 '-DFIXED_IN' cell_in_safety)"
+expect "fixed input cover: a rise and a fall interrupt on the input are reachable" PASS "$(prove cell_in.v "$f/gpio_cell_props.sv" cover 14 '-DFIXED_IN -DCOVER' cell_in_cover)"
+build gpio_cell cell_out gpio_cell -- -gdir_mode=2
+expect "fixed output: DIR reads one whatever is written, the pin is always driven (bounded, 16 cycles)" PASS "$(prove cell_out.v "$f/gpio_cell_props.sv" bmc 16 '-DFIXED_OUT' cell_out_safety)"
+expect "fixed output cover: a rise and a fall interrupt and a stable output are reachable" PASS "$(prove cell_out.v "$f/gpio_cell_props.sv" cover 14 '-DFIXED_OUT -DCOVER' cell_out_cover)"
+
+echo "gpio"
+# Partition A: 9 pins, groups [[0,1,2,3],[5,6],[7]]; pin 4 (output only, active low) and pin 8 are off; pins 1 and 4
+# are output only, 3 and 6 input only, 1, 4 and 5 active low. Partition B: 6 pins, groups [[3,2,1,0],[4,5]], all free.
+mut_expose=(); mut_pins=1
+gpio_a=(-gpin_count=9 -ggroup_count=3 -gmember_count=7 -ggroup_sizes=000000010000001000000100
+        -ggroup_members=00000111000001100000010100000011000000100000000100000000
+        -gpin_dirs=000001001001001000 -gpin_active_low=000110010)
+gpio_b=(-gpin_count=6 -ggroup_count=2 -gmember_count=6 -ggroup_sizes=0000001000000100
+        -ggroup_members=000001010000010000000000000000010000001000000011
+        -gpin_dirs=000000000000 -gpin_active_low=000000)
+build gpio gpio_a "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+expect "partition A: DIR and OUT read as the model per group, the other words and groups read zero, each pin is driven as its group bit says, off pins hold (bounded, 8 cycles)" PASS "$(prove gpio_a.v "$f/gpio_props.sv" bmc 8 '-DPART_A' gpio_a_safety)"
+expect "cover: partition A drives a pin of each group, a held pin and a fixed output" PASS "$(prove gpio_a.v "$f/gpio_props.sv" cover 8 '-DPART_A -DCOVER' gpio_a_cover)"
+build gpio gpio_b "${gpio_block_srcs[@]}" -- "${gpio_b[@]}"
+expect "partition B: the same, with a group that lists its pins in reverse order (bounded, 8 cycles)" PASS "$(prove gpio_b.v "$f/gpio_props.sv" bmc 8 '-DPART_B' gpio_b_safety)"
+expect "cover: partition B drives every pin of the first group" PASS "$(prove gpio_b.v "$f/gpio_props.sv" cover 8 '-DPART_B -DCOVER' gpio_b_cover)"
+mut_pins=0
+
+echo "seg_display"
+path_of[hex_to_seg7]="$root/src/display/soc/hex_to_seg7.vhd"
+path_of[seg_display]="$root/src/display/soc/seg_display.vhd"
+display_srcs=(config_pkg gpio_pkg hex_to_seg7 seg_display)
+# Partition A: 8 digits, groups [[0,1,2,3],[5,6]]; digits 4 and 7 are off. Partition B: 6 digits, one group [[1]].
+disp_a=(-gdigits=8 -ggroup_count=2 -gmember_count=6 -ggroup_sizes=0000001000000100
+        -ggroup_members=000001100000010100000011000000100000000100000000)
+disp_b=(-gdigits=6 -ggroup_count=1 -gmember_count=1 -ggroup_sizes=00000001 -ggroup_members=00000001)
+build seg_display disp_a "${display_srcs[@]}" -- "${disp_a[@]}"
+expect "partition A: the digit k of a group is the nibble k of its word 0, other words and groups read zero, the digits that are off stay blank (bounded, 8 cycles)" PASS "$(prove disp_a.v "$f/seg_display_props.sv" bmc 8 '-DPART_A' disp_a_safety)"
+expect "cover: partition A writes the two groups and reads a group back" PASS "$(prove disp_a.v "$f/seg_display_props.sv" cover 8 '-DPART_A -DCOVER' disp_a_cover)"
+build seg_display disp_b "${display_srcs[@]}" -- "${disp_b[@]}"
+expect "partition B: a single digit in a group, the other five digits blank (bounded, 8 cycles)" PASS "$(prove disp_b.v "$f/seg_display_props.sv" bmc 8 '-DPART_B' disp_b_safety)"
+expect "cover: partition B writes the digit and reads it back" PASS "$(prove disp_b.v "$f/seg_display_props.sv" cover 8 '-DPART_B -DCOVER' disp_b_cover)"
 
 echo "uart_fifo"
 mut_expose=()
@@ -299,6 +351,19 @@ build uart_fifo fifo "${fifo_srcs[@]}" -- "${fgen[@]}"
 expect "level, flags and acceptances follow a shifting reference queue; the oldest word is the first one in (bounded, 14 cycles, 3 words)" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" bmc 14 '' fifo_safety)"
 expect "cover: a push and a pop on a full queue, a push refused when full, and a push with a pop on an empty queue are reachable" PASS "$(prove fifo.v "$f/uart_fifo_props.sv" cover 14 '-DCOVER' fifo_cover)"
 
+echo "ir_fifo"
+mut_expose=()
+irgen=(-gdata_width=8 -gdepth=3)
+build ir_fifo irfifo "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+expect "level, flags and refusal follow a shifting reference queue, a flush empties it; the oldest word is the first one in (bounded, 14 cycles, 3 words)" PASS "$(prove irfifo.v "$f/ir_fifo_props.sv" bmc 14 '' irfifo_safety)"
+expect "cover: a push refused when full (with and without a pop) and a flush of a queue with two words are reachable" PASS "$(prove irfifo.v "$f/ir_fifo_props.sv" cover 14 '-DCOVER' irfifo_cover)"
+
+echo "ir_regs"
+irrgen=(-gfifo_depth=3)
+build ir_regs irregs "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+expect "control, status, sticky bits, queue, raw widths and IRQ follow the ideal model of the registers (bounded, 12 cycles, 3 frames)" PASS "$(prove irregs.v "$f/ir_regs_props.sv" bmc 12 '' irregs_safety)"
+expect "cover: overflow, each IRQ source, a flush of a queue with two frames and a read that pops are reachable" PASS "$(prove irregs.v "$f/ir_regs_props.sv" cover 12 '-DCOVER' irregs_cover)"
+
 echo "flash_controller"
 mut_expose=()
 build flash_controller flashc "${flash_srcs[@]}" -- -gpage_bytes=16
@@ -306,9 +371,9 @@ expect "command pulse, registers, status read and page buffer follow the referen
 expect "cover: a program command, a status with busy and refused, a write at the last word and a buffer read are reachable" PASS "$(prove flashc.v "$f/flash_controller_props.sv" cover 14 '-DCOVER' flashc_cover)"
 
 echo "jtag_uart"
-jtag_srcs=(synchronizer jtag_uart)
+jtag_srcs=(synchronizer config_pkg jtag_uart)
 path_of[jtag_uart]="$root/src/UART/jtag/jtag_uart.vhd"
-mut_expose=(); mut_open=0
+mut_expose=()
 build jtag_uart jtagu "${jtag_srcs[@]}" -- -glog2_depth=2
 expect "CONTROL reads back its three bits; the interrupt is transmit-empty or error, each with its enable (bounded, 14 cycles, 4-byte queues)" PASS "$(prove jtagu.v "$f/jtag_uart_props.sv" bmc 14 '' jtagu_safety)"
 expect "cover: a transmit-empty and an error interrupt, and a queue with bytes that holds the line low, are reachable" PASS "$(prove jtagu.v "$f/jtag_uart_props.sv" cover 14 '-DCOVER' jtagu_cover)"
@@ -327,12 +392,25 @@ expect "cover: a frame of 5A is transmitted" PASS "$(prove uart.v "$f/uart_props
 expect "receive: the byte is sampled mid-bit despite noise at the edges, once, none lost (bounded, 200 cycles)" PASS "$(prove uart.v "$f/uart_props.sv" bmc 200 '-DRXF' uart_rx)"
 expect "cover: a frame of A5 is received" PASS "$(prove uart.v "$f/uart_props.sv" cover 200 '-DRXF -DCOVER' uart_rx_cover)"
 
+echo "sd_spi"
+path_of[sd_spi_phy]="$root/src/SD/spi/sd_spi_phy.vhd"
+path_of[sd_spi]="$root/src/SD/spi/sd_spi.vhd"
+sd_srcs=(config_pkg uart_fifo sd_spi_phy sd_spi)
+sd_exp=(phy_busy phy_done tx_fifo_empty rx_fifo_empty done_flag rx_overrun tx_dropped cs_assert divider:15)
+sdgen=(-gclock_hz=2 -ginit_sclk_hz=1 -grx_fifo_depth=3 -gtx_fifo_depth=3)
+mut_expose=("${sd_exp[@]}")
+build sd_spi sdspi "${sd_srcs[@]}" -- "${sdgen[@]}"
+expect "CONTROL, DIVIDER, chip select, interrupt, sticky flags, STATUS and reset follow the contract (bounded, 24 cycles, 3-byte queues)" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" bmc 24 '' sdspi_regs)"
+expect "a byte has exactly 8 rising edges of SCLK, SCLK moves only while busy and MOSI idles high (bounded, 40 cycles)" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" bmc 40 '-DBYTE' sdspi_byte)"
+expect "cover: the done interrupt, the receive interrupt and a dropped write are reachable" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" cover 40 '-DCOVER' sdspi_cover)"
+expect "cover: a complete byte of 8 rising edges is reachable" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" cover 40 '-DBYTE -DCOVER' sdspi_byte_cover)"
+
 echo "console"
 path_of[console]="$root/src/UART/console/console.vhd"
 path_of[console_equiv]="$root/tests/vhdl/console_equiv.vhd"
-console_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart synchronizer jtag_uart console console_equiv)
+console_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart synchronizer config_pkg jtag_uart console console_equiv)
 cp_="$f/console_props.sv"
-mut_expose=(); mut_open=0
+mut_expose=()
 cgen_pins=(-gbackend=pinos -gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3)
 cgen_inv=(-gbackend=pinos -gbaud_freq=0 -gbaud_limit=0 -grx_fifo_depth=3 -gtx_fifo_depth=3 -gtx_invert=true -grx_invert=true)
 cgen_jtag=(-gbackend=jtag -glog2_depth=2)
@@ -344,6 +422,23 @@ expect "backend pinos with TX and RX inverted: equal to the uart with an explici
 build console_equiv console_jtag "${console_srcs[@]}" -- "${cgen_jtag[@]}"
 expect "backend jtag: data read, interrupt, line and JTAG output equal those of the jtag_uart on the same inputs (bounded, 30 cycles)" PASS "$(prove console_jtag.v "$cp_" bmc 30 '' console_jtag)"
 expect "cover: the jtag console returns data and raises the interrupt" PASS "$(prove console_jtag.v "$cp_" cover 30 '-DCOVER' console_jtag_cover)"
+
+echo "tv_regs"
+mut_expose=()
+tvgen=(-gfb_width=3 -gfb_height=2)
+build tv_regs tvregs "${tvr_srcs[@]}" -- "${tvgen[@]}"
+expect "registers, interrupt, start toggle, configuration lock, flags, counter and read pointer follow the reference for any accesses and any toggles of the other domain (bounded, 20 cycles, 3 words)" PASS "$(prove tvregs.v "$f/tv_regs_props.sv" bmc 20 '' tvregs_safety)"
+expect "cover: a complete frame ends the capture, an aborted capture ends it, two frames with the interrupt, and a start with the frame ready are reachable" PASS "$(prove tvregs.v "$f/tv_regs_props.sv" cover 20 '-DCOVER' tvregs_cover)"
+
+echo "tv_capture"
+mut_expose=()
+tcgen=(-gfb_width=3 -gfb_height=2 -gsrc_width=8 -gsrc_height=6)
+build tv_capture tvcap "${tvc_srcs[@]}" -- "${tcgen[@]}"
+expect "capture of one frame, both fields: one end pulse, complete only after the first and then the second field, pixels in the memory range (bounded, 28 cycles)" PASS "$(prove tvcap.v "$f/tv_capture_props.sv" bmc 28 '-DFSEL=0' tvcap_both)"
+expect "capture of one frame, first field only (bounded, 28 cycles)" PASS "$(prove tvcap.v "$f/tv_capture_props.sv" bmc 28 '-DFSEL=1' tvcap_first)"
+expect "capture of one frame, second field only (bounded, 28 cycles)" PASS "$(prove tvcap.v "$f/tv_capture_props.sv" bmc 28 '-DFSEL=2' tvcap_second)"
+expect "cover: a frame of both fields completes with a pixel accepted, and a capture is aborted" PASS "$(prove tvcap.v "$f/tv_capture_props.sv" cover 28 '-DFSEL=0 -DCOVER' tvcap_cover)"
+
 
 # Mutants of the VHDL: each defect must make a proof fail.
 # mutant <source name> <props> <entity> <defines> <name> <sed expression> <bmc depth> <sources...> -- [generics]
@@ -362,7 +457,7 @@ mutant() {
   expect "mutant $name is caught" FAIL "$(prove "mut_$name.v" "$props" bmc "$depth" "$defs" "mut_$name")"
 }
 
-mut_expose=(); mut_open=0
+mut_expose=()
 ap="$f/alu_ge_unsigned_props.sv"
 mutant alu_ge_unsigned "$ap" alu_ge_unsigned '-DWIDTH=8' alu_strict "s/c(0)  <= '1';/c(0)  <= '0';/" 2 alu_ge_unsigned -- -gdata_width=8
 mutant alu_ge_unsigned "$ap" alu_ge_unsigned '-DWIDTH=8' alu_no_invert "s/b_inv <= not i_source_2;/b_inv <= i_source_2;/" 2 alu_ge_unsigned -- -gdata_width=8
@@ -419,7 +514,16 @@ mutant flash_controller "$fp" flash_controller '' flashc_w1c_clears_all "s/irq_s
 mutant flash_controller "$fp" flash_controller '' flashc_event_loses_to_clear "s/        if ev_done = '1' then/        if ev_done = '1' and not (i_write = '1' and i_address = REG_IRQ_STATUS) then/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 mutant flash_controller "$fp" flash_controller '' flashc_status_bit_lost "s/o_data_out(2) <= i_refused;/o_data_out(2) <= '0';/" 14 "${flash_srcs[@]}" -- -gpage_bytes=16
 
-mut_expose=(); mut_open=1
+mut_expose=()
+mut_expose=(busy)
+up_="$f/usb_bridge_props.sv"
+mutant usb_bridge "$up_" usb_bridge '' usb_rst_not_inverted "s/o_otg_rst_n <= not chip_reset;/o_otg_rst_n <= chip_reset;/" 14 "${usb_srcs[@]}" --
+mutant usb_regs "$up_" usb_bridge '' usb_mask_ignored "s/(int_level and irq_mask)/(int_level)/" 14 "${usb_srcs[@]}" --
+mutant usb_regs "$up_" usb_bridge '' usb_error_not_set "s/err <= '1';/err <= '0';/" 14 "${usb_srcs[@]}" --
+mutant usb_bus_master "$up_" usb_bridge '' usb_both_strobes "s/wr_n <= is_read;/wr_n <= '0';/" 14 "${usb_srcs[@]}" --
+mutant usb_bus_master "$up_" usb_bridge '' usb_oe_on_read "s/data_oe <= not i_is_read;/data_oe <= '1';/" 14 "${usb_srcs[@]}" --
+
+mut_expose=()
 gp="$f/gpio_cell_props.sv"
 mutant gpio_cell "$gp" gpio_cell '' cell_dir_always "s/i_enable => i_wr_signals(0),/i_enable => '1',/" 10 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '' cell_no_set_clear "s/out_enable    <= i_wr_signals(1) or (i_wr_signals(2) and i_data_in);/out_enable    <= i_wr_signals(1);/" 10 gpio_cell --
@@ -431,9 +535,30 @@ mutant gpio_cell "$gp" gpio_cell '' cell_level_ignored "s/interrupt_logic <= lev
 mutant gpio_cell "$gp" gpio_cell '' cell_level_fall_is_high "s/(irq_fall_mask and not pin_input)/(irq_fall_mask and pin_input)/" 16 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '' cell_level_mode_write "s/i_enable => i_wr_signals(7),/i_enable => i_wr_signals(3),/" 16 gpio_cell --
 mutant gpio_cell "$gp" gpio_cell '-DACTIVE_LOW' cell_low_drive_not_inverted "s/drive_logic <= not out_reg when active_low else out_reg;/drive_logic <= out_reg;/" 10 gpio_cell -- -gactive_low=true
-mutant gpio_cell "$gp" gpio_cell '-DACTIVE_LOW' cell_low_input_not_inverted "s/pin_logic   <= not io_gpio_pin when active_low else io_gpio_pin;/pin_logic   <= io_gpio_pin;/" 10 gpio_cell -- -gactive_low=true
-mutant gpio_cell "$gp" gpio_cell '' cell_pin_not_driven "s/i_enable => dir_reg,/i_enable => '0',/" 10 gpio_cell --
-mut_open=0
+mutant gpio_cell "$gp" gpio_cell '-DACTIVE_LOW' cell_low_input_not_inverted "s/pin_logic <= not i_pin when active_low else i_pin;/pin_logic <= i_pin;/" 10 gpio_cell -- -gactive_low=true
+mutant gpio_cell "$gp" gpio_cell '' cell_pin_not_driven "s/o_pin_en <= dir_reg;/o_pin_en <= '0';/" 10 gpio_cell --
+mutant gpio_cell "$gp" gpio_cell '-DFIXED_IN' cell_fixed_in_follows_write "s/dir_reg <= dir_written when dir_mode = 0 else '0' when dir_mode = 1 else '1';/dir_reg <= dir_written;/" 10 gpio_cell -- -gdir_mode=1
+mutant gpio_cell "$gp" gpio_cell '-DFIXED_OUT' cell_fixed_out_follows_write "s/dir_reg <= dir_written when dir_mode = 0 else '0' when dir_mode = 1 else '1';/dir_reg <= dir_written;/" 10 gpio_cell -- -gdir_mode=2
+
+mut_expose=(); mut_pins=1
+gb="$f/gpio_props.sv"
+mutant gpio "$gb" gpio '-DPART_A' gpio_block_all_groups_hit "s/hit <= '1' when group_sel = g else '0';/hit <= '1';/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+mutant gpio "$gb" gpio '-DPART_B' gpio_block_pin_reversed "s/constant PIN : natural := field_value(group_members, FIRST + k);/constant PIN : natural := field_value(group_members, FIRST + SIZE - 1 - k);/" 8 "${gpio_block_srcs[@]}" -- "${gpio_b[@]}"
+mutant gpio "$gb" gpio '-DPART_A' gpio_block_hold_active_high "s/io_gpio_pins(p) <= pin_active_low(p);/io_gpio_pins(p) <= '0';/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+mutant gpio "$gb" gpio '-DPART_A' gpio_block_float_off_output "s/io_gpio_pins(p) <= 'Z';/io_gpio_pins(p) <= '1';/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+mutant gpio "$gb" gpio '-DPART_A' gpio_block_read_last_wins "s/acc := acc or group_rdata(g);/acc := group_rdata(g);/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+mutant gpio_pkg "$gb" gpio '-DPART_A' gpio_pkg_polarity_by_bit "s/result(k) := l(field_value(members, first + k));/result(k) := l(k);/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+mutant gpio_pkg "$gb" gpio '-DPART_A' gpio_pkg_dir_by_bit "s/result(2 \* k + 1 downto 2 \* k) := d(2 \* p + 1 downto 2 \* p);/result(2 * k + 1 downto 2 * k) := d(2 * k + 1 downto 2 * k);/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+mutant gpio_group "$gb" gpio '-DPART_A' gpio_group_fixed_ignored "s/dir_mode => to_mode(dir_modes(2 \* i + 1 downto 2 \* i)),/dir_mode => 0,/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+mut_pins=0
+
+mut_expose=()
+sp="$f/seg_display_props.sv"
+mutant seg_display "$sp" seg_display '-DPART_A' disp_read_by_position "s/o_rdata(4 \* k + 3 downto 4 \* k) <= value(4 \* m + 3 downto 4 \* m);/o_rdata(4 * k + 3 downto 4 * k) <= value(4 * k + 3 downto 4 * k);/" 8 "${display_srcs[@]}" -- "${disp_a[@]}"
+mutant seg_display "$sp" seg_display '-DPART_A' disp_write_by_position "s/value(4 \* m + 3 downto 4 \* m) <= i_data_in(4 \* k + 3 downto 4 \* k);/value(4 * k + 3 downto 4 * k) <= i_data_in(4 * k + 3 downto 4 * k);/" 8 "${display_srcs[@]}" -- "${disp_a[@]}"
+mutant seg_display "$sp" seg_display '-DPART_A' disp_off_digit_lit "s/seg_low(7 \* n + 6 downto 7 \* n) <= (others => '1');/seg_low(7 * n + 6 downto 7 * n) <= (others => '0');/" 8 "${display_srcs[@]}" -- "${disp_a[@]}"
+mutant seg_display "$sp" seg_display '-DPART_A' disp_group_zero "s/if sel = g then/if sel = 0 then/" 8 "${display_srcs[@]}" -- "${disp_a[@]}"
+mutant seg_display "$sp" seg_display '-DPART_B' disp_any_word_writes "s/elsif i_write = '1' and digits > 0 and i_address(3 downto 0) = \"0000\" then/elsif i_write = '1' and digits > 0 then/" 8 "${display_srcs[@]}" -- "${disp_b[@]}"
 
 mut_expose=()
 fp="$f/uart_fifo_props.sv"
@@ -445,6 +570,24 @@ mutant uart_fifo "$fp" uart_fifo '' fifo_push_not_counted "s/count <= count + 1;
 mutant uart_fifo "$fp" uart_fifo '' fifo_pop_keeps_head "s/read_pointer <= next_pointer(read_pointer);/read_pointer <= 0;/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
 mutant uart_fifo "$fp" uart_fifo '' fifo_empty_shows_data "s/else (others => '0');/else memory(read_pointer);/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
 mutant uart_fifo "$fp" uart_fifo '' fifo_pop_when_empty "s/i_pop = '1' and count > 0/i_pop = '1'/" 14 "${fifo_srcs[@]}" -- "${fgen[@]}"
+
+mut_expose=()
+ifp="$f/ir_fifo_props.sv"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_no_wrap "s/return 0;/return pointer;/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_overwrite_when_full "s/do_push <= '1' when i_push = '1' and count < depth else '0';/do_push <= i_push;/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_flush_ignored "s/if i_rst = '1' or i_flush = '1' then/if i_rst = '1' then/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_refusal_silent "s/o_refused <= '1' when i_push = '1' and count = depth else '0';/o_refused <= '0';/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+mutant ir_fifo "$ifp" ir_fifo '' irfifo_empty_shows_data "s/else (others => '0');/else memory(rd_ptr);/" 14 "${ir_fifo_srcs[@]}" -- "${irgen[@]}"
+irp="$f/ir_regs_props.sv"
+mutant ir_regs "$irp" ir_regs '' irregs_overflow_clear_bit "s/if i_data_in(STAT_OVERFLOW) = '1' then/if i_data_in(STAT_FRAME_ERR) = '1' then/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_irq_mask_ignored "s/(frame_ie_r and not empty)/(not empty)/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_flush_wrong_bit "s/flush <= wr_ctrl and i_data_in(CTRL_FLUSH);/flush <= wr_ctrl and i_data_in(CTRL_RAW_IE);/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_ext_reset_off "s/ext_en_r <= '1';/ext_en_r <= '0';/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_full_is_empty "s/v(STAT_FULL) := full;/v(STAT_FULL) := empty;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_error_not_sticky "s/frame_err_r <= '1';/null;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_overflow_not_set "s/overflow_r <= '1';/null;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_pop_on_any_read "s/rd_data <= '1' when i_read = '1' and i_address = ADDR_DATA else '0';/rd_data <= i_read;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
+mutant ir_regs "$irp" ir_regs '' irregs_raw_swapped "s/raw_mark_r <= i_width;/raw_space_r <= i_width;/" 12 "${ir_regs_srcs[@]}" -- "${irrgen[@]}"
 
 mut_expose=(); jp="$f/jtag_uart_props.sv"
 mutant jtag_uart "$jp" jtag_uart '' jtagu_tx_empty_inverted "s/(tx_empty and tx_irq_enable)/((not tx_empty) and tx_irq_enable)/" 14 "${jtag_srcs[@]}" -- -glog2_depth=2
@@ -481,9 +624,89 @@ mutant console "$cp_" console_equiv '' console_address_bits "s/i_address  => i_a
 mutant console "$cp_" console_equiv '' console_read_strobe "s/i_read     => i_re,/i_read     => i_we,/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
 mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        => i_we,/i_we        => i_re,/" 30 "${console_srcs[@]}" -- "${cgen_jtag[@]}"
 
+mut_expose=()
+tp_="$f/tv_regs_props.sv"
+mutant tv_regs "$tp_" tv_regs '' tvr_start_when_busy "s/ and busy = '0' then/ then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_config_while_busy "0,/if busy = '0' then/s//if true then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_zero_divisor "s/if unsigned(i_data_in(7 downto 0)) = 0 then/if false then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_w1c_wrong_bit "s/if i_data_in(STATUS_READY_BIT) = '1' and done_event = '0' then/if i_data_in(STATUS_ERROR_BIT) = '1' and done_event = '0' then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_count_always "s/if i_cap_ok = '1' then/if true then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_irq_mask_ignored "s/o_irq <= (frame_irq and frame_ready) or (error_irq and sync_error);/o_irq <= frame_ready or (error_irq and sync_error);/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_pointer_no_wrap "s/if rd_ptr = DEPTH - 1 then/if rd_ptr = DEPTH then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_pointer_unchecked "s/ and unsigned(i_data_in) < DEPTH then/ then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_done_while_idle "s/done_event <= busy and (i_done_tog xor done_seen);/done_event <= i_done_tog xor done_seen;/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+tcp_="$f/tv_capture_props.sv"
+mutant tv_capture "$tcp_" tv_capture '-DFSEL=0' tvc_column_unbounded "s/ and col < fb_width;/;/" 28 "${tvc_srcs[@]}" -- "${tcgen[@]}"
+mutant tv_capture "$tcp_" tv_capture '-DFSEL=0' tvc_frame_after_first_field "s/elsif (both and second = '1' and i_field = '1') or (not both and field_wanted = '1') then/elsif true then/" 28 "${tvc_srcs[@]}" -- "${tcgen[@]}"
+mutant tv_capture "$tcp_" tv_capture '-DFSEL=0' tvc_pixel_while_idle "s/if accept then/if accept or i_pix_valid = '1' then/" 28 "${tvc_srcs[@]}" -- "${tcgen[@]}"
+
+
+mut_expose=("${sd_exp[@]}")
+sp="$f/sd_spi_props.sv"
+mutant sd_spi "$sp" sd_spi '' sdspi_cs_bit "s/cs_assert <= i_data_in(0);/cs_assert <= i_data_in(1);/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_done_enable_bit "s/done_irq_enable <= i_data_in(3);/done_irq_enable <= i_data_in(4);/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_divider_address "s/if i_write = '1' and i_address = DIVIDER_ADDRESS then/if i_write = '1' and i_address = CONTROL_ADDRESS then/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_done_not_cleared "s/done_flag <= done_flag and not i_data_in(5);/done_flag <= done_flag;/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_rx_valid_inverted "s/value(0) := not rx_fifo_empty;/value(0) := rx_fifo_empty;/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi "$sp" sd_spi '' sdspi_busy_ignores_done "s/value(3) := phy_busy or phy_done or not tx_fifo_empty;/value(3) := phy_busy or not tx_fifo_empty;/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi_phy "$sp" sd_spi '-DBYTE' sdspi_phy_short_byte "s/if bits_left = 1 then/if bits_left = 2 then/" 40 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant sd_spi_phy "$sp" sd_spi '-DBYTE' sdspi_phy_mosi_low "s/tx_shift <= tx_shift(6 downto 0) \& '1';/tx_shift <= tx_shift(6 downto 0) \& '0';/" 40 "${sd_srcs[@]}" -- "${sdgen[@]}"
+
+# I2C master (own file).
+source "$root/formal/i2c.sh"
+echo "audio_xck_gen"
+xck_srcs=(audio_xck_gen)
+path_of[audio_xck_gen]="$root/src/audio/soc/audio_xck_gen.vhd"
+mut_expose=(acc:31 armed)
+build audio_xck_gen xckg "${xck_srcs[@]}" --
+expect "the master clock flips floor(k * step / modulus) times after k updates, the accumulator stays below the modulus (bounded, 20 cycles)" PASS "$(prove xckg.v "$f/audio_xck_gen_props.sv" bmc 20 '' xckg_safety)"
+expect "cover: several flips, and a flip at every cycle when step equals modulus, are reachable" PASS "$(prove xckg.v "$f/audio_xck_gen_props.sv" cover 14 '-DCOVER' xckg_cover)"
+echo "audio_frame_clocks"
+fc_srcs=(audio_frame_clocks)
+path_of[audio_frame_clocks]="$root/src/audio/soc/audio_frame_clocks.vhd"
+mut_expose=()
+build audio_frame_clocks fclk "${fc_srcs[@]}" --
+expect "BCLK flips every divisor master flips, LRCK every slot-length BCLK falls, both low when disabled (bounded, 24 cycles)" PASS "$(prove fclk.v "$f/audio_frame_clocks_props.sv" bmc 24 '' fclk_safety)"
+expect "cover: the BCLK and the LRCK flip with divisor and slot length of one" PASS "$(prove fclk.v "$f/audio_frame_clocks_props.sv" cover 24 '-DCOVER' fclk_cover)"
+echo "audio"
+audio_srcs=(config_pkg uart_fifo audio_consts audio_xck_gen audio_frame_clocks audio_i2s_tx audio_i2s_rx audio_tone audio)
+for n in audio_consts audio_i2s_tx audio_i2s_rx audio_tone audio; do path_of[$n]="$root/src/audio/soc/$n.vhd"; done
+audio_exp=(tx_level:1 rx_level:1 tx_push_ok tx_pop tx_underflow rx_valid rx_right rx_space)
+agen=(-gmaster=false -gtx_fifo_depth=3 -grx_fifo_depth=3)
+mut_expose=("${audio_exp[@]}")
+build audio audio "${audio_srcs[@]}" -- "${agen[@]}"
+expect "registers read back, queue levels, status flags, interrupt and master clock gating follow the contract (bounded, 20 cycles, 3-word queues)" PASS "$(prove audio.v "$f/audio_props.sv" bmc 20 '' audio_safety)"
+expect "cover: a dropped write, a full queue, an underflow, a queue interrupt and a consumed word are reachable" PASS "$(prove audio.v "$f/audio_props.sv" cover 40 '-DCOVER' audio_cover)"
+mut_expose=(acc:31 armed)
+xp="$f/audio_xck_gen_props.sv"
+mutant audio_xck_gen "$xp" audio_xck_gen '' xckg_wrap_late "s/if acc >= dec then/if acc > dec then/" 20 "${xck_srcs[@]}" --
+mutant audio_xck_gen "$xp" audio_xck_gen '' xckg_no_discount "s/acc <= acc - dec;/acc <= acc + unsigned(i_step);/" 20 "${xck_srcs[@]}" --
+mutant audio_xck_gen "$xp" audio_xck_gen '' xckg_no_toggle "s/xck <= not xck;/xck <= xck;/" 20 "${xck_srcs[@]}" --
+mut_expose=()
+cp2="$f/audio_frame_clocks_props.sv"
+mutant audio_frame_clocks "$cp2" audio_frame_clocks '' fclk_div_short "s/if edge_count + 1 >= unsigned(i_bclk_div) then/if edge_count >= unsigned(i_bclk_div) then/" 24 "${fc_srcs[@]}" --
+mutant audio_frame_clocks "$cp2" audio_frame_clocks '' fclk_lrck_on_rise "s/if bclk = '1' then/if bclk = '0' then/" 24 "${fc_srcs[@]}" --
+mutant audio_frame_clocks "$cp2" audio_frame_clocks '' fclk_slot_short "s/if slot_count + 1 >= unsigned(i_slot_bits) then/if slot_count >= unsigned(i_slot_bits) then/" 24 "${fc_srcs[@]}" --
+mut_expose=("${audio_exp[@]}")
+ap2="$f/audio_props.sv"
+mutant audio "$ap2" audio '' audio_tx_irq_strict "s/to_sl(tx_level <= to_integer(unsigned(tx_thr)))/to_sl(tx_level < to_integer(unsigned(tx_thr)))/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_rx_irq_mask_ignored "s/(rx_irq_en and to_sl(rx_level >= to_integer(unsigned(rx_thr))))/to_sl(rx_level >= to_integer(unsigned(rx_thr)))/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_drop_flag_always "s/if tx_push = '1' and tx_push_ok = '0' then/if tx_push = '1' then/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_thresholds_swapped "s/tx_thr <= i_data_in(15 downto 0);/tx_thr <= i_data_in(31 downto 16);/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_status_full_inverted "s/value(STAT_TX_NOT_FULL) := not tx_full;/value(STAT_TX_NOT_FULL) := tx_full;/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_w1c_wrong_bit "s/if i_data_in(STAT_TX_DROPPED) = '1' then/if i_data_in(STAT_RX_OVERFLOW) = '1' then/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_word_bits_lost "s/word_sel <= i_data_in(9 downto 8);/word_sel <= i_data_in(8 downto 7);/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_clock_not_gated "s/i_enable => clk_en,/i_enable => '1',/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
 
 # PLIC (own file, like the external interrupt controller).
 source "$root/formal/plic.sh"
+
+# LCD controller (own file).
+source "$root/formal/lcd.sh"
+# Ethernet MAC (own file).
+source "$root/formal/eth.sh"
+# HDMI output (own file): timing generator, registers, I2C writer and the initialization sequencer.
+source "$root/formal/hdmi.sh"
 
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }

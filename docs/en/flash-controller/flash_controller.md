@@ -84,15 +84,15 @@ The `o_irq` output is one while any pending bit is enabled. Software clears an e
 | :--- | :--- | ---: | :--- |
 | `i_clk` | input | 1 | Module clock |
 | `i_rst` | input | 1 | Reset, active at `'1'`; clears `ADDR` and `BUF_PTR` |
-| `i_data_in` | input | 32 | Write data |
+| `i_data_in` | input | `XLEN` (`word_t`) | Write data |
 | `i_address` | input | 3 | Word address |
 | `i_write` | input | 1 | Write pulse |
 | `i_read` | input | 1 | Read pulse |
-| `o_data_out` | output | 32 | Read data, zero without `i_read` |
+| `o_data_out` | output | `XLEN` (`word_t`) | Read data, zero without `i_read` |
 | `o_irq` | output | 1 | Level interrupt, `(IRQ_STATUS and IRQ_ENABLE) /= 0` |
 | `o_cmd_valid` | output | 1 | Pulse that delivers a command to the chip |
 | `o_cmd_op` | output | 3 | Command code |
-| `o_cmd_addr` | output | 32 | Byte address of the command |
+| `o_cmd_addr` | output | `ADDR_BITS` (`addr_t`) | Byte address of the command |
 | `i_busy` | input | 1 | The chip is busy |
 | `i_wel` | input | 1 | The write latch of the chip is armed |
 | `i_refused` | input | 1 | The last erase or program was refused |

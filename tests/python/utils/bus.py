@@ -69,18 +69,41 @@ async def reset(dut: BusDut, hold: int = 3, period_ns: int = 10) -> None:
     period_ns : int
         Clock period in nanoseconds.
     """
-    cocotb.start_soon(Clock(dut.i_clk, period_ns, unit="ns").start())
-    dut.i_rst.value = 1
-    dut.i_write.value = 0
+    set_inputs(dut, i_write=0, i_address=0, i_data_in=0)
     _set_read(dut, 0)
-    dut.i_address.value = 0
-    dut.i_data_in.value = 0
-    for _ in range(hold):
-        await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
-    dut.i_rst.value = 0
-    await RisingEdge(dut.i_clk)
-    await Timer(1, unit="ns")
+    await hold_reset(dut, hold, period_ns)
+    await cycles(dut, 1)
+
+
+def set_inputs(dut: ClockedDut, **values: int) -> None:
+    """Drive several inputs of the design at once.
+
+    Parameters
+    ----------
+    dut : ClockedDut
+        The design under test.
+    **values : int
+        Value of each input, by port name.
+    """
+    for name, value in values.items():
+        getattr(dut, name).value = value
+
+
+async def pulse(dut: ClockedDut, *names: str) -> None:
+    """Raise inputs for exactly one clock edge.
+
+    Parameters
+    ----------
+    dut : ClockedDut
+        The design under test.
+    *names : str
+        Names of the input ports.
+    """
+    for name in names:
+        getattr(dut, name).value = 1
+    await cycles(dut, 1)
+    for name in names:
+        getattr(dut, name).value = 0
 
 
 async def drive(

@@ -1,0 +1,28 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "rv32_drivers.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    rv32_display_t display = rv32_display_platform_new();
+    uint8_t digit = 0;
+
+    if (!rv32_display_valid(display)) {
+        return 1;
+    }
+
+    uint32_t previous = rv32_display_read(display);
+    bool written = rv32_display_write_digit(display, 0, 3);
+    bool read = rv32_display_read_digit(display, 0, &digit);
+
+    rv32_display_write(display, previous);
+
+    if (!written || !read || digit != 3) {
+        return 2;
+    }
+
+    puts("DISPLAY example: PASS");
+
+    return 0;
+}

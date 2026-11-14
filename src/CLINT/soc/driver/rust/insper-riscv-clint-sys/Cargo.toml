@@ -1,0 +1,15 @@
+[package]
+name = "insper-riscv-clint-sys"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+description = "Raw no_std bindings to the Insper RISC-V CLINT C driver"
+links = "rv32_clint"
+build = "build.rs"
+# The C sources live in the sibling driver/c directory in this repository.
+publish = false
+
+[build-dependencies]
+bindgen = { version = "0.72.1", default-features = false, features = ["runtime"] }
+cc = "1.2.55"

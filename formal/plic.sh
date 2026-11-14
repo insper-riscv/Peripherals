@@ -4,7 +4,7 @@ echo "plic_gateway"
 for n in plic_consts plic_gateway plic_arbiter plic; do path_of[$n]="$root/src/PLIC/soc/$n.vhd"; done
 gw_srcs=(plic_gateway)
 gwp="$f/plic_gateway_props.sv"
-mut_expose=(); mut_open=0
+mut_expose=()
 build plic_gateway plicgw "${gw_srcs[@]}" --
 expect "pending follows the ideal gateway: one request per service, the claim clears it, only the complete unmasks (bounded, 16 cycles)" PASS "$(prove plicgw.v "$gwp" bmc 16 '' plicgw_safety)"
 expect "cover: a request, a claim and a new request after the complete are reachable" PASS "$(prove plicgw.v "$gwp" cover 12 '-DCOVER' plicgw_cover)"
@@ -18,7 +18,7 @@ expect "o_id is the pending enabled source of highest priority above the thresho
 expect "cover: the first and the last source win, a pending source is below the threshold, and a tie goes to the lowest id" PASS "$(prove plicarb.v "$arp" cover 2 '-DCOVER' plicarb_cover)"
 
 echo "plic"
-plic_srcs=(plic_consts plic_gateway plic_arbiter plic)
+plic_srcs=(config_pkg plic_consts plic_gateway plic_arbiter plic)
 plic_gen=(-gn_sources=4 -gpriority_bits=2 -gaddr_width=20)
 pp="$f/plic_props.sv"
 mut_expose=(pending:3 enable_reg:3 priorities:7 threshold:1)

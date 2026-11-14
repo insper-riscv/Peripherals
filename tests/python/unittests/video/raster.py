@@ -1,36 +1,29 @@
-"""Modelo de referência da imagem VGA e captura das linhas da saída."""
+"""Modelo de referência da imagem de vídeo e captura da saída."""
 
 from dataclasses import dataclass, field
 
-from cocotb.triggers import ClockCycles, FallingEdge
+from cocotb.triggers import ClockCycles, FallingEdge, RisingEdge
 
 from tests.python.unittests.video import bus
 from tests.python.unittests.video.registers import (
-    DIRECT_PIXEL_BITS,
+    COLOR_CHANNELS,
     FORMAT,
     GEOMETRY,
-    H_SYNC,
-    H_TOTAL,
-    H_VISIBLE,
-    HS_BEGIN,
+    INDEXED_FLAG,
     PALETTE_ENTRIES,
-    PALETTE_PIXEL_BITS,
-    V_SYNC,
-    V_TOTAL,
-    V_VISIBLE,
-    VS_BEGIN,
+    Mode,
+    read_mode,
 )
 from tests.python.unittests.video.signals import VideoDut
 
 Color = tuple[int, int, int]
 BLACK: Color = (0, 0, 0)
-HALF_WORD_MASK = 0b0011
-CHANNEL_MASK = 0xF
+BITS_PER_BYTE = 8
 
 
 @dataclass(frozen=True)
 class Geometry:
-    """Dimensões do framebuffer lidas dos registradores do periférico.
+    """Dimensões e formato do framebuffer lidos do periférico.
 
     Attributes
     ----------
@@ -39,18 +32,27 @@ class Geometry:
     fb_height : int
         Altura em pixels.
     pixel_bits : int
-        Bits por pixel.
+        Bits que cada pixel ocupa no framebuffer.
     scale : int
         Fator de ampliação.
+    channel_bits : int
+        Bits de cada canal de cor.
+    indexed : bool
+        Formato indexado (com paleta) quando verdadeiro.
     addr_width : int
         Largura do endereço de palavra da janela.
+    mode : Mode
+        Temporização do modo de vídeo.
     """
 
     fb_width: int
     fb_height: int
     pixel_bits: int
     scale: int
+    channel_bits: int
+    indexed: bool
     addr_width: int
+    mode: Mode
 
     @property
     def pixels_per_word(self) -> int:
@@ -65,17 +67,35 @@ class Geometry:
     @property
     def x_off(self) -> int:
         """Primeira coluna da imagem na tela."""
-        return (H_VISIBLE - self.fb_width * self.scale) // 2
+        return (self.mode.h_visible - self.fb_width * self.scale) // 2
 
     @property
     def y_off(self) -> int:
         """Primeira linha da imagem na tela."""
-        return (V_VISIBLE - self.fb_height * self.scale) // 2
+        return (self.mode.v_visible - self.fb_height * self.scale) // 2
 
     @property
     def window(self) -> int:
         """Endereço de palavra do início da janela do framebuffer."""
         return 1 << (self.addr_width - 1)
+
+    @property
+    def channel_mask(self) -> int:
+        """Máscara de um canal de cor."""
+        return (1 << self.channel_bits) - 1
+
+    @property
+    def color_mask(self) -> int:
+        """Máscara de uma cor de três canais."""
+        return (1 << (COLOR_CHANNELS * self.channel_bits)) - 1
+
+    @property
+    def palette_mask(self) -> int:
+        """Máscara de bytes que uma escrita na paleta deve cobrir."""
+        bytes_needed = (
+            COLOR_CHANNELS * self.channel_bits + BITS_PER_BYTE - 1
+        ) // BITS_PER_BYTE
+        return (1 << bytes_needed) - 1
 
 
 async def read_geometry(dut: VideoDut) -> Geometry:
@@ -97,8 +117,11 @@ async def read_geometry(dut: VideoDut) -> Geometry:
         fb_width=size & 0xFFFF,
         fb_height=size >> 16,
         pixel_bits=fmt & 0xFF,
-        scale=fmt >> 8,
+        scale=(fmt >> 8) & 0xFF,
+        channel_bits=(fmt >> 16) & 0xFF,
+        indexed=bool(fmt & INDEXED_FLAG),
         addr_width=len(dut.i_address),
+        mode=read_mode(dut),
     )
 
 
@@ -113,7 +136,7 @@ class Model:
     words : list[int]
         Palavras do framebuffer.
     palette : list[int]
-        Entradas da paleta de 12 bits.
+        Entradas da paleta de 3 x channel_bits bits.
     """
 
     geo: Geometry
@@ -147,7 +170,7 @@ class Model:
         self.words[index] = word
 
     def write_palette(self, index: int, data: int, mask: int) -> None:
-        """Aplica uma escrita na paleta; exige as duas faixas baixas.
+        """Aplica uma escrita na paleta; exige as faixas baixas da cor.
 
         Parameters
         ----------
@@ -158,11 +181,9 @@ class Model:
         mask : int
             Habilitação de bytes.
         """
-        if (
-            self.geo.pixel_bits == PALETTE_PIXEL_BITS
-            and mask & HALF_WORD_MASK == (HALF_WORD_MASK)
-        ):
-            self.palette[index] = data & 0xFFF
+        need = self.geo.palette_mask
+        if self.geo.indexed and mask & need == need:
+            self.palette[index] = data & self.geo.color_mask
 
     def pixel_color(self, x: int, y: int) -> Color:
         """Cor do pixel (x, y) do framebuffer.
@@ -177,26 +198,23 @@ class Model:
         Returns
         -------
         Color
-            Vermelho, verde e azul de 4 bits.
+            Vermelho, verde e azul.
         """
         geo = self.geo
         number = y * geo.fb_width + x
         word = self.words[number // geo.pixels_per_word]
         slot = number % geo.pixels_per_word
         raw = (word >> (geo.pixel_bits * slot)) & ((1 << geo.pixel_bits) - 1)
-        rgb = (
-            raw & 0xFFF
-            if geo.pixel_bits == DIRECT_PIXEL_BITS
-            else self.palette[raw]
-        )
+        rgb = self.palette[raw] if geo.indexed else raw & geo.color_mask
+        bits = geo.channel_bits
         return (
-            (rgb >> 8) & CHANNEL_MASK,
-            (rgb >> 4) & CHANNEL_MASK,
-            rgb & CHANNEL_MASK,
+            (rgb >> (2 * bits)) & geo.channel_mask,
+            (rgb >> bits) & geo.channel_mask,
+            rgb & geo.channel_mask,
         )
 
     def screen_color(self, x: int, y: int) -> Color:
-        """Cor esperada do pixel (x, y) da tela de 800x525.
+        """Cor esperada do pixel (x, y) da tela.
 
         Parameters
         ----------
@@ -208,7 +226,7 @@ class Model:
         Returns
         -------
         Color
-            Vermelho, verde e azul de 4 bits.
+            Vermelho, verde e azul.
         """
         geo = self.geo
         fx, fy = x - geo.x_off, y - geo.y_off
@@ -220,7 +238,7 @@ class Model:
 
 @dataclass(frozen=True)
 class Sample:
-    """Estado dos pinos VGA em um ciclo de pixel.
+    """Estado dos pinos de vídeo em um ciclo de pixel.
 
     Attributes
     ----------
@@ -230,15 +248,18 @@ class Sample:
         Sincronismo horizontal.
     vs : int
         Sincronismo vertical.
+    blank_n : int
+        Apagamento do conversor, ativo em nível baixo.
     """
 
     color: Color
     hs: int
     vs: int
+    blank_n: int
 
 
 def sample(dut: VideoDut) -> Sample:
-    """Lê os pinos VGA.
+    """Lê os pinos de vídeo.
 
     Parameters
     ----------
@@ -258,14 +279,48 @@ def sample(dut: VideoDut) -> Sample:
         ),
         hs=int(dut.o_vga_hs.value),
         vs=int(dut.o_vga_vs.value),
+        blank_n=int(dut.o_vga_blank_n.value),
     )
+
+
+async def vs_pulse_start(dut: VideoDut, mode: Mode) -> None:
+    """Espera a borda de início do pulso de sincronismo vertical.
+
+    Parameters
+    ----------
+    dut : VideoDut
+        Periférico sob teste.
+    mode : Mode
+        Temporização do modo.
+    """
+    if mode.v_positive:
+        await RisingEdge(dut.o_vga_vs)
+    else:
+        await FallingEdge(dut.o_vga_vs)
+
+
+async def vs_pulse_end(dut: VideoDut, mode: Mode) -> None:
+    """Espera a borda de fim do pulso de sincronismo vertical.
+
+    Parameters
+    ----------
+    dut : VideoDut
+        Periférico sob teste.
+    mode : Mode
+        Temporização do modo.
+    """
+    if mode.v_positive:
+        await FallingEdge(dut.o_vga_vs)
+    else:
+        await RisingEdge(dut.o_vga_vs)
 
 
 async def seek(dut: VideoDut, line: int, column: int) -> None:
     """Para na amostra (coluna, linha) do próximo quadro.
 
-    A referência é a borda de descida de o_vga_vs, que marca a coluna 0
-    da linha 490; as amostras são tomadas no meio do ciclo de pixel.
+    A referência é a borda de início de o_vga_vs, que marca a coluna 0
+    da linha em que o pulso vertical começa; as amostras são tomadas no
+    meio do ciclo de pixel.
 
     Parameters
     ----------
@@ -276,15 +331,16 @@ async def seek(dut: VideoDut, line: int, column: int) -> None:
     column : int
         Coluna da tela.
     """
-    await FallingEdge(dut.o_vga_vs)
+    mode = read_mode(dut)
+    await vs_pulse_start(dut, mode)
     await FallingEdge(dut.i_pixel_clk)
-    skip = ((line - VS_BEGIN) % V_TOTAL) * H_TOTAL + column
+    skip = ((line - mode.vs_begin) % mode.v_total) * mode.h_total + column
     if skip:
         await ClockCycles(dut.i_pixel_clk, skip, rising=False)
 
 
 async def capture(dut: VideoDut, first: int, count: int) -> list[list[Sample]]:
-    """Captura linhas consecutivas da tela, de 800 amostras cada.
+    """Captura linhas consecutivas da tela, de h_total amostras cada.
 
     A captura começa na coluna 0 da primeira linha e amostra os pinos no
     meio de cada ciclo de pixel.
@@ -303,11 +359,12 @@ async def capture(dut: VideoDut, first: int, count: int) -> list[list[Sample]]:
     list[list[Sample]]
         As linhas capturadas.
     """
+    mode = read_mode(dut)
     await seek(dut, first, 0)
     rows: list[list[Sample]] = []
     for _ in range(count):
         row: list[Sample] = []
-        for _ in range(H_TOTAL):
+        for _ in range(mode.h_total):
             row.append(sample(dut))
             await FallingEdge(dut.i_pixel_clk)
         rows.append(row)
@@ -324,20 +381,22 @@ def check_row(model: Model, line: int, row: list[Sample]) -> None:
     line : int
         Número da linha da tela.
     row : list[Sample]
-        As 800 amostras da linha.
+        As amostras da linha.
 
     Raises
     ------
     AssertionError
         Se algum pixel ou sincronismo difere do esperado.
     """
-    vs_low = VS_BEGIN <= line < VS_BEGIN + V_SYNC
+    mode = model.geo.mode
     for column, got in enumerate(row):
-        hs_low = HS_BEGIN <= column < HS_BEGIN + H_SYNC
         want = Sample(
-            model.screen_color(column, line) if column < H_VISIBLE else BLACK,
-            0 if hs_low else 1,
-            0 if vs_low else 1,
+            model.screen_color(column, line)
+            if mode.visible(column, line)
+            else BLACK,
+            mode.hs_level(column),
+            mode.vs_level(line),
+            int(mode.visible(column, line)),
         )
         if got != want:
             message = f"linha {line} coluna {column}: {got} != {want}"

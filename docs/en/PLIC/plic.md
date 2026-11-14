@@ -24,7 +24,7 @@ Priority 0 never interrupts. The address window is at least `0x200008` bytes, wh
 | :--- | :--- | :--- |
 | `i_clk`, `i_rst` | input | Clock and synchronous reset, active at 1 |
 | `i_sources` | input | Level lines of the sources, bit $n$ is source $n$, active at 1, synchronous to `i_clk` |
-| `i_data_in`, `i_address` | input | 32-bit write data and word address of `addr_width` bits |
+| `i_data_in`, `i_address` | input | `word_t` write data (`XLEN` bits) and word address of `addr_width` bits |
 | `i_write`, `i_read` | input | Write and read pulses |
 | `o_data_out` | output | Read data, combinational on the address |
 | `o_meip` | output | `MEIP`, 1 when a candidate source exists |

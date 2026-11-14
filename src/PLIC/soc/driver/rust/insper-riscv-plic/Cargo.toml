@@ -1,0 +1,10 @@
+[package]
+name = "insper-riscv-plic"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+insper-riscv-plic-sys = { path = "../insper-riscv-plic-sys" }
