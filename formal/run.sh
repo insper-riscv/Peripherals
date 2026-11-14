@@ -156,11 +156,13 @@ expose() {
 }
 
 # open_pin <netlist>: the bidirectional pin of the GPIO cell becomes an input (what the pin is worth) and an
-# output (what the cell drives), and a floating tristate output becomes zero. The logic is the same.
+# output (what the cell drives), and a floating tristate output becomes zero. The logic is the same. Every read of the
+# pin becomes i_pin, whatever the text around it: GHDL 7 writes an attribute between an operator and the name, so a
+# read is not always in the form " = io_gpio_pin;".
 open_pin() {
   sed -i -e 's/inout  io_gpio_pin);/input  i_pin,\n   output o_pin_drv);/' \
          -e 's/^  assign io_gpio_pin = /  assign o_pin_drv = /' \
-         -e 's/ = io_gpio_pin;/ = i_pin;/' \
+         -e 's/\bio_gpio_pin\b/i_pin/g' \
          -e "s/1'bz/1'b0/" "$1"
   grep -q 'o_pin_drv' "$1" && grep -q 'i_pin' "$1" || { echo "open_pin: the pin of $1 was not found"; exit 1; }
 }
