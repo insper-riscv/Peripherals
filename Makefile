@@ -3,9 +3,11 @@ GHDL  := ghdl
 STD   := --std=08
 WDIR  := build/ghdl
 
+# The files of an altera/ folder wrap the megafunctions of Intel, which the toolchain image does not carry, and
+# stand in the board build for the model of the sibling sim/ folder.
 # The peripherals use the blocks of Common-Components, included as a submodule in src/common. The Quartus
 # shells of src/*/cyclone-v/ need Intel's megafunctions, which the toolchain image does not carry.
-VHDL      := $(shell find src tests/vhdl -name '*.vhd' -not -path 'src/common/*' -not -path '*/cyclone-v/*' | sort) $(sort $(wildcard src/common/src/*.vhd))
+VHDL      := $(shell find src tests/vhdl -name '*.vhd' -not -path 'src/common/*' -not -path '*/cyclone-v/*' -not -path '*/altera/*' | sort) $(sort $(wildcard src/common/src/*.vhd))
 
 .PHONY: check test paths formal clean
 

@@ -1022,5 +1022,468 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "EthTx": {
+        "toplevel": "eth",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_dpram.vhd",
+            "src/ETH/mac/eth_async_fifo.vhd",
+            "src/ETH/mac/eth_pulse_cdc.vhd",
+            "src/ETH/mac/eth_reset_stretch.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd",
+            "src/ETH/mac/eth_rx_store.vhd",
+            "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
+            "src/ETH/mac/eth_regs.vhd",
+            "src/ETH/mac/eth.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.frames_tx",
+        "parameters": {
+            "clk_freq_hz": 100000000
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRx": {
+        "toplevel": "eth",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_dpram.vhd",
+            "src/ETH/mac/eth_async_fifo.vhd",
+            "src/ETH/mac/eth_pulse_cdc.vhd",
+            "src/ETH/mac/eth_reset_stretch.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd",
+            "src/ETH/mac/eth_rx_store.vhd",
+            "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
+            "src/ETH/mac/eth_regs.vhd",
+            "src/ETH/mac/eth.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.frames_rx",
+        "parameters": {
+            "clk_freq_hz": 100000000
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthMdio": {
+        "toplevel": "eth",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_dpram.vhd",
+            "src/ETH/mac/eth_async_fifo.vhd",
+            "src/ETH/mac/eth_pulse_cdc.vhd",
+            "src/ETH/mac/eth_reset_stretch.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd",
+            "src/ETH/mac/eth_rx_store.vhd",
+            "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
+            "src/ETH/mac/eth_regs.vhd",
+            "src/ETH/mac/eth.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.mdio",
+        "parameters": {
+            "clk_freq_hz": 100000000
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRegisters": {
+        "toplevel": "eth",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_dpram.vhd",
+            "src/ETH/mac/eth_async_fifo.vhd",
+            "src/ETH/mac/eth_pulse_cdc.vhd",
+            "src/ETH/mac/eth_reset_stretch.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd",
+            "src/ETH/mac/eth_rx_store.vhd",
+            "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
+            "src/ETH/mac/eth_regs.vhd",
+            "src/ETH/mac/eth.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.registers_irq",
+        "parameters": {
+            "clk_freq_hz": 100000000
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthCrc32": {
+        "toplevel": "eth_crc32",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.crc32",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthAsyncFifo": {
+        "toplevel": "eth_async_fifo",
+        "sources": [
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_dpram.vhd",
+            "src/ETH/mac/eth_async_fifo.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.async_fifo",
+        "parameters": {
+            "data_width": 8,
+            "addr_bits": 3
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthDpram": {
+        "toplevel": "eth_dpram",
+        "sources": [
+            "src/ETH/mac/eth_dpram.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.dpram",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthResetStretch": {
+        "toplevel": "eth_reset_stretch",
+        "sources": [
+            "src/ETH/mac/eth_reset_stretch.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.reset_stretch",
+        "parameters": {
+            "cycles": 8
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthPulseCdc": {
+        "toplevel": "eth_pulse_cdc",
+        "sources": [
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_pulse_cdc.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.pulse_cdc",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthMacTx": {
+        "toplevel": "eth_mac_tx",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.mac_tx",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthMacRx": {
+        "toplevel": "eth_mac_rx",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.mac_rx",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthMdioMaster": {
+        "toplevel": "eth_mdio",
+        "sources": [
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mdio/eth_mdio.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.mdio_master",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRegs": {
+        "toplevel": "eth_regs",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_regs.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRxStore": {
+        "toplevel": "eth_rx_store",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_rx_store.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.rx_store",
+        "parameters": {
+            "buffer_addr_bits": 4
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthDdrIn": {
+        "toplevel": "eth_ddr_in",
+        "sources": [
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.ddr",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthDdrOut": {
+        "toplevel": "eth_ddr_out",
+        "sources": [
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.ddr_out",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthGmiiTx": {
+        "toplevel": "eth_mac_tx",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.gmii_tx",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthGmiiRx": {
+        "toplevel": "eth_mac_rx",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.gmii_rx",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRgmii": {
+        "toplevel": "eth_rgmii",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd",
+            "src/ETH/rgmii/eth_rgmii.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.rgmii",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRgmiiMac": {
+        "toplevel": "eth_rgmii_mac",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_dpram.vhd",
+            "src/ETH/mac/eth_async_fifo.vhd",
+            "src/ETH/mac/eth_pulse_cdc.vhd",
+            "src/ETH/mac/eth_reset_stretch.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd",
+            "src/ETH/mac/eth_rx_store.vhd",
+            "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
+            "src/ETH/mac/eth_regs.vhd",
+            "src/ETH/mac/eth.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd",
+            "src/ETH/rgmii/eth_rgmii.vhd",
+            "src/ETH/rgmii/eth_rgmii_mac.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.rgmii_mac",
+        "parameters": {
+            "poll_cycles": 3000
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRgmiiInPhase": {
+        "toplevel": "eth_rgmii",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd",
+            "src/ETH/rgmii/eth_rgmii.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.rgmii_in_phase",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "shifted_txc": false
+        }
+    },
+    "EthRgmiiMacInPhase": {
+        "toplevel": "eth_rgmii_mac",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_dpram.vhd",
+            "src/ETH/mac/eth_async_fifo.vhd",
+            "src/ETH/mac/eth_pulse_cdc.vhd",
+            "src/ETH/mac/eth_reset_stretch.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd",
+            "src/ETH/mac/eth_rx_store.vhd",
+            "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
+            "src/ETH/mac/eth_regs.vhd",
+            "src/ETH/mac/eth.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd",
+            "src/ETH/rgmii/eth_rgmii.vhd",
+            "src/ETH/rgmii/eth_rgmii_mac.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.rgmii_mac_in_phase",
+        "parameters": {
+            "poll_cycles": 3000,
+            "shifted_txc": false
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthSpeed": {
+        "toplevel": "eth_speed",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_speed.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.speed",
+        "parameters": {
+            "poll_cycles": 8
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }
