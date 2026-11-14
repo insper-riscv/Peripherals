@@ -316,3 +316,84 @@ class MouseOperationDecoderDut(Protocol):
 
 class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
+
+
+class TvDut(IrqDut, Protocol):
+    """Signals of the TV capture peripheral."""
+
+    i_td_clk27: LogicObject
+    i_td_data: LogicArrayObject
+    o_td_reset_n: LogicObject
+
+
+class TvRxDut(ResettableDut, Protocol):
+    """Signals of the BT.656 receiver of the TV capture."""
+
+    i_data: LogicArrayObject
+    o_line_start: LogicObject
+    o_field_start: LogicObject
+    o_field_end: LogicObject
+    o_error: LogicObject
+    o_field: LogicObject
+    o_present: LogicObject
+    o_pix_valid: LogicObject
+    o_y: LogicArrayObject
+    o_cb: LogicArrayObject
+    o_cr: LogicArrayObject
+
+
+class TvColorDut(ClockedDut, Protocol):
+    """Signals of the color conversion of the TV capture."""
+
+    i_we: LogicObject
+    i_index: LogicArrayObject
+    i_format: LogicObject
+    i_y: LogicArrayObject
+    i_cb: LogicArrayObject
+    i_cr: LogicArrayObject
+    o_we: LogicArrayObject
+    o_waddr: LogicArrayObject
+    o_wdata: LogicArrayObject
+
+
+class TvRegsDut(IrqDut, Protocol):
+    """Signals of the register block of the TV capture."""
+
+    i_present: LogicObject
+    i_done_tog: LogicObject
+    i_cap_ok: LogicObject
+    i_err_tog: LogicObject
+    i_rd_data: LogicArrayObject
+    o_start_tog: LogicObject
+    o_x_div: LogicArrayObject
+    o_y_div: LogicArrayObject
+    o_field_sel: LogicArrayObject
+    o_format: LogicObject
+    o_decoder_run: LogicObject
+    o_rd_addr: LogicArrayObject
+
+
+class TvCaptureDut(ResettableDut, Protocol):
+    """Signals of the capture control of the TV capture."""
+
+    i_start: LogicObject
+    i_x_div: LogicArrayObject
+    i_y_div: LogicArrayObject
+    i_field_sel: LogicArrayObject
+    i_format: LogicObject
+    i_line_start: LogicObject
+    i_field_start: LogicObject
+    i_field_end: LogicObject
+    i_field: LogicObject
+    i_present: LogicObject
+    i_pix_valid: LogicObject
+    i_y: LogicArrayObject
+    i_cb: LogicArrayObject
+    i_cr: LogicArrayObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_ok: LogicObject
+    o_we: LogicObject
+    o_index: LogicArrayObject
+    o_format: LogicObject
+    o_y: LogicArrayObject

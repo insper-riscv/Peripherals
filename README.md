@@ -19,6 +19,7 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 - [docs/pt-br/PS2/ps2_keyboard.md](docs/pt-br/PS2/ps2_keyboard.md): o teclado PS/2 (`ps2_keyboard`: fila de scancodes do conjunto 2, registradores `DATA`, `STATUS`, `COMMAND` e `CONTROL`, comandos e interrupção).
 - [docs/pt-br/PS2/ps2_mouse.md](docs/pt-br/PS2/ps2_mouse.md): o mouse PS/2 (inicialização, pacotes de 3 bytes, acumuladores saturados de deslocamento, botões, interrupção, canal 1 e cabo Y).
 - [docs/pt-br/video/video.md](docs/pt-br/video/video.md): o periférico de vídeo VGA 640x480 a 60 Hz (framebuffer de duas portas com clocks independentes, ampliação do pixel, paleta opcional, contador de quadros e mapa de registradores).
+- [docs/pt-br/TV/tv.md](docs/pt-br/TV/tv.md): a captura de vídeo do decodificador de TV ADV7180 da DE2-115 (receptor BT.656, conversão para RGB565 ou luminância, decimação, memória de quadro de dois clocks, registradores e interrupção de fim de quadro).
 - [docs/pt-br/flash-controller/flash_controller.md](docs/pt-br/flash-controller/flash_controller.md): o controlador de FLASH (registradores de comando, endereço, estado e buffer de página).
 - [contracts/01-es-de-placa.md](docs/pt-br/contracts/01-es-de-placa.md) e [contracts/02-console.md](docs/pt-br/contracts/02-console.md): contratos K8 (vetores de E/S por papel, polaridade normalizada, largura zero) e K9 (console `jtag` ou `pinos`).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/pt-br/contracts/02-barramento-e-memoria.md): protocolo de barramento adotado pelos periféricos.
@@ -38,12 +39,13 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `src/PS2/keyboard/` | Teclado PS/2 mapeado em memória (`ps2_keyboard`): fila de bytes de scancode, status com overflow e erro, envio de comandos e interrupção de nível |
 | `src/PS2/mouse/` | Mouse PS/2: decodificador de protocolo, acumuladores saturados por eixo e registradores (`ps2_mouse`), e o topo `ps2_mouse_top` que o liga ao `ps2_host` |
 | `src/video/soc/` | Vídeo VGA: gerador de temporização 640x480 a 60 Hz, memória de duas portas do framebuffer, caminho de pixel com paleta opcional e registradores com estado de retrace e contador de quadros (`video`) |
+| `src/TV/soc/` | Captura de TV: receptor BT.656 de 8 bits, controle da captura de um quadro com decimação, conversão YCbCr para RGB565 ou luminância e registradores com interrupção de fim de quadro (`tv`) |
 | `src/flash-controller/soc/` | Controlador de FLASH: registradores de comando, endereço, estado e buffer de página que levam os comandos de apagar, gravar e proteger ao chip de FLASH do repositório Memory |
 | `src/display/` | Display de sete segmentos: o registrador do valor, o conversor de hexadecimal para segmentos (`soc/`) e a casca do Virtual JTAG da placa (`cyclone-v/`) |
-| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,UART,display,flash_controller,video}` |
+| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,TV,UART,display,flash_controller,video}` |
 | `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO, `ps2_host_tb`, com dois canais `ps2_host`, `ps2_keyboard_tb`, com o teclado e as linhas acessíveis ao cocotb, e `ps2_cable_tb`, com o teclado e o mouse ativos ao mesmo tempo |
 | `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo` e `uart`, o `run.sh` e o agregador dos engines |
-| `docs/pt-br/`, `docs/en/` | Documentos do CLINT (`CLINT/`), do PLIC (`PLIC/`), do PS/2 (`PS2/`), da UART (`UART/`), do controlador de FLASH (`flash-controller/`), do vídeo (`video/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
+| `docs/pt-br/`, `docs/en/` | Documentos do CLINT (`CLINT/`), do PLIC (`PLIC/`), do PS/2 (`PS2/`), da UART (`UART/`), do controlador de FLASH (`flash-controller/`), do vídeo (`video/`), da captura de TV (`TV/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
 
 ## 3. Interface
 

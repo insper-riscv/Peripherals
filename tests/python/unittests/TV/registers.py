@@ -1,0 +1,27 @@
+"""Endereços de palavra e campos de bits da captura de TV."""
+
+CTRL = 0
+STATUS = 1
+FRAME_COUNT = 2
+DECIMATION = 3
+FORMAT = 4
+GEOMETRY = 5
+RD_ADDR = 6
+RD_DATA = 7
+SOURCE = 8
+
+START = 1 << 0
+FRAME_IRQ = 1 << 1
+ERROR_IRQ = 1 << 2
+DECODER_RUN = 1 << 3
+
+BUSY = 1 << 0
+READY = 1 << 1
+ERROR = 1 << 2
+PRESENT = 1 << 3
+
+FORMAT_RGB565 = 0
+FORMAT_LUMA = 1
+FIELD_BOTH = 0
+FIELD_FIRST = 1
+FIELD_SECOND = 2

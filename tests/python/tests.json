@@ -1022,5 +1022,104 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "TV": {
+        "toplevel": "tv",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/TV/soc/tv_consts.vhd",
+            "src/TV/soc/tv_bt656_rx.vhd",
+            "src/TV/soc/tv_capture.vhd",
+            "src/TV/soc/tv_color.vhd",
+            "src/TV/soc/tv_regs.vhd",
+            "src/TV/soc/tv.vhd"
+        ],
+        "parameters": {
+            "fb_width": 180,
+            "fb_height": 120
+        },
+        "test_module": "tests.python.unittests.TV.tv",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "TVReceiver": {
+        "toplevel": "tv_bt656_rx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/TV/soc/tv_consts.vhd",
+            "src/TV/soc/tv_bt656_rx.vhd"
+        ],
+        "parameters": {
+            "present_cycles": 64
+        },
+        "test_module": "tests.python.unittests.TV.receiver",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "TVColor": {
+        "toplevel": "tv_color",
+        "sources": [
+            "src/TV/soc/tv_consts.vhd",
+            "src/TV/soc/tv_color.vhd"
+        ],
+        "test_module": "tests.python.unittests.TV.color",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "TVRegs": {
+        "toplevel": "tv_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/TV/soc/tv_consts.vhd",
+            "src/TV/soc/tv_regs.vhd"
+        ],
+        "parameters": {
+            "fb_width": 4,
+            "fb_height": 4
+        },
+        "test_module": "tests.python.unittests.TV.regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "TVCapture": {
+        "toplevel": "tv_capture",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/TV/soc/tv_consts.vhd",
+            "src/TV/soc/tv_capture.vhd"
+        ],
+        "parameters": {
+            "fb_width": 4,
+            "fb_height": 3,
+            "src_width": 8,
+            "src_height": 6
+        },
+        "test_module": "tests.python.unittests.TV.capture",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }

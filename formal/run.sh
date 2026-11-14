@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formal verification of the CLINT, the PLIC, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART and the console with SymbiYosys. Needs
+# Formal verification of the CLINT, the PLIC, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART, the console and the TV capture (registers and capture control) with SymbiYosys. Needs
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
@@ -50,6 +50,8 @@ clint_srcs=(alu_ge_unsigned clint_consts config_pkg counter64 clint)
 fifo_srcs=(uart_fifo)
 flash_srcs=(flash_controller)
 uart_srcs=(baudGen uartRx uartTx uart2BusTop_pkg uartTop uart_fifo uart)
+tvr_srcs=(config_pkg tv_consts tv_regs)
+tvc_srcs=(tv_consts tv_capture)
 declare -A path_of
 for n in "${common[@]}"; do path_of[$n]="$root/src/common/src/$n.vhd"; done
 for n in "${timer_srcs[@]}"; do path_of[$n]="$root/src/TIMER/soc/$n.vhd"; done
@@ -58,6 +60,7 @@ for n in baudGen uartRx uartTx uart2BusTop_pkg uartTop; do path_of[$n]="$root/sr
 for n in clint_consts clint; do path_of[$n]="$root/src/CLINT/soc/$n.vhd"; done
 # The mtime counter of the CLINT is the counter64 of Common-Components, proved there on its own.
 for n in config_pkg counter64; do path_of[$n]="$root/src/common/src/$n.vhd"; done
+for n in tv_consts tv_regs tv_capture; do path_of[$n]="$root/src/TV/soc/$n.vhd"; done
 path_of[uart]="$root/src/UART/serial/uart.vhd"
 path_of[uart_fifo]="$root/src/UART/serial/uart_fifo.vhd"
 path_of[flash_controller]="$root/src/flash-controller/soc/flash_controller.vhd"
@@ -345,6 +348,23 @@ build console_equiv console_jtag "${console_srcs[@]}" -- "${cgen_jtag[@]}"
 expect "backend jtag: data read, interrupt, line and JTAG output equal those of the jtag_uart on the same inputs (bounded, 30 cycles)" PASS "$(prove console_jtag.v "$cp_" bmc 30 '' console_jtag)"
 expect "cover: the jtag console returns data and raises the interrupt" PASS "$(prove console_jtag.v "$cp_" cover 30 '-DCOVER' console_jtag_cover)"
 
+echo "tv_regs"
+mut_expose=(); mut_open=0
+tvgen=(-gfb_width=3 -gfb_height=2)
+build tv_regs tvregs "${tvr_srcs[@]}" -- "${tvgen[@]}"
+expect "registers, interrupt, start toggle, configuration lock, flags, counter and read pointer follow the reference for any accesses and any toggles of the other domain (bounded, 20 cycles, 3 words)" PASS "$(prove tvregs.v "$f/tv_regs_props.sv" bmc 20 '' tvregs_safety)"
+expect "cover: a complete frame ends the capture, an aborted capture ends it, two frames with the interrupt, and a start with the frame ready are reachable" PASS "$(prove tvregs.v "$f/tv_regs_props.sv" cover 20 '-DCOVER' tvregs_cover)"
+
+echo "tv_capture"
+mut_expose=(); mut_open=0
+tcgen=(-gfb_width=3 -gfb_height=2 -gsrc_width=8 -gsrc_height=6)
+build tv_capture tvcap "${tvc_srcs[@]}" -- "${tcgen[@]}"
+expect "capture of one frame, both fields: one end pulse, complete only after the first and then the second field, pixels in the memory range (bounded, 28 cycles)" PASS "$(prove tvcap.v "$f/tv_capture_props.sv" bmc 28 '-DFSEL=0' tvcap_both)"
+expect "capture of one frame, first field only (bounded, 28 cycles)" PASS "$(prove tvcap.v "$f/tv_capture_props.sv" bmc 28 '-DFSEL=1' tvcap_first)"
+expect "capture of one frame, second field only (bounded, 28 cycles)" PASS "$(prove tvcap.v "$f/tv_capture_props.sv" bmc 28 '-DFSEL=2' tvcap_second)"
+expect "cover: a frame of both fields completes with a pixel accepted, and a capture is aborted" PASS "$(prove tvcap.v "$f/tv_capture_props.sv" cover 28 '-DFSEL=0 -DCOVER' tvcap_cover)"
+
+
 # Mutants of the VHDL: each defect must make a proof fail.
 # mutant <source name> <props> <entity> <defines> <name> <sed expression> <bmc depth> <sources...> -- [generics]
 mutant() {
@@ -480,6 +500,22 @@ mutant console "$cp_" console_equiv '' console_rx_polarity "s/uart_rx <= not i_r
 mutant console "$cp_" console_equiv '' console_address_bits "s/i_address  => i_addr(1 downto 0),/i_address  => i_addr(2 downto 1),/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
 mutant console "$cp_" console_equiv '' console_read_strobe "s/i_read     => i_re,/i_read     => i_we,/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
 mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        => i_we,/i_we        => i_re,/" 30 "${console_srcs[@]}" -- "${cgen_jtag[@]}"
+
+mut_expose=(); mut_open=0
+tp_="$f/tv_regs_props.sv"
+mutant tv_regs "$tp_" tv_regs '' tvr_start_when_busy "s/ and busy = '0' then/ then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_config_while_busy "0,/if busy = '0' then/s//if true then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_zero_divisor "s/if unsigned(i_data_in(7 downto 0)) = 0 then/if false then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_w1c_wrong_bit "s/if i_data_in(STATUS_READY_BIT) = '1' and done_event = '0' then/if i_data_in(STATUS_ERROR_BIT) = '1' and done_event = '0' then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_count_always "s/if i_cap_ok = '1' then/if true then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_irq_mask_ignored "s/o_irq <= (frame_irq and frame_ready) or (error_irq and sync_error);/o_irq <= frame_ready or (error_irq and sync_error);/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_pointer_no_wrap "s/if rd_ptr = DEPTH - 1 then/if rd_ptr = DEPTH then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_pointer_unchecked "s/ and unsigned(i_data_in) < DEPTH then/ then/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+mutant tv_regs "$tp_" tv_regs '' tvr_done_while_idle "s/done_event <= busy and (i_done_tog xor done_seen);/done_event <= i_done_tog xor done_seen;/" 20 "${tvr_srcs[@]}" -- "${tvgen[@]}"
+tcp_="$f/tv_capture_props.sv"
+mutant tv_capture "$tcp_" tv_capture '-DFSEL=0' tvc_column_unbounded "s/ and col < fb_width;/;/" 28 "${tvc_srcs[@]}" -- "${tcgen[@]}"
+mutant tv_capture "$tcp_" tv_capture '-DFSEL=0' tvc_frame_after_first_field "s/elsif (both and second = '1' and i_field = '1') or (not both and field_wanted = '1') then/elsif true then/" 28 "${tvc_srcs[@]}" -- "${tcgen[@]}"
+mutant tv_capture "$tcp_" tv_capture '-DFSEL=0' tvc_pixel_while_idle "s/if accept then/if accept or i_pix_valid = '1' then/" 28 "${tvc_srcs[@]}" -- "${tcgen[@]}"
 
 
 # PLIC (own file, like the external interrupt controller).
