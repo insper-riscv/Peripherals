@@ -11,13 +11,15 @@
 -- Registradores (palavra): 0 controle (bit 0 liga a exibição, L/E), 1 estado
 -- (bit 0 sincronismo vertical, bit 1 apagamento vertical, L), 2 contador de
 -- quadros (L), 3 geometria (largura nos bits 15:0, altura nos 31:16, L),
--- 4 formato (bits por pixel nos bits 7:0, ampliação nos 15:8, L).
+-- 4 formato (bits por pixel nos bits 7:0, ampliação nos 15:8, bits por canal
+-- nos 23:16 e bit 24 em '1' no formato indexado, L).
 --
 -- A leitura é combinacional no endereço e não tem efeito colateral. A escrita
 -- no framebuffer e na paleta sai registrada, um ciclo depois do pulso de
 -- escrita, com a habilitação por faixa de byte copiada de i_byteena; a escrita
 -- fora da janela útil do framebuffer é descartada. A escrita na paleta exige as
--- duas faixas baixas (meia palavra ou palavra) e só existe com pixel_bits = 8.
+-- faixas baixas que guardam 3 x channel_bits bits (duas com 4 bits por canal,
+-- três com 8) e só existe no formato indexado.
 --
 -- O contador de quadros conta as bordas de subida de i_vblank, e o reset
 -- síncrono (i_rst = '1') zera os registradores.
@@ -28,7 +30,6 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-use work.config_pkg.all;
 use work.utils_pkg.all;
 use work.video_consts.all;
 
@@ -38,12 +39,14 @@ entity video_regs is
         fb_width   : positive := 320;
         -- Altura do framebuffer em pixels.
         fb_height  : positive := 200;
-        -- Bits por pixel do framebuffer (16 = RGB444, 8 = índice de paleta).
-        pixel_bits : positive := 16;
+        -- Bits de cada canal de cor (vermelho, verde e azul).
+        channel_bits : positive := 4;
+        -- Formato do pixel do framebuffer: "indexed" (índice de paleta) ou "direct" (cor no pixel).
+        pixel_format : string   := "indexed";
         -- Fator de ampliação do pixel do framebuffer.
-        scale      : positive := 2;
+        scale        : positive := 2;
         -- Largura do endereço de palavra da janela do periférico.
-        addr_width : positive := 16
+        addr_width   : positive := 16
     );
     port (
         -- Clock do sistema.
@@ -52,7 +55,7 @@ entity video_regs is
         i_rst : in    std_logic;
 
         -- Dado de escrita vindo do processador.
-        i_data_in  : in    word_t;
+        i_data_in  : in    std_logic_vector(31 downto 0);
         -- Endereço de palavra dentro do periférico.
         i_address  : in    std_logic_vector(addr_width - 1 downto 0);
         -- Habilitação de bytes da escrita, um bit por byte.
@@ -60,7 +63,7 @@ entity video_regs is
         -- Pulso de escrita do processador ('1' = escreve).
         i_write    : in    std_logic;
         -- Dado de leitura para o processador.
-        o_data_out : out   word_t;
+        o_data_out : out   std_logic_vector(31 downto 0);
 
         -- Sincronismo vertical em nível alto, já sincronizado em i_clk.
         i_vsync  : in    std_logic;
@@ -74,7 +77,8 @@ entity video_regs is
         -- Habilitação de escrita por faixa de byte do framebuffer, registrada.
         o_fb_we    : out   std_logic_vector(3 downto 0);
         -- Endereço de palavra de escrita do framebuffer, registrado.
-        o_fb_addr  : out   std_logic_vector(log2_ceil(fb_words(fb_width, fb_height, pixel_bits)) - 1 downto 0);
+        o_fb_addr  : out   std_logic_vector(
+            log2_ceil(fb_words(fb_width, fb_height, pixel_storage_bits(pixel_format, channel_bits))) - 1 downto 0);
         -- Habilitação de escrita da paleta, registrada.
         o_pal_we   : out   std_logic;
         -- Índice de escrita da paleta, registrado.
@@ -84,12 +88,18 @@ end entity video_regs;
 
 architecture rtl of video_regs is
 
+    -- Bits que cada pixel ocupa no framebuffer.
+    constant PIXEL_BITS   : positive := pixel_storage_bits(pixel_format, channel_bits);
     -- Palavras do framebuffer.
-    constant FB_DEPTH     : positive := fb_words(fb_width, fb_height, pixel_bits);
+    constant FB_DEPTH     : positive := fb_words(fb_width, fb_height, PIXEL_BITS);
     -- Largura do endereço de palavra do framebuffer.
     constant FB_ADDR_BITS : positive := log2_ceil(FB_DEPTH);
-    -- A paleta existe só com 8 bits por pixel.
-    constant HAS_PALETTE  : boolean  := pixel_bits = 8;
+    -- A paleta existe só no formato indexado.
+    constant HAS_PALETTE  : boolean  := is_indexed(pixel_format);
+    -- Bytes baixos de uma entrada da paleta (3 x channel_bits bits), todos exigidos na escrita.
+    constant PAL_BYTES    : positive := (3 * channel_bits + 7) / 8;
+    -- Posição do bit do registrador de formato que vale '1' no formato indexado.
+    constant INDEXED_FLAG : natural  := 24;
 
     -- Exibição habilitada.
     signal enable_reg  : std_logic                     := '0';
@@ -163,7 +173,10 @@ begin
                 when ADDR_GEOMETRY =>
                     o_data_out <= std_logic_vector(to_unsigned(fb_height, 16)) & std_logic_vector(to_unsigned(fb_width, 16));
                 when ADDR_FORMAT =>
-                    o_data_out <= x"0000" & std_logic_vector(to_unsigned(scale, 8)) & std_logic_vector(to_unsigned(pixel_bits, 8));
+                    o_data_out(7 downto 0)   <= std_logic_vector(to_unsigned(PIXEL_BITS, 8));
+                    o_data_out(15 downto 8)  <= std_logic_vector(to_unsigned(scale, 8));
+                    o_data_out(23 downto 16) <= std_logic_vector(to_unsigned(channel_bits, 8));
+                    o_data_out(INDEXED_FLAG) <= to_sl(HAS_PALETTE);
                 when others =>
                     null;
             end case;
@@ -193,7 +206,7 @@ begin
                     fb_we_q <= i_byteena;
                 end if;
 
-                if palette_hit = '1' and i_byteena(1 downto 0) = "11" then
+                if palette_hit = '1' and i_byteena(PAL_BYTES - 1 downto 0) = (PAL_BYTES - 1 downto 0 => '1') then
                     pal_we_q <= '1';
                 end if;
 

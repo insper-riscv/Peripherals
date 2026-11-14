@@ -238,8 +238,6 @@
     "SegDisplay": {
         "toplevel": "seg_display",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/display/soc/hex_to_seg7.vhd",
             "src/common/src/synchronizer.vhd",
             "src/display/soc/seg_display.vhd"
@@ -255,8 +253,6 @@
     "SegDisplayThreeDigits": {
         "toplevel": "seg_display",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/display/soc/hex_to_seg7.vhd",
             "src/common/src/synchronizer.vhd",
             "src/display/soc/seg_display.vhd"
@@ -276,8 +272,6 @@
     "SegDisplayZeroDigits": {
         "toplevel": "seg_display_zero_tb",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/display/soc/hex_to_seg7.vhd",
             "src/common/src/synchronizer.vhd",
             "src/display/soc/seg_display.vhd",
@@ -372,8 +366,6 @@
     "JtagUart": {
         "toplevel": "jtag_uart",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/UART/jtag/jtag_uart.vhd"
         ],
@@ -388,8 +380,6 @@
     "ConsoleJtag": {
         "toplevel": "console",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/UART/jtag/jtag_uart.vhd",
             "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
@@ -415,8 +405,6 @@
     "ConsolePins": {
         "toplevel": "console",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/UART/jtag/jtag_uart.vhd",
             "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
@@ -446,8 +434,6 @@
     "ConsolePinsInverted": {
         "toplevel": "console",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/UART/jtag/jtag_uart.vhd",
             "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
@@ -525,7 +511,6 @@
         "toplevel": "flash_controller",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/flash-controller/soc/flash_controller.vhd"
         ],
         "test_module": "tests.python.unittests.flash_controller.flash_controller",
@@ -539,8 +524,6 @@
     "PLIC": {
         "toplevel": "plic",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/PLIC/soc/plic_consts.vhd",
             "src/PLIC/soc/plic_gateway.vhd",
             "src/PLIC/soc/plic_arbiter.vhd",
@@ -557,8 +540,6 @@
     "PlicOneSource": {
         "toplevel": "plic",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/PLIC/soc/plic_consts.vhd",
             "src/PLIC/soc/plic_gateway.vhd",
             "src/PLIC/soc/plic_arbiter.vhd",
@@ -579,8 +560,6 @@
     "PlicWide": {
         "toplevel": "plic",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/PLIC/soc/plic_consts.vhd",
             "src/PLIC/soc/plic_gateway.vhd",
             "src/PLIC/soc/plic_arbiter.vhd",
@@ -602,8 +581,6 @@
     "PlicMax": {
         "toplevel": "plic",
         "sources": [
-            "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/PLIC/soc/plic_consts.vhd",
             "src/PLIC/soc/plic_gateway.vhd",
             "src/PLIC/soc/plic_arbiter.vhd",
@@ -730,15 +707,39 @@
         "toplevel": "video",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/video/soc/video_consts.vhd",
             "src/video/soc/video_timing.vhd",
             "src/video/soc/video_dpram.vhd",
             "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
             "src/video/soc/video_regs.vhd",
             "src/video/soc/video.vhd"
         ],
+        "test_module": "tests.python.unittests.video.video",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoDirect": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "parameters": {
+            "pixel_format": "direct"
+        },
         "test_module": "tests.python.unittests.video.video",
         "build_args": [
             "--std=08"
@@ -751,19 +752,19 @@
         "toplevel": "video",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/video/soc/video_consts.vhd",
             "src/video/soc/video_timing.vhd",
             "src/video/soc/video_dpram.vhd",
             "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
             "src/video/soc/video_regs.vhd",
             "src/video/soc/video.vhd"
         ],
         "parameters": {
             "fb_width": 32,
             "fb_height": 20,
-            "pixel_bits": 16,
+            "pixel_format": "direct",
             "scale": 2,
             "addr_width": 11
         },
@@ -779,19 +780,19 @@
         "toplevel": "video",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/video/soc/video_consts.vhd",
             "src/video/soc/video_timing.vhd",
             "src/video/soc/video_dpram.vhd",
             "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
             "src/video/soc/video_regs.vhd",
             "src/video/soc/video.vhd"
         ],
         "parameters": {
             "fb_width": 40,
             "fb_height": 30,
-            "pixel_bits": 16,
+            "pixel_format": "direct",
             "scale": 3,
             "addr_width": 12
         },
@@ -807,21 +808,156 @@
         "toplevel": "video",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/video/soc/video_consts.vhd",
             "src/video/soc/video_timing.vhd",
             "src/video/soc/video_dpram.vhd",
             "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
             "src/video/soc/video_regs.vhd",
             "src/video/soc/video.vhd"
         ],
         "parameters": {
+            "scale": 2,
+            "addr_width": 12,
             "fb_width": 64,
             "fb_height": 40,
-            "pixel_bits": 8,
+            "pixel_format": "indexed"
+        },
+        "test_module": "tests.python.unittests.video.video",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoIndexedChannel8": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "parameters": {
             "scale": 2,
-            "addr_width": 12
+            "addr_width": 12,
+            "fb_width": 64,
+            "fb_height": 40,
+            "channel_bits": 8,
+            "pixel_format": "indexed"
+        },
+        "test_module": "tests.python.unittests.video.video",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoDirectChannel8": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "parameters": {
+            "fb_width": 32,
+            "fb_height": 20,
+            "channel_bits": 8,
+            "pixel_format": "direct",
+            "scale": 2,
+            "addr_width": 11
+        },
+        "test_module": "tests.python.unittests.video.video",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoTinyMode": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "parameters": {
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 6,
+            "h_back_porch": 8,
+            "h_sync_positive": true,
+            "v_visible": 48,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 5,
+            "v_sync_positive": true,
+            "fb_width": 16,
+            "fb_height": 10,
+            "pixel_format": "indexed",
+            "scale": 2,
+            "addr_width": 11
+        },
+        "test_module": "tests.python.unittests.video.video",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoMixedPolarity": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "parameters": {
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 6,
+            "h_back_porch": 8,
+            "h_sync_positive": true,
+            "v_visible": 48,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 5,
+            "v_sync_positive": false,
+            "fb_width": 16,
+            "fb_height": 12,
+            "channel_bits": 8,
+            "pixel_format": "direct",
+            "scale": 3,
+            "addr_width": 11
         },
         "test_module": "tests.python.unittests.video.video",
         "build_args": [
@@ -835,7 +971,6 @@
         "toplevel": "video_timing",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/video/soc/video_consts.vhd",
             "src/video/soc/video_timing.vhd"
         ],
         "test_module": "tests.python.unittests.video.video_timing",
@@ -850,7 +985,6 @@
         "toplevel": "video_timing",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/video/soc/video_consts.vhd",
             "src/video/soc/video_timing.vhd"
         ],
         "parameters": {
@@ -870,13 +1004,96 @@
         "toplevel": "video_timing",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/video/soc/video_consts.vhd",
             "src/video/soc/video_timing.vhd"
         ],
         "parameters": {
             "fb_width": 640,
             "fb_height": 480,
             "scale": 1
+        },
+        "test_module": "tests.python.unittests.video.video_timing",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoTimingSvga": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "parameters": {
+            "h_visible": 800,
+            "h_front_porch": 40,
+            "h_sync": 128,
+            "h_back_porch": 88,
+            "h_sync_positive": true,
+            "v_visible": 600,
+            "v_front_porch": 1,
+            "v_sync": 4,
+            "v_back_porch": 23,
+            "v_sync_positive": true
+        },
+        "test_module": "tests.python.unittests.video.video_timing",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoTimingTiny": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "parameters": {
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 6,
+            "h_back_porch": 8,
+            "h_sync_positive": true,
+            "v_visible": 48,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 5,
+            "v_sync_positive": true,
+            "fb_width": 16,
+            "fb_height": 10,
+            "scale": 2
+        },
+        "test_module": "tests.python.unittests.video.video_timing",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoTimingMixed": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "parameters": {
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 6,
+            "h_back_porch": 8,
+            "h_sync_positive": true,
+            "v_visible": 48,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 5,
+            "v_sync_positive": false,
+            "fb_width": 16,
+            "fb_height": 10,
+            "scale": 3
         },
         "test_module": "tests.python.unittests.video.video_timing",
         "build_args": [
@@ -922,10 +1139,27 @@
         "toplevel": "video_regs",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/video/soc/video_consts.vhd",
             "src/video/soc/video_regs.vhd"
         ],
+        "test_module": "tests.python.unittests.video.video_regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoRegsDirect": {
+        "toplevel": "video_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_regs.vhd"
+        ],
+        "parameters": {
+            "pixel_format": "direct"
+        },
         "test_module": "tests.python.unittests.video.video_regs",
         "build_args": [
             "--std=08"
@@ -938,16 +1172,61 @@
         "toplevel": "video_regs",
         "sources": [
             "src/common/src/utils_pkg.vhd",
-            "src/common/src/config_pkg.vhd",
             "src/video/soc/video_consts.vhd",
             "src/video/soc/video_regs.vhd"
         ],
         "parameters": {
+            "scale": 2,
+            "addr_width": 12,
             "fb_width": 64,
             "fb_height": 40,
-            "pixel_bits": 8,
+            "pixel_format": "indexed"
+        },
+        "test_module": "tests.python.unittests.video.video_regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoRegsIndexedChannel8": {
+        "toplevel": "video_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_regs.vhd"
+        ],
+        "parameters": {
             "scale": 2,
-            "addr_width": 12
+            "addr_width": 12,
+            "fb_width": 64,
+            "fb_height": 40,
+            "channel_bits": 8,
+            "pixel_format": "indexed"
+        },
+        "test_module": "tests.python.unittests.video.video_regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoRegsDirectChannel8": {
+        "toplevel": "video_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_regs.vhd"
+        ],
+        "parameters": {
+            "fb_width": 32,
+            "fb_height": 20,
+            "channel_bits": 8,
+            "pixel_format": "direct",
+            "scale": 2,
+            "addr_width": 11
         },
         "test_module": "tests.python.unittests.video.video_regs",
         "build_args": [
@@ -972,6 +1251,24 @@
             "--std=08"
         ]
     },
+    "VideoScanoutDirect": {
+        "toplevel": "video_scanout",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_scanout.vhd"
+        ],
+        "parameters": {
+            "pixel_format": "direct"
+        },
+        "test_module": "tests.python.unittests.video.video_scanout",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "VideoScanoutPalette": {
         "toplevel": "video_scanout",
         "sources": [
@@ -982,9 +1279,83 @@
         "parameters": {
             "fb_width": 64,
             "fb_height": 40,
-            "pixel_bits": 8
+            "pixel_format": "indexed"
         },
         "test_module": "tests.python.unittests.video.video_scanout",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoScanoutIndexedChannel8": {
+        "toplevel": "video_scanout",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_scanout.vhd"
+        ],
+        "parameters": {
+            "fb_width": 64,
+            "fb_height": 40,
+            "channel_bits": 8,
+            "pixel_format": "indexed"
+        },
+        "test_module": "tests.python.unittests.video.video_scanout",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoScanoutDirectChannel8": {
+        "toplevel": "video_scanout",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_scanout.vhd"
+        ],
+        "parameters": {
+            "fb_width": 64,
+            "fb_height": 40,
+            "channel_bits": 8,
+            "pixel_format": "direct"
+        },
+        "test_module": "tests.python.unittests.video.video_scanout",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoVga": {
+        "toplevel": "video_vga",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_vga.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_vga",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "VideoVgaChannel8": {
+        "toplevel": "video_vga",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_vga.vhd"
+        ],
+        "parameters": {
+            "channel_bits": 8,
+            "h_sync_positive": true
+        },
+        "test_module": "tests.python.unittests.video.video_vga",
         "build_args": [
             "--std=08"
         ],
