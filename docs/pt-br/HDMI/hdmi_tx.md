@@ -25,7 +25,7 @@ Os sinais abaixo são os que o manual da placa (Tabela 3-13) liga ao transmissor
 | `I2C_SCL` | U10 | `o_i2c_scl_out` e `o_i2c_scl_oe` |
 | `I2C_SDA` | AA4 | `i_i2c_sda`, `o_i2c_sda_out` e `o_i2c_sda_oe` |
 
-Os pinos de áudio do transmissor (`HDMI_I2S0`, `HDMI_MCLK`, `HDMI_LRCLK` e `HDMI_SCLK`) não são usados, porque o periférico não transporta áudio HDMI.
+Os pinos de áudio do transmissor (`HDMI_I2S0`, `HDMI_MCLK`, `HDMI_LRCLK` e `HDMI_SCLK`) não são deste periférico. O áudio sai pelo periférico `hdmi_audio` (`docs/pt-br/HDMI/hdmi_audio.md`), e a tabela de áudio do transmissor entra neste periférico pelo generic `audio_init_table`.
 
 ## 2. O que é
 
@@ -66,6 +66,7 @@ A temporização, a memória de duas portas e os registradores do framebuffer s�
 | `init_enable` | falso | Inclui o sequenciador de inicialização do transmissor |
 | `init_auto_start` | verdadeiro | A sequência começa sozinha depois do reset |
 | `init_table` | `""` | Tabela de inicialização, quatro dígitos hexadecimais por entrada (seção 7) |
+| `audio_init_table` | `""` | Tabela de áudio do transmissor, escrita depois da `init_table`, no mesmo formato (seção 7.2) |
 | `i2c_dev_addr` | `0111001` | Endereço de 7 bits do transmissor no I2C |
 | `i2c_freq` | 100000 | Frequência do SCL em Hz |
 | `int_active_low` | verdadeiro | O pino de interrupção do transmissor é ativo em nível baixo |
@@ -214,7 +215,7 @@ Com `init_enable`, o periférico escreve registradores do ADV7513 sem ajuda do s
 
 ### 7.2. Tabela de inicialização
 
-A tabela é o generic `init_table`, uma cadeia com quatro dígitos hexadecimais por entrada, o registrador e depois o valor, na ordem de escrita. A cadeia `"980301001520"` escreve 0x03 no registrador 0x98, 0x00 no 0x01 e 0x20 no 0x15. A tabela aceita até 255 entradas, e uma cadeia vazia faz o sequenciador só marcar o fim.
+A tabela é o generic `init_table`, uma cadeia com quatro dígitos hexadecimais por entrada, o registrador e depois o valor, na ordem de escrita. A cadeia `"980301001520"` escreve 0x03 no registrador 0x98, 0x00 no 0x01 e 0x20 no 0x15. A tabela de áudio é o generic `audio_init_table`, no mesmo formato, e o sequenciador a escreve depois da `init_table`, de modo que as duas juntas somam no máximo 255 entradas. A tabela aceita até 255 entradas, e uma cadeia vazia faz o sequenciador só marcar o fim.
 
 O manual da DE10-Nano diz que o exemplo da Terasic usa RGB de 24 bits em 4:4:4, que o formato de vídeo e a frequência de áudio estão no registrador 0x15 e que o formato do registrador 0xAF também deve ser observado, e remete ao documento `ADV7513_Programming_Guide_R0.pdf` para os valores. Esse guia não faz parte do manual da placa, então a plataforma fornece todos os valores no generic `init_table`, e o periférico não traz nenhum valor padrão. Os pares usados nos testes são ilustrativos e não configuram o chip.
 

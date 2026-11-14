@@ -3,6 +3,8 @@
 // binários de escrita e de leitura são expostos pelo script. Com ADDR_BITS = 2 a fila tem 4 palavras.
 //   1. A ocupação (ponteiro de escrita menos o de leitura) nunca passa da profundidade nem fica negativa.
 //   2. Sem o_full, ainda há espaço (uma escrita aceita nunca estoura); sem o_empty, há palavra a ler.
+//   2b. Sem o_full e sem o_full_next, a escrita deste ciclo e a do ciclo seguinte cabem (a escrita de um byte por ciclo
+//       do GMII depende disso).
 //   3. Os ponteiros em Gray são o código Gray dos binários, e cada um muda no máximo um bit por borda.
 // Depois de um reset curto dos dois lados, os resets ficam em '0' para sempre (os dois lados são resetados
 // juntos, como o projeto exige), e os testes de dados são os do cocotb.
@@ -14,11 +16,11 @@ module props (input clk);
   localparam DEPTH = 1 << N;
   (* anyseq *) wire wclk, rclk, wrst, rrst, wr_en, rd_en;
   (* anyseq *) wire [2:0] wdata;
-  wire full, empty;
+  wire full, full_next, empty;
   wire [2:0] rdata;
   wire [N:0] dbg_wbin, dbg_rbin, dbg_wgray, dbg_rgray;
 
-  eth_async_fifo dut (.i_wclk(wclk), .i_wrst(wrst), .i_wr_en(wr_en), .i_wdata(wdata), .o_full(full),
+  eth_async_fifo dut (.i_wclk(wclk), .i_wrst(wrst), .i_wr_en(wr_en), .i_wdata(wdata), .o_full(full), .o_full_next(full_next),
     .i_rclk(rclk), .i_rrst(rrst), .i_rd_en(rd_en), .o_rdata(rdata), .o_empty(empty),
     .dbg_wbin(dbg_wbin), .dbg_rbin(dbg_rbin), .dbg_wgray(dbg_wgray), .dbg_rgray(dbg_rgray));
 
@@ -58,6 +60,8 @@ module props (input clk);
     assert (occupancy <= DEPTH);
     assert (full || occupancy < DEPTH);
     assert (empty || occupancy > 0);
+    // O_full_next antecipa a escrita deste ciclo: sem cheia e sem o_full_next, a escrita seguinte também cabe.
+    assert (full || full_next || occupancy + 1 < DEPTH);
     assert (dbg_wgray == gray(dbg_wbin));
     assert (dbg_rgray == gray(dbg_rbin));
     assert (onebit(dbg_wgray, wgray_prev));

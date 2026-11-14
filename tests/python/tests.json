@@ -356,9 +356,170 @@
             "--std=08"
         ]
     },
+    "SpiMaster": {
+        "toplevel": "spi_master",
+        "sources": [
+            "src/SPI/master/spi_master.vhd"
+        ],
+        "test_module": "tests.python.unittests.SPI.spi_master",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Spi": {
+        "toplevel": "spi",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/SPI/master/spi.vhd"
+        ],
+        "test_module": "tests.python.unittests.SPI.spi",
+        "parameters": {
+            "CLOCK_HZ": "4000000",
+            "RESET_SCLK_HZ": "1000000",
+            "CS_COUNT": "3",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AdcSweep": {
+        "toplevel": "adc_sweep",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/ADC/sweep/adc_sweep.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.adc_sweep",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "AdcSweepNoLatency": {
+        "toplevel": "adc_sweep",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/ADC/sweep/adc_sweep.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.adc_sweep",
+        "parameters": {
+            "CHANNEL_LATENCY": "0"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Adc128s022": {
+        "toplevel": "adc128s022",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/ADC/sweep/adc_sweep.vhd",
+            "src/ADC/adc128s022/adc128s022.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.adc128s022",
+        "parameters": {
+            "CLOCK_HZ": "100000000"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Ltc2308": {
+        "toplevel": "ltc2308",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/ADC/sweep/adc_sweep.vhd",
+            "src/ADC/ltc2308/ltc2308.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.ltc2308",
+        "parameters": {
+            "CLOCK_HZ": "100000000"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Adxl345": {
+        "toplevel": "adxl345",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/ADXL345/adxl345.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADXL345.adxl345",
+        "parameters": {
+            "CLOCK_HZ": "4000000",
+            "SCLK_HZ": "250000",
+            "SAMPLE_HZ": "6666",
+            "CS_HIGH_NS": "500"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Adxl345FourWire": {
+        "toplevel": "adxl345",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/ADXL345/adxl345.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADXL345.adxl345",
+        "parameters": {
+            "CLOCK_HZ": "4000000",
+            "SCLK_HZ": "250000",
+            "SAMPLE_HZ": "6666",
+            "CS_HIGH_NS": "500",
+            "THREE_WIRE": "false"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "SDSpiPhy": {
         "toplevel": "sd_spi_phy",
         "sources": [
+            "src/SPI/master/spi_master.vhd",
             "src/SD/spi/sd_spi_phy.vhd"
         ],
         "test_module": "tests.python.unittests.SD.sd_spi_phy",
@@ -376,6 +537,7 @@
             "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/UART/serial/uart_fifo.vhd",
+            "src/SPI/master/spi_master.vhd",
             "src/SD/spi/sd_spi_phy.vhd",
             "src/SD/spi/sd_spi.vhd"
         ],
@@ -384,6 +546,114 @@
             "CLOCK_HZ": "3200000",
             "RX_FIFO_DEPTH": "4",
             "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDCrc7": {
+        "toplevel": "sd_crc7",
+        "sources": [
+            "src/SD/native/sd_crc7.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_crc",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDCrc16": {
+        "toplevel": "sd_crc16",
+        "sources": [
+            "src/SD/native/sd_crc16.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_crc",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDClockGen": {
+        "toplevel": "sd_clock_gen",
+        "sources": [
+            "src/SD/native/sd_clock_gen.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_clock_gen",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDBlockBuffer": {
+        "toplevel": "sd_block_buffer",
+        "sources": [
+            "src/SD/native/sd_native_pkg.vhd",
+            "src/SD/native/sd_block_buffer.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_block_buffer",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDCmd": {
+        "toplevel": "sd_cmd",
+        "sources": [
+            "src/SD/native/sd_native_pkg.vhd",
+            "src/SD/native/sd_crc7.vhd",
+            "src/SD/native/sd_cmd.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_cmd",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDData": {
+        "toplevel": "sd_data",
+        "sources": [
+            "src/SD/native/sd_native_pkg.vhd",
+            "src/SD/native/sd_crc16.vhd",
+            "src/SD/native/sd_data.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_data",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SDNative": {
+        "toplevel": "sd_native",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/SD/native/sd_native_pkg.vhd",
+            "src/SD/native/sd_crc7.vhd",
+            "src/SD/native/sd_crc16.vhd",
+            "src/SD/native/sd_clock_gen.vhd",
+            "src/SD/native/sd_cmd.vhd",
+            "src/SD/native/sd_data.vhd",
+            "src/SD/native/sd_block_buffer.vhd",
+            "src/SD/native/sd_native.vhd"
+        ],
+        "test_module": "tests.python.unittests.SD.sd_native",
+        "parameters": {
+            "CLOCK_HZ": "3200000"
         },
         "build_args": [
             "--std=08"
@@ -410,6 +680,59 @@
             "BAUD_LIMIT": "0",
             "RX_FIFO_DEPTH": "4",
             "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "UARTFormat": {
+        "toplevel": "uart",
+        "sources": [
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.uart_format",
+        "parameters": {
+            "DATA_WIDTH": "32",
+            "BAUD_FREQ": "1",
+            "BAUD_LIMIT": "0",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "UARTFlow": {
+        "toplevel": "uart",
+        "sources": [
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd"
+        ],
+        "test_module": "tests.python.unittests.UART.uart_flow",
+        "parameters": {
+            "DATA_WIDTH": "32",
+            "BAUD_FREQ": "1",
+            "BAUD_LIMIT": "0",
+            "RX_FIFO_DEPTH": "4",
+            "TX_FIFO_DEPTH": "4",
+            "HAS_FLOW_CONTROL": true
         },
         "build_args": [
             "--std=08"
@@ -544,6 +867,106 @@
         "parameters": {
             "digits": 6,
             "partition": "3,2,1,0/5,4"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayDecimalPoint": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_dp",
+        "parameters": {
+            "digits": 8,
+            "partition": "0,1,2,3/5,6",
+            "has_dp": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayDecimalPointHigh": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_dp_high",
+        "parameters": {
+            "digits": 3,
+            "active_low": false,
+            "partition": "0,1,2",
+            "has_dp": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayGroupsWithDecimalPoint": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_groups_dp",
+        "parameters": {
+            "digits": 8,
+            "partition": "0,1,2,3/5,6",
+            "has_dp": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayWithoutDecimalPoint": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_no_dp",
+        "parameters": {
+            "digits": 6,
+            "partition": "0,1,2,3,4,5"
         },
         "build_args": [
             "--std=08"
@@ -1930,6 +2353,61 @@
             "--std=08"
         ]
     },
+    "Max10Adc": {
+        "toplevel": "max10_adc_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/ADC/soc/max10_adc_consts.vhd",
+            "src/ADC/soc/max10_adc_sequencer.vhd",
+            "src/ADC/soc/max10_adc.vhd",
+            "tests/vhdl/max10_adc_core_model.vhd",
+            "tests/vhdl/max10_adc_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.max10_adc",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Max10AdcLateResponse": {
+        "toplevel": "max10_adc_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/ADC/soc/max10_adc_consts.vhd",
+            "src/ADC/soc/max10_adc_sequencer.vhd",
+            "src/ADC/soc/max10_adc.vhd",
+            "tests/vhdl/max10_adc_core_model.vhd",
+            "tests/vhdl/max10_adc_tb.vhd"
+        ],
+        "parameters": {
+            "rsp_late": true
+        },
+        "test_module": "tests.python.unittests.ADC.late_response",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Max10AdcSequencer": {
+        "toplevel": "max10_adc_sequencer",
+        "sources": [
+            "src/ADC/soc/max10_adc_consts.vhd",
+            "src/ADC/soc/max10_adc_sequencer.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADC.sequencer",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "LCD": {
         "toplevel": "lcd",
         "sources": [
@@ -2462,6 +2940,215 @@
             "--std=08"
         ]
     },
+    "HdmiAudio48k": {
+        "toplevel": "hdmi_audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd",
+            "src/HDMI/soc/hdmi_audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_audio_48k",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "sample_rate": 48000,
+            "mclk_ratio": 256,
+            "word_bits": 24
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiAudio44k1": {
+        "toplevel": "hdmi_audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd",
+            "src/HDMI/soc/hdmi_audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_audio_44k1",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "sample_rate": 44100,
+            "mclk_ratio": 128,
+            "word_bits": 16
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiAudio32k": {
+        "toplevel": "hdmi_audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd",
+            "src/HDMI/soc/hdmi_audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_audio_32k",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "sample_rate": 32000,
+            "mclk_ratio": 256,
+            "word_bits": 16
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiAudioTone": {
+        "toplevel": "hdmi_audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd",
+            "src/HDMI/soc/hdmi_audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_audio_tone",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "sample_rate": 44100,
+            "mclk_ratio": 256,
+            "word_bits": 24,
+            "autostart": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiInitSeqAudio": {
+        "toplevel": "hdmi_init_seq",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_init_seq",
+        "parameters": {
+            "init_table": "98030100",
+            "audio_table": "1520AF16",
+            "auto_start": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiInitSeqAudioOnly": {
+        "toplevel": "hdmi_init_seq",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_init_seq",
+        "parameters": {
+            "audio_table": "980301001520AF16",
+            "auto_start": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxInitAudio": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx_init",
+        "parameters": {
+            "fb_width": 24,
+            "fb_height": 16,
+            "scale": 2,
+            "addr_width": 12,
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 8,
+            "h_back_porch": 12,
+            "h_sync_positive": false,
+            "v_visible": 40,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 6,
+            "v_sync_positive": true,
+            "mode_id": 0,
+            "pixel_clock_khz": 25000,
+            "pixel_format": "indexed",
+            "init_enable": true,
+            "init_table": "98030100",
+            "clk_freq": 4000000,
+            "audio_init_table": "1520AF16"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "EthTx": {
         "toplevel": "eth",
         "sources": [
@@ -2469,6 +3156,7 @@
             "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
             "src/ETH/mac/eth_crc32.vhd",
             "src/ETH/mac/eth_dpram.vhd",
             "src/ETH/mac/eth_async_fifo.vhd",
@@ -2478,6 +3166,7 @@
             "src/ETH/mac/eth_mac_rx.vhd",
             "src/ETH/mac/eth_rx_store.vhd",
             "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
             "src/ETH/mac/eth_regs.vhd",
             "src/ETH/mac/eth.vhd"
         ],
@@ -2499,6 +3188,7 @@
             "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
             "src/ETH/mac/eth_crc32.vhd",
             "src/ETH/mac/eth_dpram.vhd",
             "src/ETH/mac/eth_async_fifo.vhd",
@@ -2508,6 +3198,7 @@
             "src/ETH/mac/eth_mac_rx.vhd",
             "src/ETH/mac/eth_rx_store.vhd",
             "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
             "src/ETH/mac/eth_regs.vhd",
             "src/ETH/mac/eth.vhd"
         ],
@@ -2529,6 +3220,7 @@
             "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
             "src/ETH/mac/eth_crc32.vhd",
             "src/ETH/mac/eth_dpram.vhd",
             "src/ETH/mac/eth_async_fifo.vhd",
@@ -2538,6 +3230,7 @@
             "src/ETH/mac/eth_mac_rx.vhd",
             "src/ETH/mac/eth_rx_store.vhd",
             "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
             "src/ETH/mac/eth_regs.vhd",
             "src/ETH/mac/eth.vhd"
         ],
@@ -2559,6 +3252,7 @@
             "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
             "src/ETH/mac/eth_crc32.vhd",
             "src/ETH/mac/eth_dpram.vhd",
             "src/ETH/mac/eth_async_fifo.vhd",
@@ -2568,6 +3262,7 @@
             "src/ETH/mac/eth_mac_rx.vhd",
             "src/ETH/mac/eth_rx_store.vhd",
             "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
             "src/ETH/mac/eth_regs.vhd",
             "src/ETH/mac/eth.vhd"
         ],
@@ -2725,6 +3420,190 @@
         "test_module": "tests.python.unittests.ETH.rx_store",
         "parameters": {
             "buffer_addr_bits": 4
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthDdrIn": {
+        "toplevel": "eth_ddr_in",
+        "sources": [
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.ddr",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthDdrOut": {
+        "toplevel": "eth_ddr_out",
+        "sources": [
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.ddr_out",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthGmiiTx": {
+        "toplevel": "eth_mac_tx",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.gmii_tx",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthGmiiRx": {
+        "toplevel": "eth_mac_rx",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.gmii_rx",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRgmii": {
+        "toplevel": "eth_rgmii",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd",
+            "src/ETH/rgmii/eth_rgmii.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.rgmii",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRgmiiMac": {
+        "toplevel": "eth_rgmii_mac",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_dpram.vhd",
+            "src/ETH/mac/eth_async_fifo.vhd",
+            "src/ETH/mac/eth_pulse_cdc.vhd",
+            "src/ETH/mac/eth_reset_stretch.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd",
+            "src/ETH/mac/eth_rx_store.vhd",
+            "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
+            "src/ETH/mac/eth_regs.vhd",
+            "src/ETH/mac/eth.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd",
+            "src/ETH/rgmii/eth_rgmii.vhd",
+            "src/ETH/rgmii/eth_rgmii_mac.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.rgmii_mac",
+        "parameters": {
+            "poll_cycles": 3000
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthRgmiiInPhase": {
+        "toplevel": "eth_rgmii",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd",
+            "src/ETH/rgmii/eth_rgmii.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.rgmii_in_phase",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "shifted_txc": false
+        }
+    },
+    "EthRgmiiMacInPhase": {
+        "toplevel": "eth_rgmii_mac",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_crc32.vhd",
+            "src/ETH/mac/eth_dpram.vhd",
+            "src/ETH/mac/eth_async_fifo.vhd",
+            "src/ETH/mac/eth_pulse_cdc.vhd",
+            "src/ETH/mac/eth_reset_stretch.vhd",
+            "src/ETH/mac/eth_mac_tx.vhd",
+            "src/ETH/mac/eth_mac_rx.vhd",
+            "src/ETH/mac/eth_rx_store.vhd",
+            "src/ETH/mdio/eth_mdio.vhd",
+            "src/ETH/mac/eth_speed.vhd",
+            "src/ETH/mac/eth_regs.vhd",
+            "src/ETH/mac/eth.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_in.vhd",
+            "src/ETH/rgmii/sim/eth_ddr_out.vhd",
+            "src/ETH/rgmii/eth_rgmii.vhd",
+            "src/ETH/rgmii/eth_rgmii_mac.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.rgmii_mac_in_phase",
+        "parameters": {
+            "poll_cycles": 3000,
+            "shifted_txc": false
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "EthSpeed": {
+        "toplevel": "eth_speed",
+        "sources": [
+            "src/ETH/mac/eth_consts.vhd",
+            "src/ETH/mac/eth_gmii_consts.vhd",
+            "src/ETH/mac/eth_speed.vhd"
+        ],
+        "test_module": "tests.python.unittests.ETH.speed",
+        "parameters": {
+            "poll_cycles": 8
         },
         "build_args": [
             "--std=08"

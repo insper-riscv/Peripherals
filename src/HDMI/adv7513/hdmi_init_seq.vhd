@@ -3,8 +3,10 @@
 --
 -- Domínio do clock do sistema. Percorre a tabela de pares registrador-valor
 -- recebida por generic (init_table, quatro dígitos hexadecimais por entrada,
--- registrador primeiro) e pede ao escritor I2C uma escrita por entrada, na
--- ordem da tabela, esperando o fim de cada uma antes de pedir a seguinte. A
+-- registrador primeiro) e, depois dela, a tabela opcional de áudio
+-- (audio_table, no mesmo formato), e pede ao escritor I2C uma escrita por
+-- entrada, na ordem das tabelas, esperando o fim de cada uma antes de pedir
+-- a seguinte. As duas tabelas juntas têm no máximo 255 entradas. A
 -- confirmação do chip é contada e não interrompe a sequência: o_nacks conta as
 -- escritas sem confirmação (saturado em 255) e o_nack_seen guarda se houve
 -- alguma, até o próximo início.
@@ -31,6 +33,8 @@ entity hdmi_init_seq is
     generic (
         -- Tabela de inicialização: quatro dígitos hexadecimais por entrada, registrador e depois valor.
         init_table : string  := "";
+        -- Tabela de áudio, escrita depois da init_table, no mesmo formato; vazia por padrão.
+        audio_table : string  := "";
         -- A sequência começa sozinha logo depois do reset.
         auto_start : boolean := true
     );
@@ -69,8 +73,10 @@ end entity hdmi_init_seq;
 
 architecture rtl of hdmi_init_seq is
 
-    -- Número de entradas da tabela.
-    constant COUNT    : natural  := init_count(init_table);
+    -- Entradas da tabela de vídeo e de configuração geral.
+    constant BASE_COUNT : natural := init_count(init_table);
+    -- Número de entradas das duas tabelas juntas.
+    constant COUNT    : natural  := BASE_COUNT + init_count(audio_table);
     -- Posições da memória de entradas (no mínimo uma, para a tabela vazia).
     constant ROM_SIZE : positive := pick(COUNT > 0, COUNT, 1);
     -- Maior valor dos contadores saturados.
@@ -87,9 +93,15 @@ architecture rtl of hdmi_init_seq is
 
     begin
 
-        for i in 0 to COUNT - 1 loop
+        for i in 0 to BASE_COUNT - 1 loop
 
             rom(i) := init_word(init_table, i);
+
+        end loop;
+
+        for i in 0 to COUNT - BASE_COUNT - 1 loop
+
+            rom(BASE_COUNT + i) := init_word(audio_table, i);
 
         end loop;
 
@@ -120,8 +132,9 @@ architecture rtl of hdmi_init_seq is
 
 begin
 
-    assert is_valid_table(init_table)
-        report "hdmi_init_seq: init_table deve ter quatro dígitos hexadecimais por entrada, no máximo 255 entradas"
+    assert is_valid_table(init_table) and is_valid_table(audio_table) and COUNT <= MAX_INIT_ENTRIES
+        report "hdmi_init_seq: init_table e audio_table devem ter quatro dígitos hexadecimais por entrada, " &
+               "no máximo 255 entradas juntas"
         severity failure;
 
     o_wr_start  <= wr_start;

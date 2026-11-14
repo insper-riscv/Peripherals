@@ -19,6 +19,13 @@
 -- polaridade da placa. Com um grupo que lista os dígitos de 0 a digits - 1 em ordem, o
 -- módulo é o registrador único de 4*digits bits.
 --
+-- Ponto decimal (generic has_dp, falso por padrão): com has_dp verdadeiro cada dígito tem o oitavo
+-- segmento (HEXn[7] da DE10-Lite), o bit 8n+7 de o_hex, e o bit de cada dígito do grupo fica na
+-- palavra 1 do grupo (endereço de palavra 16g+1), o dígito k no bit k (1 = ponto aceso). A palavra 0
+-- não muda. O registrador do ponto é só do core (o hospedeiro não o acessa), zera no reset e é
+-- espelhado em o_dp. Com has_dp falso a palavra 1 lê zero, ignora a escrita e o_hex tem 7 bits por
+-- dígito, como antes.
+--
 -- Lado do hospedeiro: a lógica de uma instância do Virtual JTAG (tck). A
 -- instrução 1 seleciona um registrador de 25 bits:
 --   entrada   [4*digits-1:0] valor novo; [4*digits] 1 = grava o valor, 0 = só lê
@@ -55,7 +62,9 @@ entity seg_display is
         -- Dígitos de cada grupo, um campo de 8 bits por grupo: o grupo g nos bits 8g+7 a 8g.
         group_sizes   : std_logic_vector(8 * group_count - 1 downto 0)  := x"06";
         -- Índices de dígito de todos os grupos, em sequência e na ordem escrita, um campo de 8 bits por membro.
-        group_members : std_logic_vector(8 * member_count - 1 downto 0) := x"050403020100"
+        group_members : std_logic_vector(8 * member_count - 1 downto 0) := x"050403020100";
+        -- Dígitos de oito segmentos (com o ponto decimal) quando verdadeiro; falso, sete segmentos.
+        has_dp        : boolean                                         := false
     );
     port (
         -- Clock do core.
@@ -90,9 +99,11 @@ entity seg_display is
         o_value     : out   std_logic_vector(4 * digits - 1 downto 0);
         -- Bandeira de falha gravada pelo hospedeiro ('1' = houve falha).
         o_fail      : out   std_logic;
-        -- Segmentos dos displays, o dígito 0 nos bits 6:0 e o de maior índice nos bits mais altos
-        -- (polaridade de active_low).
-        o_hex       : out   std_logic_vector(7 * digits - 1 downto 0)
+        -- Segmentos dos displays, o dígito 0 nos bits 6:0 (7:0 com has_dp, o ponto no bit 7) e o de
+        -- maior índice nos bits mais altos (polaridade de active_low).
+        o_hex       : out   std_logic_vector((7 + boolean'pos(has_dp)) * digits - 1 downto 0);
+        -- Bits do ponto decimal guardados, um por dígito (1 = aceso); zero sem has_dp.
+        o_dp        : out   std_logic_vector(digits - 1 downto 0)
     );
 end entity seg_display;
 
@@ -104,6 +115,10 @@ architecture rtl of seg_display is
     signal   value         : std_logic_vector(VALUE_BITS - 1 downto 0) := (others => '0');
     -- Segmentos dos dígitos em nível baixo (aceso em '0'), antes da polaridade do generic.
     signal   seg_low       : std_logic_vector(7 * digits - 1 downto 0);
+    -- Largura de um dígito de o_hex: 7 segmentos, 8 com o ponto decimal.
+    constant DIGIT_BITS    : natural                                   := 7 + boolean'pos(has_dp);
+    -- Bit do ponto decimal de cada dígito (1 = aceso), no domínio de i_clk.
+    signal   dp            : std_logic_vector(digits - 1 downto 0)     := (others => '0');
     -- Toggle do hospedeiro sincronizado com i_clk.
     signal   tog_sync      : std_logic_vector(0 downto 0);
     -- Último valor do toggle já aplicado em i_clk.
@@ -138,7 +153,7 @@ begin
 
     -- Leitura do core: só a palavra 0 de cada grupo existente tem conteúdo; o dígito k do grupo
     -- aparece nos bits 4k+3 a 4k, e um dígito fora de todos os grupos não aparece em palavra alguma.
-    p_read : process (i_address, value) is
+    p_read : process (i_address, value, dp) is
 
         -- Grupo endereçado.
         variable sel : natural;
@@ -160,6 +175,24 @@ begin
 
                         m := field_value(group_members, field_sum(group_sizes, g) + k);
                         o_rdata(4 * k + 3 downto 4 * k) <= value(4 * m + 3 downto 4 * m);
+
+                    end loop;
+
+                end if;
+
+            end loop;
+        elsif has_dp and digits > 0 and i_address(3 downto 0) = "0001" then
+            -- Palavra 1 do grupo: o ponto do dígito k do grupo no bit k.
+            sel := to_integer(unsigned(i_address(7 downto 4)));
+
+            for g in 0 to group_count - 1 loop
+
+                if sel = g then
+
+                    for k in 0 to field_value(group_sizes, g) - 1 loop
+
+                        m := field_value(group_members, field_sum(group_sizes, g) + k);
+                        o_rdata(k) <= dp(m);
 
                     end loop;
 
@@ -209,6 +242,43 @@ begin
         end if;
 
     end process p_value_reg;
+
+    -- Registrador do ponto decimal no domínio de i_clk: só o core o escreve, na palavra 1 do grupo.
+    p_dp_reg : process (i_clk) is
+
+        -- Grupo endereçado.
+        variable sel : natural;
+        -- Índice do dígito que ocupa a posição k do grupo.
+        variable m   : natural;
+
+    begin
+
+        if rising_edge(i_clk) then
+            if i_rst = '1' then
+                dp <= (others => '0');
+            elsif has_dp and i_write = '1' and digits > 0 and i_address(3 downto 0) = "0001" then
+                sel := to_integer(unsigned(i_address(7 downto 4)));
+
+                for g in 0 to group_count - 1 loop
+
+                    if sel = g then
+
+                        for k in 0 to field_value(group_sizes, g) - 1 loop
+
+                            m := field_value(group_members, field_sum(group_sizes, g) + k);
+                            dp(m) <= i_data_in(k);
+
+                        end loop;
+
+                    end if;
+
+                end loop;
+            end if;
+        end if;
+
+    end process p_dp_reg;
+
+    o_dp <= dp;
 
     o_fail <= fail_flag;
 
@@ -261,6 +331,16 @@ begin
     end generate gen_digits;
 
     -- A polaridade fica só aqui: o conversor acende em nível baixo e o generic escolhe o nível da placa.
-    o_hex <= seg_low when active_low else not seg_low;
+    -- Cada dígito ocupa DIGIT_BITS bits de o_hex: os sete segmentos e, com has_dp, o ponto no bit 7.
+    gen_out : for n in 0 to digits - 1 generate
+
+        o_hex(DIGIT_BITS * n + 6 downto DIGIT_BITS * n) <= seg_low(7 * n + 6 downto 7 * n) when active_low else
+                                                           not seg_low(7 * n + 6 downto 7 * n);
+
+        gen_dp : if has_dp generate
+            o_hex(DIGIT_BITS * n + 7) <= not dp(n) when active_low else dp(n);
+        end generate gen_dp;
+
+    end generate gen_out;
 
 end architecture rtl;

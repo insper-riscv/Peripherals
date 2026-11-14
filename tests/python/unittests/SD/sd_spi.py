@@ -9,7 +9,7 @@ exemplo em C da documentação faz, contra o modelo de cartão.
 import cocotb
 from cocotb.triggers import RisingEdge, Timer
 
-from tests.python.utils import bus
+from tests.python.utils import bus, polling
 from tests.python.utils.check import check
 from tests.python.utils.dut import SdSpiDut
 from tests.python.utils.sd_card import (
@@ -25,21 +25,23 @@ from tests.python.utils.sd_card import (
     command_frame,
     crc16,
 )
+from tests.python.utils.spi_regs import (
+    BUSY,
+    CS_ASSERT,
+    DONE,
+    DONE_IRQ_ENABLE,
+    ERROR_IRQ_ENABLE,
+    RX_FULL,
+    RX_IRQ_ENABLE,
+    RX_OVERRUN,
+    RX_VALID,
+    TX_DROPPED,
+    TX_EMPTY,
+    TX_EMPTY_IRQ_ENABLE,
+    TX_READY,
+)
 
 TX_DATA, RX_DATA, STATUS, CONTROL, DIVIDER = range(5)
-RX_VALID = 1 << 0
-TX_READY = 1 << 1
-TX_EMPTY = 1 << 2
-BUSY = 1 << 3
-RX_FULL = 1 << 4
-DONE = 1 << 5
-RX_OVERRUN = 1 << 6
-TX_DROPPED = 1 << 7
-CS_ASSERT = 1 << 0
-RX_IRQ_ENABLE = 1 << 1
-TX_EMPTY_IRQ_ENABLE = 1 << 2
-DONE_IRQ_ENABLE = 1 << 3
-ERROR_IRQ_ENABLE = 1 << 4
 
 RESET_DIVIDER = 3
 FIFO_DEPTH = 4
@@ -102,12 +104,7 @@ async def wait_status(dut: SdSpiDut, mask: int, value: int) -> int:
     AssertionError
         Se a condição não ocorrer dentro do limite.
     """
-    for _ in range(POLL_LIMIT):
-        status = await bus.read(dut, STATUS)
-        if status & mask == value:
-            return status
-    message = f"STATUS não chegou a {value:#x} sob a máscara {mask:#x}"
-    raise AssertionError(message)
+    return await polling.wait_status(dut, STATUS, mask, value, POLL_LIMIT)
 
 
 async def xfer(dut: SdSpiDut, value: int) -> int:

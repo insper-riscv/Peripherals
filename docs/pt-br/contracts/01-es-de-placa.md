@@ -21,6 +21,7 @@ A placa pode ligar um LED, uma tecla ou um segmento em lógica invertida, e cada
 | :--- | :--- | :--- | :--- |
 | `gpio` | `pin_active_low`, um bit por pino | zeros | Inverte os dois sentidos do pino dentro da `gpio_cell`. O programa lê e escreve ativo em `'1'` |
 | `seg_display` | `active_low` | verdadeiro | Escolhe o nível que acende o segmento em `o_hex`. Verdadeiro acende em `'0'`, como nas placas DE |
+| `seg_display` | `has_dp` | falso | Dígitos de oito segmentos, com o ponto decimal em `o_hex` e o bit do ponto na palavra 1 de cada grupo |
 
 O topo gerado escolhe o valor desses generics conforme a placa e o periférico não conhece a polaridade da placa além do próprio generic.
 

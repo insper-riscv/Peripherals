@@ -3,7 +3,13 @@
 // escritas do core, a leitura de cada endereço, o valor guardado e os segmentos de cada dígito são os do modelo:
 // o dígito k de um grupo ocupa os bits 4k+3 a 4k da palavra 0 do grupo, os outros endereços e os grupos que não
 // existem leem zero e ignoram a escrita, e um dígito fora de todos os grupos fica apagado. Duas partições:
-// A (-DPART_A) e B (-DPART_B).
+// A (-DPART_A) e B (-DPART_B). Com -DDP o módulo roda com has_dp verdadeiro: o modelo guarda também o ponto de
+// cada dígito (bit k da palavra 1 do grupo), e o_dp, a leitura da palavra 1 e o bit 7 de cada dígito de o_hex o seguem.
+`ifdef DP
+`define DW 8
+`else
+`define DW 7
+`endif
 `ifdef PART_A
 // 8 dígitos; grupos [[0,1,2,3],[5,6]]; os dígitos 4 e 7 ficam apagados.
 `define DIGITS 8
@@ -72,32 +78,45 @@ module props (input clk);
   (* anyseq *) wire [7:0] addr;
   wire [31:0] q;
   wire [4*N-1:0] value;
-  wire [7*N-1:0] hex;
+  wire [`DW*N-1:0] hex;
+  wire [N-1:0] dpo;
   wire fail, tdo;
 
   seg_display dut (.i_clk(clk), .i_rst(reset), .i_address(addr), .i_data_in(d), .i_write(write), .o_rdata(q),
     .i_tck(1'b0), .i_tdi(1'b0), .o_tdo(tdo), .i_ir_in(2'b00), .i_state_cdr(1'b0), .i_state_sdr(1'b0),
-    .i_state_udr(1'b0), .i_state_uir(1'b0), .o_value(value), .o_fail(fail), .o_hex(hex));
+    .i_state_udr(1'b0), .i_state_uir(1'b0), .o_value(value), .o_fail(fail), .o_hex(hex), .o_dp(dpo));
 
   // Os registradores não têm valor inicial: o primeiro clock é um reset, como na placa.
   initial assume (reset);
 
   reg f_past = 0;
   reg [4*N-1:0] m_val;
+  reg [N-1:0] m_dp;
 
   wire [3:0] gsel = addr[7:4];
   wire [3:0] reg_no = addr[3:0];
 
-  integer gi, k, gj, kj;
+  integer gi, k, gj, kj, gp, kp;
   reg [31:0] want;
   always @(posedge clk) begin
     f_past <= 1;
-    if (reset) m_val <= 0;
-    else if (write && reg_no == 0)
+    if (reset) begin
+      m_val <= 0;
+      m_dp <= 0;
+    end else if (write && reg_no == 0) begin
       for (gi = 0; gi < G; gi = gi + 1)
         if (gsel == gi)
           for (k = 0; k < size(gi); k = k + 1)
             m_val[4*member(gi, k) +: 4] <= d[4*k +: 4];
+    end
+`ifdef DP
+    else if (write && reg_no == 1) begin
+      for (gi = 0; gi < G; gi = gi + 1)
+        if (gsel == gi)
+          for (k = 0; k < size(gi); k = k + 1)
+            m_dp[member(gi, k)] <= d[k];
+    end
+`endif
   end
 
   // A palavra que o core lê: os dígitos do grupo endereçado na palavra 0, e zero no resto.
@@ -108,11 +127,23 @@ module props (input clk);
         if (gsel == gj)
           for (kj = 0; kj < size(gj); kj = kj + 1)
             want[4*kj +: 4] = m_val[4*member(gj, kj) +: 4];
+`ifdef DP
+    if (reg_no == 1)
+      for (gp = 0; gp < G; gp = gp + 1)
+        if (gsel == gp)
+          for (kp = 0; kp < size(gp); kp = kp + 1)
+            want[kp] = m_dp[member(gp, kp)];
+`endif
   end
 
   always @(posedge clk) if (f_past) begin
     assert (value == m_val);
     assert (q == want);
+`ifdef DP
+    assert (dpo == m_dp);
+`else
+    assert (dpo == 0);
+`endif
   end
 
   // Segmentos: o valor do modelo nos dígitos listados, apagado nos outros (nível baixo da placa).
@@ -120,7 +151,11 @@ module props (input clk);
   generate for (gn = 0; gn < N; gn = gn + 1) begin : g_digit
     localparam LST = listed(gn);
     always @(posedge clk) if (f_past)
-      assert (hex[7*gn +: 7] == (LST ? seg(m_val[4*gn +: 4]) : 7'b1111111));
+      assert (hex[`DW*gn +: 7] == (LST ? seg(m_val[4*gn +: 4]) : 7'b1111111));
+`ifdef DP
+    always @(posedge clk) if (f_past)
+      assert (hex[8*gn+7] == (LST ? !m_dp[gn] : 1'b1));
+`endif
   end endgenerate
 
 `ifdef COVER
@@ -130,6 +165,11 @@ module props (input clk);
 `ifdef PART_A
     cover (m_val[23:20] != 0);
     cover (write && gsel == 1 && reg_no == 0);
+`endif
+`ifdef DP
+    cover (write && reg_no == 1 && gsel < G && d[0]);
+    cover (reg_no == 1 && gsel < G && q != 0);
+    cover (m_dp != 0 && m_val != 0);
 `endif
   end
 `endif

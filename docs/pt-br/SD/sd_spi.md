@@ -10,7 +10,7 @@ O periférico é composto por três blocos.
 
 | Bloco | Função |
 | :--- | :--- |
-| `sd_spi_phy` | Mestre SPI de um byte no modo 0 (SCLK em repouso baixo, MOSI muda na borda de descida e o cartão amostra na de subida), com o divisor capturado no início de cada byte |
+| `sd_spi_phy` | O mestre SPI genérico (`spi_master`, ver [spi.md](../SPI/spi.md)) fixo no modo 0 (SCLK em repouso baixo, MOSI muda na borda de descida e o cartão amostra na de subida), com palavra de 8 bits, bit mais significativo primeiro e o divisor capturado no início de cada byte |
 | `uart_fifo` | Fila síncrona de bytes, uma instância para a transmissão e outra para a recepção |
 | `sd_spi` | Topo com o sincronizador da linha MISO, os registradores, as marcas persistentes e a interrupção |
 

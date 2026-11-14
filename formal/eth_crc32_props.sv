@@ -3,16 +3,18 @@
 // polinômio 0x04C11DB7, que é o espelho bit a bit do registrador refletido do projeto.
 //   1. O estado do projeto é o espelho do modelo depois de qualquer sequência de limpeza, absorção e reset.
 //   2. o_residue_ok vale exatamente quando o estado é o resíduo 0xDEBB20E3.
-//   3. Para qualquer estado, absorver os oito nibbles do complemento do estado, o menos significativo primeiro,
+//   3. Com i_wide em 1 o registrador absorve o byte {nibble_hi, nibble} (nibble baixo primeiro), e o modelo faz os
+//      mesmos oito passos de um bit; com i_wide em 0 absorve só o nibble baixo.
+//   4. Para qualquer estado, absorver os oito nibbles do complemento do estado, o menos significativo primeiro,
 //      leva ao resíduo: é o que faz o FCS enviado ser aceito na recepção.
 module props (input clk);
-  (* anyseq *) wire reset, clear, enable;
-  (* anyseq *) wire [3:0] nibble;
+  (* anyseq *) wire reset, clear, enable, wide;
+  (* anyseq *) wire [3:0] nibble, nibble_hi;
   (* anyconst *) wire [31:0] any_state;
   wire [31:0] crc;
   wire residue_ok;
 
-  eth_crc32 dut (.i_clk(clk), .i_rst(reset), .i_clear(clear), .i_enable(enable), .i_nibble(nibble),
+  eth_crc32 dut (.i_clk(clk), .i_rst(reset), .i_clear(clear), .i_enable(enable), .i_nibble(nibble), .i_wide(wide), .i_nibble_hi(nibble_hi),
     .o_crc(crc), .o_residue_ok(residue_ok));
 
   // Os registradores têm o valor inicial do VHDL, o mesmo do modelo.
@@ -37,7 +39,7 @@ module props (input clk);
   endfunction
 
   reg [31:0] m = 32'hFFFFFFFF;
-  always @(posedge clk) m <= (reset || clear) ? 32'hFFFFFFFF : (enable ? step(m, nibble) : m);
+  always @(posedge clk) m <= (reset || clear) ? 32'hFFFFFFFF : (enable ? (wide ? step(step(m, nibble), nibble_hi) : step(m, nibble)) : m);
 
   // Resíduo do modelo depois dos oito nibbles do complemento de um estado qualquer.
   reg [31:0] r;
@@ -57,6 +59,7 @@ module props (input clk);
 `ifdef COVER
   always @(posedge clk) begin
     cover (residue_ok);
+    cover ($past(enable) && $past(wide) && !$past(clear) && !$past(reset));
     cover ($past(enable) && !$past(clear) && !$past(reset));
   end
 `endif

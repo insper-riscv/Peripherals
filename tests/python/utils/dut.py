@@ -602,3 +602,209 @@ class TvCaptureDut(ResettableDut, Protocol):
     o_index: LogicArrayObject
     o_format: LogicObject
     o_y: LogicArrayObject
+
+
+class Max10AdcDut(IrqDut, Protocol):
+    """Signals of the testbench of the MAX 10 ADC peripheral."""
+
+    i_analog: LogicArrayObject
+    o_cmd_valid: LogicObject
+    o_cmd_channel: LogicArrayObject
+    o_cmd_sop: LogicObject
+    o_cmd_eop: LogicObject
+    o_cmd_ready: LogicObject
+
+
+class Max10AdcSequencerDut(ResettableDut, Protocol):
+    """Signals of the sequencer of the MAX 10 ADC peripheral."""
+
+    i_start: LogicObject
+    i_mask: LogicArrayObject
+    o_cmd_valid: LogicObject
+    o_cmd_channel: LogicArrayObject
+    o_cmd_sop: LogicObject
+    o_cmd_eop: LogicObject
+    i_cmd_ready: LogicObject
+    i_rsp_valid: LogicObject
+    i_rsp_channel: LogicArrayObject
+    i_rsp_data: LogicArrayObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_sample_valid: LogicObject
+    o_sample_channel: LogicArrayObject
+    o_sample_data: LogicArrayObject
+
+
+class UartFlowDut(UartDut, Protocol):
+    """Signals of the UART with the RTS and CTS lines."""
+
+    i_uart_cts: LogicObject
+    o_uart_rts: LogicObject
+
+
+class SdNativeDut(IrqDut, Protocol):
+    """Signals of the SD card controller in native mode."""
+
+    o_sd_clk: LogicObject
+    o_sd_cmd: LogicObject
+    o_sd_cmd_oe: LogicObject
+    i_sd_cmd: LogicObject
+    o_sd_dat: LogicArrayObject
+    o_sd_dat_oe: LogicArrayObject
+    i_sd_dat: LogicArrayObject
+
+
+class SdCrcDut(ResettableDut, Protocol):
+    """Signals of a serial CRC register of the SD controller."""
+
+    i_clear: LogicObject
+    i_enable: LogicObject
+    i_bit: LogicObject
+    o_crc: LogicArrayObject
+
+
+class SdClockGenDut(ResettableDut, Protocol):
+    """Signals of the SD card clock generator."""
+
+    i_divider: LogicArrayObject
+    i_run: LogicObject
+    o_sclk: LogicObject
+    o_rise: LogicObject
+    o_fall: LogicObject
+
+
+class SdStrobeDut(ResettableDut, Protocol):
+    """Signals of an SD controller block driven by the edge pulses."""
+
+    i_rise: LogicObject
+    i_fall: LogicObject
+
+
+class SdCmdDut(SdStrobeDut, Protocol):
+    """Signals of the command controller of the SD card."""
+
+    i_abort: LogicObject
+    i_start: LogicObject
+    i_index: LogicArrayObject
+    i_argument: LogicArrayObject
+    i_response: LogicArrayObject
+    i_wait_busy: LogicObject
+    i_timeout: LogicArrayObject
+    i_cmd: LogicObject
+    i_dat0: LogicObject
+    o_cmd: LogicObject
+    o_cmd_oe: LogicObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_resp_ok: LogicObject
+    o_response: LogicArrayObject
+    o_err_timeout: LogicObject
+    o_err_crc: LogicObject
+    o_err_index: LogicObject
+    o_err_frame: LogicObject
+
+
+class SdDataDut(SdStrobeDut, Protocol):
+    """Signals of the data controller of the SD card."""
+
+    i_abort: LogicObject
+    i_start: LogicObject
+    i_write: LogicObject
+    i_wide: LogicObject
+    i_timeout: LogicArrayObject
+    i_dat: LogicArrayObject
+    o_dat: LogicArrayObject
+    o_dat_oe: LogicArrayObject
+    o_buf_address: LogicArrayObject
+    o_buf_we: LogicObject
+    o_buf_data: LogicArrayObject
+    i_buf_data: LogicArrayObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_token: LogicArrayObject
+    o_err_timeout: LogicObject
+    o_err_crc: LogicObject
+    o_err_frame: LogicObject
+    o_err_write_crc: LogicObject
+    o_err_write: LogicObject
+
+
+class SdBufferDut(ClockedDut, Protocol):
+    """Signals of the block buffer of the SD card."""
+
+    i_write_enable: LogicObject
+    i_write_address: LogicArrayObject
+    i_write_data: LogicArrayObject
+    i_read_address: LogicArrayObject
+    o_read_data: LogicArrayObject
+
+
+class SpiMasterDut(ResettableDut, Protocol):
+    """Signals of the generic SPI master engine."""
+
+    i_cpol: LogicObject
+    i_cpha: LogicObject
+    i_lsb_first: LogicObject
+    i_word_bits: LogicArrayObject
+    i_divider: LogicArrayObject
+    i_tx_drive: LogicObject
+    i_start: LogicObject
+    i_tx_data: LogicArrayObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_rx_data: LogicArrayObject
+    o_sclk: LogicObject
+    o_mosi: LogicObject
+    o_mosi_oe: LogicObject
+    i_miso: LogicObject
+
+
+class SpiDut(IrqDut, Protocol):
+    """Signals of the memory-mapped SPI master."""
+
+    o_sclk: LogicObject
+    o_mosi: LogicObject
+    o_mosi_oe: LogicObject
+    i_miso: LogicObject
+    o_cs_n: LogicArrayObject
+
+
+class AdcSweepDut(IrqDut, Protocol):
+    """Signals of the shared sweep machine of the eight-channel ADCs."""
+
+    channel_latency: LogicObject
+    o_frame_start: LogicObject
+    o_frame_channel: LogicArrayObject
+    i_frame_done: LogicObject
+    i_frame_data: LogicArrayObject
+    o_divider: LogicArrayObject
+
+
+class Adc128Dut(IrqDut, Protocol):
+    """Signals of the ADC128S022 controller."""
+
+    o_adc_cs_n: LogicObject
+    o_adc_sclk: LogicObject
+    o_adc_saddr: LogicObject
+    i_adc_sdat: LogicObject
+
+
+class Ltc2308Dut(IrqDut, Protocol):
+    """Signals of the LTC2308 controller."""
+
+    o_adc_convst: LogicObject
+    o_adc_sck: LogicObject
+    o_adc_sdi: LogicObject
+    i_adc_sdo: LogicObject
+
+
+class Adxl345Dut(IrqDut, Protocol):
+    """Signals of the ADXL345 controller."""
+
+    three_wire: LogicObject
+    o_adxl_cs_n: LogicObject
+    o_adxl_sclk: LogicObject
+    o_adxl_mosi: LogicObject
+    o_adxl_mosi_oe: LogicObject
+    i_adxl_miso: LogicObject
+    i_adxl_int1: LogicObject

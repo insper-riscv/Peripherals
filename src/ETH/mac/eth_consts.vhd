@@ -120,6 +120,15 @@ package eth_consts is
     -- Octetos do endereço de destino.
     constant MAC_BYTES         : natural := 6;
 
+    -- Byte do preâmbulo, enviado e recebido pelo caminho de um byte por ciclo.
+    constant BYTE_PREAMBLE    : std_logic_vector(7 downto 0) := x"55";
+    -- Byte do SFD, enviado e recebido pelo caminho de um byte por ciclo.
+    constant BYTE_SFD         : std_logic_vector(7 downto 0) := x"D5";
+    -- Bytes do preâmbulo mais o SFD, menos o próprio SFD (sete bytes 0x55).
+    constant PREAMBLE_BYTES   : natural := 7;
+    -- Intervalo entre quadros em tempos de byte (96 bits).
+    constant GAP_BYTES        : natural := 12;
+
     -- Flag do quadro recebido: CRC incorreto.
     constant RXF_CRC     : natural := 0;
     -- Flag do quadro recebido: RX_ER do PHY durante o quadro.

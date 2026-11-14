@@ -1,0 +1,27 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "rv32_drivers.h"
+
+/* Le o STATUS da HPI e uma palavra do chip. O endereco do registrador vem do
+ * datasheet do CY7C67200 (NAO CONFIRMADO neste repositorio): ajuste CHIP_WORD.
+ */
+#define CHIP_WORD 0x0000u
+
+int main(void)
+{
+    rv32_usb_t usb = rv32_usb_platform_new(RV32_USB_DEFAULT_INSTANCE);
+    uint16_t status = 0;
+    uint16_t word = 0;
+
+    if (!rv32_usb_valid(usb)) {
+        return 1;
+    }
+
+    /* Solta o reset do chip; a espera de boot e do chamador (tempo nao confirmado). */
+    rv32_usb_chip_hold_reset(usb, false);
+
+    if (rv32_usb_smoke(usb, CHIP_WORD, &status, &word) != RV32_USB_OK) {
+        return 2;
+    }
+
+    return 0;
+}

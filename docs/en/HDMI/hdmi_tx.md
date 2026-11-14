@@ -25,7 +25,7 @@ The signals below are the ones the board manual (Table 3-13) connects to the tra
 | `I2C_SCL` | U10 | `o_i2c_scl_out` and `o_i2c_scl_oe` |
 | `I2C_SDA` | AA4 | `i_i2c_sda`, `o_i2c_sda_out` and `o_i2c_sda_oe` |
 
-The audio pins of the transmitter (`HDMI_I2S0`, `HDMI_MCLK`, `HDMI_LRCLK` and `HDMI_SCLK`) are not used, because the peripheral does not carry HDMI audio.
+The audio pins of the transmitter (`HDMI_I2S0`, `HDMI_MCLK`, `HDMI_LRCLK` and `HDMI_SCLK`) do not belong to this peripheral. The audio goes out through the `hdmi_audio` peripheral (`docs/en/HDMI/hdmi_audio.md`), and the audio table of the transmitter enters this peripheral through the `audio_init_table` generic.
 
 ## 2. What it is
 
@@ -66,6 +66,7 @@ The timing, the dual-port memory and the framebuffer registers are those of the 
 | `init_enable` | false | Includes the initialization sequencer of the transmitter |
 | `init_auto_start` | true | The sequence starts by itself after reset |
 | `init_table` | `""` | Initialization table, four hexadecimal digits per entry (section 7) |
+| `audio_init_table` | `""` | Audio table of the transmitter, written after the `init_table`, in the same format (section 7.2) |
 | `i2c_dev_addr` | `0111001` | 7-bit address of the transmitter on the I2C bus |
 | `i2c_freq` | 100000 | SCL frequency in Hz |
 | `int_active_low` | true | The interrupt pin of the transmitter is active low |
@@ -214,7 +215,7 @@ With `init_enable`, the peripheral writes ADV7513 registers with no help from so
 
 ### 7.2. Initialization table
 
-The table is the `init_table` generic, a string with four hexadecimal digits per entry, the register and then the value, in write order. The string `"980301001520"` writes 0x03 to register 0x98, 0x00 to 0x01 and 0x20 to 0x15. The table takes up to 255 entries, and an empty string makes the sequencer only mark the end.
+The table is the `init_table` generic, a string with four hexadecimal digits per entry, the register and then the value, in write order. The string `"980301001520"` writes 0x03 to register 0x98, 0x00 to 0x01 and 0x20 to 0x15. The audio table is the `audio_init_table` generic, in the same format, and the sequencer writes it after the `init_table`, so the two together add up to at most 255 entries. An empty string makes the sequencer only mark the end.
 
 The DE10-Nano manual says that the example of Terasic uses 24-bit RGB in 4:4:4, that the video format and the audio frequency are in register 0x15 and that the format of register 0xAF must also be observed, and it points to the document `ADV7513_Programming_Guide_R0.pdf` for the values. That guide is not part of the board manual, so the platform supplies every value in the `init_table` generic, and the peripheral ships no default value. The pairs used in the tests are illustrative and do not configure the chip.
 

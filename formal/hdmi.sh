@@ -39,6 +39,8 @@ mut_expose=()
 build hdmi_init_seq hdmiseq "${seq_srcs[@]}" -- "${sgen[@]}" -gauto_start=true
 expect "auto start: the table goes out in order, one request at a time, counters and done follow the ideal list, restart only when stopped (bounded, 40 cycles, 3 entries)" PASS "$(prove hdmiseq.v "$sp" bmc 40 '-DAUTO' hdmiseq_safety)"
 expect "cover: a sequence ends with a NACK counted and a second one runs to the end" PASS "$(prove hdmiseq.v "$sp" cover 40 '-DAUTO -DCOVER' hdmiseq_cover)"
+build hdmi_init_seq hdmiseq_audio "${seq_srcs[@]}" -- -ginit_table=9803 -gaudio_table=0100AF16 -gauto_start=true
+expect "audio table: the entries of the init table go out first and those of the audio table right after, one list of three entries (bounded, 40 cycles)" PASS "$(prove hdmiseq_audio.v "$sp" bmc 40 '-DAUTO' hdmiseq_audio_safety)"
 build hdmi_init_seq hdmiseq_manual "${seq_srcs[@]}" -- "${sgen[@]}" -gauto_start=false
 expect "manual start: nothing is requested until the start pulse, then the same list (bounded, 40 cycles)" PASS "$(prove hdmiseq_manual.v "$sp" bmc 40 '' hdmiseq_manual_safety)"
 
@@ -88,3 +90,5 @@ mutant hdmi_i2c_writer "$wp" hdmi_i2c_writer '' hdmii2c_ack_driven "/if bit_idx 
 mutant hdmi_i2c_writer "$wp" hdmi_i2c_writer '' hdmii2c_two_bytes "s/if byte_idx = 2 then/if byte_idx = 1 then/" 250 "${wr_srcs[@]}" -- "${wgen[@]}"
 mutant hdmi_i2c_writer "$wp" hdmi_i2c_writer '' hdmii2c_out_high "s/o_sda_out <= '0';/o_sda_out <= '1';/" 250 "${wr_srcs[@]}" -- "${wgen[@]}"
 mutant hdmi_i2c_writer "$wp" hdmi_i2c_writer '' hdmii2c_busy_short "s/o_busy <= to_sl(state \/= S_IDLE);/o_busy <= to_sl(state = S_DATA);/" 250 "${wr_srcs[@]}" -- "${wgen[@]}"
+mutant hdmi_init_seq "$sp" hdmi_init_seq '-DAUTO' hdmiseq_audio_overwrites "s/rom(BASE_COUNT + i) := init_word(audio_table, i);/rom(i) := init_word(audio_table, i);/" 40 "${seq_srcs[@]}" -- -ginit_table=9803 -gaudio_table=0100AF16 -gauto_start=true
+mutant hdmi_init_seq "$sp" hdmi_init_seq '-DAUTO' hdmiseq_audio_dropped "s/COUNT : natural := BASE_COUNT + init_count(audio_table);/COUNT : natural := BASE_COUNT;/" 40 "${seq_srcs[@]}" -- -ginit_table=9803 -gaudio_table=0100AF16 -gauto_start=true

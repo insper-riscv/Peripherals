@@ -1,5 +1,5 @@
 -- =============================================================================
--- MAC Ethernet de 10/100 Mbit/s em MII com mestre MDIO
+-- MAC Ethernet de 10, 100 e 1000 Mbit/s em MII ou GMII com mestre MDIO
 --
 -- Topo estrutural do periférico de barramento que liga um PHY como o Marvell
 -- 88E1111 das placas DE2-115 (uma instância por PHY, ENET0 e ENET1). Reúne os
@@ -9,7 +9,15 @@
 -- do PHY nascem do reset do sistema, alongado e sincronizado. Os pinos do PHY
 -- são portas: o pino MDIO bidirecional chega como entrada, saída e habilitação
 -- para a camada de tristate do topo da plataforma, e o periférico não
--- instancia primitiva de fabricante. O modo RGMII de 1 Gbit/s não está aqui.
+-- instancia primitiva de fabricante.
+--
+-- Com gigabit em false é o MAC de 10 e 100 Mbit/s do MII, com o clock de cada
+-- sentido vindo do PHY e nibbles de quatro bits. Com gigabit em true os dados
+-- têm oito bits (GMII), o registrador SPEED escolhe a velocidade (automática,
+-- lida do PHY por MDIO, ou forçada) e o transmissor roda no clock livre de
+-- 125 MHz de i_mii_tx_clk, avançando só com i_tx_ce: um byte por ciclo a
+-- 1000 Mbit/s e um nibble a cada i_tx_ce a 100 e 10 Mbit/s. A camada que leva o
+-- GMII ao RGMII fica em eth_rgmii, fora deste bloco.
 -- =============================================================================
 
 library ieee;
@@ -19,9 +27,16 @@ use ieee.numeric_std.all;
 library work;
 use work.config_pkg.all;
 use work.eth_consts.all;
+use work.eth_gmii_consts.all;
 
 entity eth is
     generic (
+        -- Verdadeiro habilita o GMII de oito bits e a seleção de velocidade de 1000 Mbit/s.
+        gigabit             : boolean := false;
+        -- Endereço MDIO do PHY consultado pela velocidade automática (PHYADDR do chip).
+        phy_addr            : natural range 0 to 31 := 16;
+        -- Ciclos do sistema entre duas consultas de velocidade ao PHY.
+        poll_cycles         : positive := 50_000;
         -- Frequência do clock do sistema em hertz.
         clk_freq_hz         : positive := 50_000_000;
         -- Frequência de MDC em hertz (2,5 MHz é o limite do 88E1111).
@@ -57,16 +72,20 @@ entity eth is
 
         -- RX_CLK do PHY (ENETn_RX_CLK).
         i_mii_rx_clk  : in    std_logic;
-        -- RXD[3:0] do PHY (ENETn_RX_DATA).
-        i_mii_rxd     : in    std_logic_vector(3 downto 0);
+        -- RXD do PHY (ENETn_RX_DATA), com oito bits no GMII.
+        i_mii_rxd     : in    std_logic_vector(phy_data_width(gigabit) - 1 downto 0);
         -- RX_DV do PHY (ENETn_RX_DV).
         i_mii_rx_dv   : in    std_logic;
         -- RX_ER do PHY (ENETn_RX_ER).
         i_mii_rx_er   : in    std_logic;
-        -- TX_CLK do PHY (ENETn_TX_CLK).
+        -- TX_CLK do PHY (ENETn_TX_CLK), ou o clock livre de 125 MHz do GMII.
         i_mii_tx_clk  : in    std_logic;
-        -- TXD[3:0] para o PHY (ENETn_TX_DATA).
-        o_mii_txd     : out   std_logic_vector(3 downto 0);
+        -- Habilitação de avanço do transmissor no GMII; fica em '1' no MII.
+        i_tx_ce       : in    std_logic := '1';
+        -- Velocidade em uso, sincronizada ao clock de envio (SPEED_*); sem uso no MII.
+        o_tx_speed    : out   std_logic_vector(1 downto 0);
+        -- TXD para o PHY (ENETn_TX_DATA), com oito bits no GMII.
+        o_mii_txd     : out   std_logic_vector(phy_data_width(gigabit) - 1 downto 0);
         -- TX_EN para o PHY (ENETn_TX_EN).
         o_mii_tx_en   : out   std_logic;
         -- TX_ER para o PHY (ENETn_TX_ER), sempre em '0'.
@@ -147,6 +166,8 @@ architecture rtl of eth is
     signal fifo_wr_data  : std_logic_vector(8 downto 0);
     -- FIFO cheia, vista pelo receptor.
     signal fifo_full     : std_logic;
+    -- FIFO cheia depois da escrita em curso, vista pelo receptor.
+    signal fifo_full_next : std_logic;
     -- Retirada de uma palavra da FIFO.
     signal fifo_rd_en    : std_logic;
     -- Palavra do topo da FIFO.
@@ -202,6 +223,45 @@ architecture rtl of eth is
     -- O PHY não respondeu à leitura MDIO.
     signal mdio_no_ack   : std_logic;
 
+    -- Entrada do mestre MDIO: início da transação, vinda do programa ou da consulta de velocidade.
+    signal m_start       : std_logic;
+    -- Entrada do mestre MDIO: operação de escrita.
+    signal m_write       : std_logic;
+    -- Entrada do mestre MDIO: endereço do PHY.
+    signal m_phy_addr    : std_logic_vector(4 downto 0);
+    -- Entrada do mestre MDIO: endereço do registrador.
+    signal m_reg_addr    : std_logic_vector(4 downto 0);
+    -- Saída do mestre MDIO: ocupado.
+    signal m_busy        : std_logic;
+    -- Saída do mestre MDIO: pulso de fim de transação.
+    signal m_done        : std_logic;
+    -- Saída do mestre MDIO: o PHY não respondeu.
+    signal m_no_ack      : std_logic;
+    -- A consulta de velocidade inicia uma leitura neste ciclo.
+    signal poll_start    : std_logic;
+    -- Endereço do PHY da consulta de velocidade.
+    signal poll_phy_addr : std_logic_vector(4 downto 0);
+    -- Endereço do registrador da consulta de velocidade.
+    signal poll_reg_addr : std_logic_vector(4 downto 0);
+    -- A consulta de velocidade usa o mestre MDIO.
+    signal poll_hold     : std_logic;
+    -- Palavra do registrador SPEED, zero sem o modo gigabit.
+    signal speed_word    : std_logic_vector(31 downto 0);
+    -- Velocidade em uso no domínio do sistema.
+    signal speed_sys     : std_logic_vector(1 downto 0);
+    -- Velocidade em uso sincronizada ao clock de envio.
+    signal speed_tx      : std_logic_vector(1 downto 0);
+    -- Velocidade de 1000 Mbit/s sincronizada ao clock de recepção, em vetor de um bit.
+    signal wide_rx_vec   : std_logic_vector(0 downto 0);
+    -- Dados do receptor com oito bits.
+    signal rx_data8      : std_logic_vector(7 downto 0);
+    -- Dados do transmissor com oito bits.
+    signal tx_data8      : std_logic_vector(7 downto 0);
+    -- Palavra lida do barramento antes do ajuste de largura.
+    signal read_word     : std_logic_vector(31 downto 0);
+    -- Último estado de falta de resposta de uma leitura MDIO do programa.
+    signal sw_no_ack     : std_logic := '0';
+
     -- INT_N do PHY sincronizado e com polaridade ativa em '1'.
     signal phy_int_sync  : std_logic_vector(0 downto 0);
     -- Interrupção do PHY, ativa em '1'.
@@ -212,7 +272,8 @@ architecture rtl of eth is
 begin
 
     reg_data_in <= i_data_in(31 downto 0);
-    o_data_out  <= std_logic_vector(resize(unsigned(reg_data_out), word_t'length));
+    read_word   <= speed_word when gigabit and i_address = SPEED_ADDR else reg_data_out;
+    o_data_out  <= std_logic_vector(resize(unsigned(read_word), word_t'length));
 
     -----------------------------------------------------------------------------
     -- Resets
@@ -350,11 +411,13 @@ begin
         port map (
             i_clk      => i_mii_tx_clk,
             i_rst      => rst_tx,
+            i_ce       => i_tx_ce,
+            i_wide     => speed_tx(1),
             i_start    => tx_start_phy,
             i_length   => tx_len,
             o_ram_addr => tx_ram_raddr,
             i_ram_data => tx_ram_rdata,
-            o_txd      => o_mii_txd,
+            o_txd      => tx_data8,
             o_tx_en    => o_mii_tx_en,
             o_busy     => tx_busy_phy,
             o_done     => tx_done_phy
@@ -373,7 +436,9 @@ begin
             o_pulse   => tx_done_sys
         );
 
+    o_mii_txd   <= tx_data8(phy_data_width(gigabit) - 1 downto 0);
     o_mii_tx_er <= '0';
+    o_tx_speed  <= speed_tx;
 
     -----------------------------------------------------------------------------
     -- Recepção
@@ -383,12 +448,14 @@ begin
         port map (
             i_clk     => i_mii_rx_clk,
             i_rst     => rst_rx,
-            i_rxd     => i_mii_rxd,
+            i_wide    => wide_rx_vec(0),
+            i_rxd     => rx_data8,
             i_rx_dv   => i_mii_rx_dv,
             i_rx_er   => i_mii_rx_er,
             o_wr_en   => fifo_wr_en,
             o_wr_data => fifo_wr_data,
-            i_full    => fifo_full
+            i_full    => fifo_full,
+            i_full_next => fifo_full_next
         );
 
     u_rx_fifo : entity work.eth_async_fifo
@@ -403,6 +470,7 @@ begin
             i_wr_en => fifo_wr_en,
             i_wdata => fifo_wr_data,
             o_full  => fifo_full,
+            o_full_next => fifo_full_next,
             i_rclk  => i_clk,
             i_rrst  => rst,
             i_rd_en => fifo_rd_en,
@@ -455,6 +523,105 @@ begin
         );
 
     -----------------------------------------------------------------------------
+    -- Velocidade e largura dos dados
+    -----------------------------------------------------------------------------
+
+    rx_data8 <= std_logic_vector(resize(unsigned(i_mii_rxd), rx_data8'length));
+
+    g_speed : if gigabit generate
+
+        u_speed : entity work.eth_speed
+            generic map (
+                phy_addr    => phy_addr,
+                poll_cycles => poll_cycles
+            )
+            port map (
+                i_clk           => i_clk,
+                i_rst           => rst,
+                i_write         => i_write,
+                i_address       => i_address,
+                i_data_in       => reg_data_in,
+                o_data_out      => speed_word,
+                i_sw_start      => mdio_start,
+                i_mdio_busy     => m_busy,
+                i_mdio_done     => m_done,
+                i_mdio_no_ack   => m_no_ack,
+                i_mdio_rdata    => mdio_rdata,
+                o_mdio_start    => poll_start,
+                o_mdio_phy_addr => poll_phy_addr,
+                o_mdio_reg_addr => poll_reg_addr,
+                o_mdio_hold     => poll_hold,
+                o_speed         => speed_sys
+            );
+
+        u_speed_tx : entity work.synchronizer
+            generic map (
+                stages     => sync_stages,
+                data_width => 2
+            )
+            port map (
+                i_clk => i_mii_tx_clk,
+                i_rst => '0',
+                i_d   => speed_sys,
+                o_d   => speed_tx
+            );
+
+        u_wide_rx : entity work.synchronizer
+            generic map (
+                stages     => sync_stages,
+                data_width => 1
+            )
+            port map (
+                i_clk  => i_mii_rx_clk,
+                i_rst  => '0',
+                i_d(0) => speed_sys(1),
+                o_d    => wide_rx_vec
+            );
+
+        -- O programa vê o mestre ocupado durante a consulta, e só os seus resultados.
+        m_start    <= mdio_start or poll_start;
+        m_write    <= mdio_write and not poll_start;
+        m_phy_addr <= poll_phy_addr when poll_start = '1' else mdio_phy_addr;
+        m_reg_addr <= poll_reg_addr when poll_start = '1' else mdio_reg_addr;
+        mdio_busy  <= m_busy or poll_hold;
+        mdio_done  <= m_done and not poll_hold;
+        mdio_no_ack <= sw_no_ack;
+
+        p_no_ack : process (i_clk) is
+        begin
+
+            if rising_edge(i_clk) then
+                if rst = '1' then
+                    sw_no_ack <= '0';
+                elsif m_done = '1' and poll_hold = '0' then
+                    sw_no_ack <= m_no_ack;
+                end if;
+            end if;
+
+        end process p_no_ack;
+
+    else generate
+
+        -- Sem o modo gigabit o PHY fixa a velocidade e os dados têm nibbles.
+        speed_word    <= (others => '0');
+        speed_sys     <= SPEED_100;
+        speed_tx      <= SPEED_100;
+        wide_rx_vec   <= "0";
+        poll_start    <= '0';
+        poll_phy_addr <= (others => '0');
+        poll_reg_addr <= (others => '0');
+        poll_hold     <= '0';
+        m_start       <= mdio_start;
+        m_write       <= mdio_write;
+        m_phy_addr    <= mdio_phy_addr;
+        m_reg_addr    <= mdio_reg_addr;
+        mdio_busy     <= m_busy;
+        mdio_done     <= m_done;
+        mdio_no_ack   <= m_no_ack;
+
+    end generate g_speed;
+
+    -----------------------------------------------------------------------------
     -- MDIO e pinos de gerenciamento do PHY
     -----------------------------------------------------------------------------
 
@@ -466,15 +633,15 @@ begin
         port map (
             i_clk      => i_clk,
             i_rst      => rst,
-            i_start    => mdio_start,
-            i_write    => mdio_write,
-            i_phy_addr => mdio_phy_addr,
-            i_reg_addr => mdio_reg_addr,
+            i_start    => m_start,
+            i_write    => m_write,
+            i_phy_addr => m_phy_addr,
+            i_reg_addr => m_reg_addr,
             i_wdata    => mdio_wdata,
             o_rdata    => mdio_rdata,
-            o_busy     => mdio_busy,
-            o_done     => mdio_done,
-            o_no_ack   => mdio_no_ack,
+            o_busy     => m_busy,
+            o_done     => m_done,
+            o_no_ack   => m_no_ack,
             o_mdc      => o_mdc,
             i_mdio     => i_mdio,
             o_mdio_out => o_mdio_out,

@@ -6,7 +6,7 @@
 
 A bus peripheral that connects an Ethernet PHY through the MII and hands whole frames to the program. It sends frames with preamble, SFD, padding and FCS, and it receives them while checking the FCS and filtering by destination address. Each instance serves one PHY and carries the MDIO master that configures that PHY, so the two Ethernet ports of the DE2-115 (Marvell 88E1111 PHYs, ENET0 and ENET1) are two independent instances of the same peripheral.
 
-The DE2-115 manual states that the board supports RGMII (the factory default) and MII on both PHYs, selected by one jumper per PHY (JP1 and JP2). The peripheral implements the MII mode at 10 and 100 Mbit/s, and the jumper of the PHY must be in the MII position. The 1 Gbit/s RGMII mode is not part of the peripheral, because it needs DDR registers at the pins and an 8-bit data path at 125 MHz.
+The DE2-115 manual states that the board supports RGMII (the factory default) and MII on both PHYs, selected by one jumper per PHY (JP1 and JP2). The peripheral implements the MII mode at 10 and 100 Mbit/s, and the jumper of the PHY must be in the MII position. The 1 Gbit/s RGMII mode is described in `eth_rgmii.md`, because it needs DDR registers at the pins and an 8-bit data path at 125 MHz.
 
 ## 2. Structure
 

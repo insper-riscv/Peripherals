@@ -6,7 +6,7 @@
 
 Periférico de barramento que liga um PHY Ethernet pelo MII e entrega ao programa quadros inteiros: envia com preâmbulo, SFD, preenchimento e FCS, e recebe conferindo o FCS e filtrando pelo endereço de destino. Cada instância atende um PHY e traz o mestre MDIO que configura esse PHY, de modo que as duas portas Ethernet da DE2-115 (PHYs Marvell 88E1111, ENET0 e ENET1) são duas instâncias independentes do mesmo periférico.
 
-O manual da DE2-115 informa que a placa suporta nos dois PHYs o modo RGMII (padrão de fábrica) e o modo MII, escolhidos por um jumper por PHY (JP1 e JP2). O periférico implementa o modo MII, de 10 e 100 Mbit/s, e o jumper do PHY deve estar na posição MII. O RGMII de 1 Gbit/s não faz parte do periférico, porque exige registradores DDR nos pinos e um caminho de dados de 8 bits a 125 MHz.
+O manual da DE2-115 informa que a placa suporta nos dois PHYs o modo RGMII (padrão de fábrica) e o modo MII, escolhidos por um jumper por PHY (JP1 e JP2). O periférico implementa o modo MII, de 10 e 100 Mbit/s, e o jumper do PHY deve estar na posição MII. O RGMII de 1 Gbit/s é descrito em `eth_rgmii.md`, porque exige registradores DDR nos pinos e um caminho de dados de 8 bits a 125 MHz.
 
 ## 2. Estrutura
 
