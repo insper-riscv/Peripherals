@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formal verification of the CLINT, the PLIC, the HDMI output, the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART and the console with SymbiYosys. Needs
+# Formal verification of the CLINT, the PLIC, the HDMI output, the audio (master clock generator, frame clocks and registers), the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART and the console with SymbiYosys. Needs
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
@@ -124,14 +124,17 @@ expose() {
   local ports="" assigns="" s w nm top
   # The text of the top module, the last one: a mutant can leave a signal without a reader, and GHDL then does not
   # write it. The proof still states its value, and an undeclared name would be an implicit wire without a driver
-  # (a warning), so the output of a signal that is not there is the constant zero. The mutant is still caught by
+  # (a warning), so the output of a signal that is not there is the constant zero. The text goes by a here-string, not
+  # a pipe: grep -q leaves at the first match and a long netlist would then end printf with SIGPIPE (pipefail). The mutant is still caught by
   # the properties of the signals it does change.
   top="$(awk '/^module /{buf=""} {buf = buf $0 "\n"} END{printf "%s", buf}' "$v")"
   for s in "$@"; do
     nm="${s%%:*}"; w=""; [ "$s" != "$nm" ] && w="[${s#*:}:0] "
     ports+=",
    output ${w}dbg_$nm"
-    if printf '%s' "$top" | grep -qE "(wire|reg)[^;]*[[:space:]]$nm;"; then
+    # A here-string, not a pipe: grep -q leaves at the first match, and with a long netlist printf would then
+    # die of SIGPIPE and, under pipefail, make the test fail.
+    if grep -qE "(wire|reg)[^;]*[[:space:]]$nm;" <<< "$top"; then
       assigns+="  assign dbg_$nm = $nm;
 "
     else
@@ -482,11 +485,64 @@ mutant console "$cp_" console_equiv '' console_read_strobe "s/i_read     => i_re
 mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        => i_we,/i_we        => i_re,/" 30 "${console_srcs[@]}" -- "${cgen_jtag[@]}"
 
 
+
+echo "audio_xck_gen"
+xck_srcs=(audio_xck_gen)
+path_of[audio_xck_gen]="$root/src/audio/soc/audio_xck_gen.vhd"
+mut_expose=(acc:31 armed)
+build audio_xck_gen xckg "${xck_srcs[@]}" --
+expect "the master clock flips floor(k * step / modulus) times after k updates, the accumulator stays below the modulus (bounded, 20 cycles)" PASS "$(prove xckg.v "$f/audio_xck_gen_props.sv" bmc 20 '' xckg_safety)"
+expect "cover: several flips, and a flip at every cycle when step equals modulus, are reachable" PASS "$(prove xckg.v "$f/audio_xck_gen_props.sv" cover 14 '-DCOVER' xckg_cover)"
+
+echo "audio_frame_clocks"
+fc_srcs=(audio_frame_clocks)
+path_of[audio_frame_clocks]="$root/src/audio/soc/audio_frame_clocks.vhd"
+mut_expose=()
+build audio_frame_clocks fclk "${fc_srcs[@]}" --
+expect "BCLK flips every divisor master flips, LRCK every slot-length BCLK falls, both low when disabled (bounded, 24 cycles)" PASS "$(prove fclk.v "$f/audio_frame_clocks_props.sv" bmc 24 '' fclk_safety)"
+expect "cover: the BCLK and the LRCK flip with divisor and slot length of one" PASS "$(prove fclk.v "$f/audio_frame_clocks_props.sv" cover 24 '-DCOVER' fclk_cover)"
+
+echo "audio"
+audio_srcs=(config_pkg uart_fifo audio_consts audio_xck_gen audio_frame_clocks audio_i2s_tx audio_i2s_rx audio_tone audio)
+for n in audio_consts audio_i2s_tx audio_i2s_rx audio_tone audio; do path_of[$n]="$root/src/audio/soc/$n.vhd"; done
+audio_exp=(tx_level:1 rx_level:1 tx_push_ok tx_pop tx_underflow rx_valid rx_right rx_space)
+agen=(-gmaster=false -gtx_fifo_depth=3 -grx_fifo_depth=3)
+mut_expose=("${audio_exp[@]}")
+build audio audio "${audio_srcs[@]}" -- "${agen[@]}"
+expect "registers read back, queue levels, status flags, interrupt and master clock gating follow the contract (bounded, 20 cycles, 3-word queues)" PASS "$(prove audio.v "$f/audio_props.sv" bmc 20 '' audio_safety)"
+expect "cover: a dropped write, a full queue, an underflow, a queue interrupt and a consumed word are reachable" PASS "$(prove audio.v "$f/audio_props.sv" cover 40 '-DCOVER' audio_cover)"
+
+mut_expose=(acc:31 armed)
+xp="$f/audio_xck_gen_props.sv"
+mutant audio_xck_gen "$xp" audio_xck_gen '' xckg_wrap_late "s/if acc >= dec then/if acc > dec then/" 20 "${xck_srcs[@]}" --
+mutant audio_xck_gen "$xp" audio_xck_gen '' xckg_no_discount "s/acc <= acc - dec;/acc <= acc + unsigned(i_step);/" 20 "${xck_srcs[@]}" --
+mutant audio_xck_gen "$xp" audio_xck_gen '' xckg_no_toggle "s/xck <= not xck;/xck <= xck;/" 20 "${xck_srcs[@]}" --
+
+mut_expose=()
+cp2="$f/audio_frame_clocks_props.sv"
+mutant audio_frame_clocks "$cp2" audio_frame_clocks '' fclk_div_short "s/if edge_count + 1 >= unsigned(i_bclk_div) then/if edge_count >= unsigned(i_bclk_div) then/" 24 "${fc_srcs[@]}" --
+mutant audio_frame_clocks "$cp2" audio_frame_clocks '' fclk_lrck_on_rise "s/if bclk = '1' then/if bclk = '0' then/" 24 "${fc_srcs[@]}" --
+mutant audio_frame_clocks "$cp2" audio_frame_clocks '' fclk_slot_short "s/if slot_count + 1 >= unsigned(i_slot_bits) then/if slot_count >= unsigned(i_slot_bits) then/" 24 "${fc_srcs[@]}" --
+
+mut_expose=("${audio_exp[@]}")
+ap2="$f/audio_props.sv"
+mutant audio "$ap2" audio '' audio_tx_irq_strict "s/to_sl(tx_level <= to_integer(unsigned(tx_thr)))/to_sl(tx_level < to_integer(unsigned(tx_thr)))/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_rx_irq_mask_ignored "s/(rx_irq_en and to_sl(rx_level >= to_integer(unsigned(rx_thr))))/to_sl(rx_level >= to_integer(unsigned(rx_thr)))/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_drop_flag_always "s/if tx_push = '1' and tx_push_ok = '0' then/if tx_push = '1' then/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_thresholds_swapped "s/tx_thr <= i_data_in(15 downto 0);/tx_thr <= i_data_in(31 downto 16);/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_status_full_inverted "s/value(STAT_TX_NOT_FULL) := not tx_full;/value(STAT_TX_NOT_FULL) := tx_full;/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_w1c_wrong_bit "s/if i_data_in(STAT_TX_DROPPED) = '1' then/if i_data_in(STAT_RX_OVERFLOW) = '1' then/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_word_bits_lost "s/word_sel <= i_data_in(9 downto 8);/word_sel <= i_data_in(8 downto 7);/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+mutant audio "$ap2" audio '' audio_clock_not_gated "s/i_enable => clk_en,/i_enable => '1',/" 20 "${audio_srcs[@]}" -- "${agen[@]}"
+
 # PLIC (own file, like the external interrupt controller).
 source "$root/formal/plic.sh"
 
 # HDMI output (own file): timing generator, registers, I2C writer and the initialization sequencer.
 source "$root/formal/hdmi.sh"
+
+# HDMI audio output (own file): clock counts and the data timing of the I2S bus to the ADV7513.
+source "$root/formal/hdmi_audio.sh"
 
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }

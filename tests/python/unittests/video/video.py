@@ -18,23 +18,23 @@ from tests.python.unittests.video.raster import (
     read_geometry,
     sample,
     seek,
+    vs_pulse_end,
+    vs_pulse_start,
 )
 from tests.python.unittests.video.registers import (
     CTRL,
+    FORMAT,
     FRAME_COUNT,
     GEOMETRY,
-    H_SYNC,
-    H_TOTAL,
+    INDEXED_FLAG,
     MASK32,
     PALETTE,
     PALETTE_ENTRIES,
-    PALETTE_PIXEL_BITS,
     STATUS,
     STATUS_VBLANK,
     STATUS_VSYNC,
-    V_BACK,
-    V_SYNC,
-    V_TOTAL,
+    read_mode,
+    storage_bits,
 )
 from tests.python.unittests.video.signals import VideoDut
 from tests.python.utils.check import check
@@ -49,6 +49,7 @@ EDGE_ROWS = 6
 SETTLE_PIXELS = 10
 RATIOS = ((13, 40), (40, 40), (57, 40))
 MAX_ENABLE_CYCLES = 8
+VISIBLE_LINES = 2
 
 
 def eq(actual: int, expected: int, message: str = "") -> None:
@@ -91,7 +92,7 @@ async def prepare(
     geo = await read_geometry(dut)
     await fill(dut, Model(geo), lambda _: 0)
     model = Model(geo)
-    if geo.pixel_bits == PALETTE_PIXEL_BITS:
+    if geo.indexed:
         await bus.write_burst(
             dut, ((PALETTE + n, 0, bus.FULL_MASK) for n in range(256))
         )
@@ -171,29 +172,36 @@ async def verify_image(dut: VideoDut, model: Model) -> None:
     for first, count in image_rows(model.geo):
         rows = await capture(dut, first, count)
         for offset, row in enumerate(rows):
-            check_row(model, (first + offset) % V_TOTAL, row)
+            check_row(model, (first + offset) % model.geo.mode.v_total, row)
 
 
-async def edge_times(signal: LogicObject, count: int) -> list[float]:
-    """Instantes, em ns, das primeiras bordas de descida e de subida.
+async def edge_times(
+    signal: LogicObject, count: int, positive: bool
+) -> list[float]:
+    """Instantes, em ns, das bordas de início e de fim do pulso.
 
     Parameters
     ----------
     signal : LogicObject
         Sinal a observar.
     count : int
-        Número de pares descida e subida.
+        Número de pares início e fim de pulso.
+    positive : bool
+        Pulso em nível alto quando verdadeiro.
 
     Returns
     -------
     list[float]
-        Instantes alternados de descida e de subida.
+        Instantes alternados de início e de fim do pulso.
     """
+    first, second = (
+        (RisingEdge, FallingEdge) if positive else (FallingEdge, RisingEdge)
+    )
     times: list[float] = []
     for _ in range(count):
-        await FallingEdge(signal)
+        await first(signal)
         times.append(get_sim_time("ns"))
-        await RisingEdge(signal)
+        await second(signal)
         times.append(get_sim_time("ns"))
     return times
 
@@ -210,6 +218,13 @@ async def test_registers(dut: VideoDut) -> None:
         (geo.fb_height << 16) | geo.fb_width,
         "geometria",
     )
+    fmt = await bus.read(dut, FORMAT)
+    want_bits = storage_bits(geo.indexed, geo.channel_bits)
+    eq(fmt & 0xFF, want_bits, "bits por pixel")
+    eq((fmt >> 8) & 0xFF, geo.scale, "ampliação")
+    eq(bool(fmt & INDEXED_FLAG), geo.indexed, "bit de formato indexado")
+    eq(fmt >> 25, 0, "bits altos do formato")
+    check(geo.channel_bits in (4, 5, 8), "bits por canal")
     await bus.write(dut, CTRL, MASK32, 0b1110)
     eq(await bus.read(dut, CTRL), 0, "máscara sem o byte 0")
     await bus.write(dut, CTRL, 0xFFFFFFFE)
@@ -228,20 +243,27 @@ async def test_registers(dut: VideoDut) -> None:
 
 @cocotb.test()
 async def test_sync_timing(dut: VideoDut) -> None:
-    """Contagem exata de ciclos de HS e VS, ativos em nível baixo."""
+    """Contagem exata de ciclos de HS e VS, na polaridade do modo."""
     await bus.start(dut)
-    eq(int(dut.o_vga_hs.value), 1, "HS em repouso")
-    eq(int(dut.o_vga_vs.value), 1, "VS em repouso")
-    hs = await edge_times(dut.o_vga_hs, EDGES_PER_FRAME_CHECK)
+    mode = read_mode(dut)
+    eq(int(dut.o_vga_hs.value), int(not mode.h_positive), "HS em repouso")
+    eq(int(dut.o_vga_vs.value), int(not mode.v_positive), "VS em repouso")
+    eq(int(dut.o_vga_sync_n.value), 0, "SYNC_N fica em zero")
+    hs = await edge_times(dut.o_vga_hs, EDGES_PER_FRAME_CHECK, mode.h_positive)
     for index in range(0, len(hs) - 2, 2):
-        eq(round((hs[index + 1] - hs[index]) / bus.PIXEL_NS), H_SYNC, "HS")
-        eq(round((hs[index + 2] - hs[index]) / bus.PIXEL_NS), H_TOTAL, "linha")
-    vs = await edge_times(dut.o_vga_vs, FRAMES)
+        width = round((hs[index + 1] - hs[index]) / bus.PIXEL_NS)
+        eq(width, mode.h_sync, "HS")
+        eq(
+            round((hs[index + 2] - hs[index]) / bus.PIXEL_NS),
+            mode.h_total,
+            "linha",
+        )
+    vs = await edge_times(dut.o_vga_vs, FRAMES, mode.v_positive)
     for index in range(0, len(vs) - 2, 2):
-        low = round((vs[index + 1] - vs[index]) / bus.PIXEL_NS)
-        eq(low, V_SYNC * H_TOTAL, "VS")
+        width = round((vs[index + 1] - vs[index]) / bus.PIXEL_NS)
+        eq(width, mode.v_sync * mode.h_total, "VS")
         frame = round((vs[index + 2] - vs[index]) / bus.PIXEL_NS)
-        eq(frame, V_TOTAL * H_TOTAL, "quadro")
+        eq(frame, mode.v_total * mode.h_total, "quadro")
 
 
 @cocotb.test()
@@ -260,8 +282,8 @@ async def test_framebuffer_content(dut: VideoDut) -> None:
     """Pixels, ampliação, centralização e faixas contra o modelo."""
     geo, model, _ = await prepare(dut)
     rng = seeded(SEED)
-    if geo.pixel_bits == PALETTE_PIXEL_BITS:
-        entries = [rng.getrandbits(16) for _ in range(PALETTE_ENTRIES)]
+    if geo.indexed:
+        entries = [rng.getrandbits(32) for _ in range(PALETTE_ENTRIES)]
         for index, value in enumerate(entries):
             model.write_palette(index, value, bus.FULL_MASK)
         await bus.write_burst(
@@ -297,15 +319,16 @@ async def test_byte_masks_and_window(dut: VideoDut) -> None:
 
 @cocotb.test()
 async def test_palette(dut: VideoDut) -> None:
-    """A paleta de 8 bits por pixel; sem ela, a escrita é ignorada."""
+    """A paleta do formato indexado; sem ela, a escrita é ignorada."""
     geo, model, _ = await prepare(dut)
     rng = seeded(SEED + 2)
-    if geo.pixel_bits != PALETTE_PIXEL_BITS:
+    if not geo.indexed:
         await bus.write(dut, PALETTE, MASK32)
         eq(await bus.read(dut, PALETTE), 0, "sem paleta")
         return
+    masks = (geo.palette_mask, 0b1111, geo.palette_mask >> 1, 0b1101)
     for index in range(PALETTE_ENTRIES):
-        data, mask = rng.getrandbits(32), rng.choice((0b0011, 0b1111, 0b0001))
+        data, mask = rng.getrandbits(32), rng.choice(masks)
         model.write_palette(index, data, mask)
         await bus.write(dut, PALETTE + index, data, mask)
     await fill(dut, model, lambda i: (i * 0x04030201) & MASK32)
@@ -326,14 +349,17 @@ async def frame_status(dut: VideoDut) -> tuple[int, int, int]:
     tuple[int, int, int]
         Contador de quadros no pulso e o estado nos três instantes.
     """
-    await FallingEdge(dut.o_vga_vs)
+    mode = read_mode(dut)
+    await vs_pulse_start(dut, mode)
     await ClockCycles(dut.i_pixel_clk, SETTLE_PIXELS)
     during = await bus.read(dut, STATUS)
     count = await bus.read(dut, FRAME_COUNT)
-    await RisingEdge(dut.o_vga_vs)
+    await vs_pulse_end(dut, mode)
     await ClockCycles(dut.i_pixel_clk, SETTLE_PIXELS)
     after = await bus.read(dut, STATUS)
-    await ClockCycles(dut.i_pixel_clk, (V_BACK + 100) * H_TOTAL)
+    await ClockCycles(
+        dut.i_pixel_clk, (mode.v_back + VISIBLE_LINES) * mode.h_total
+    )
     visible = await bus.read(dut, STATUS)
     return count, during | (after << 8), visible
 
@@ -411,9 +437,9 @@ async def white_screen(dut: VideoDut, geo: Geometry, model: Model) -> None:
     model : Model
         Modelo que acompanha a memória.
     """
-    if geo.pixel_bits == PALETTE_PIXEL_BITS:
-        model.write_palette(0xFF, 0xFFF, bus.FULL_MASK)
-        await bus.write(dut, PALETTE + 0xFF, 0xFFF)
+    if geo.indexed:
+        model.write_palette(0xFF, geo.color_mask, bus.FULL_MASK)
+        await bus.write(dut, PALETTE + 0xFF, geo.color_mask)
     await fill(dut, model, lambda _: MASK32)
 
 

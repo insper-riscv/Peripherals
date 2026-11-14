@@ -21,10 +21,11 @@
 -- clock de cada um estão na documentação. o_tx_clk é o próprio i_pixel_clk, que
 -- o topo leva ao pino HDMI_TX_CLK.
 --
--- Inicialização: com init_enable, o sequenciador percorre init_table e escreve
--- os pares registrador-valor no transmissor (endereço de 7 bits i2c_dev_addr, a
--- 100 kHz), começando sozinho depois do reset se init_auto_start. Sem
--- init_enable, o barramento I2C fica livre para um controlador de software.
+-- Inicialização: com init_enable, o sequenciador percorre init_table e depois
+-- audio_init_table (a tabela de áudio, vazia por padrão) e escreve os pares
+-- registrador-valor no transmissor (endereço de 7 bits i2c_dev_addr, a 100 kHz),
+-- começando sozinho depois do reset se init_auto_start. Sem init_enable, o
+-- barramento I2C fica livre para um controlador de software.
 --
 -- Domínios de clock:
 --   - i_clk (sistema): registradores, janelas de escrita, I2C e interrupções;
@@ -93,6 +94,8 @@ entity hdmi_tx is
         init_auto_start   : boolean  := true;
         -- Tabela de inicialização: quatro dígitos hexadecimais por entrada, registrador e depois valor.
         init_table        : string   := "";
+        -- Tabela de áudio do transmissor, escrita depois da init_table, no mesmo formato; vazia por padrão.
+        audio_init_table  : string   := "";
         -- Endereço de 7 bits do transmissor no barramento I2C.
         i2c_dev_addr      : std_logic_vector(6 downto 0) := "0111001";
         -- Frequência do SCL do I2C em Hz.
@@ -160,7 +163,7 @@ architecture rtl of hdmi_tx is
     -- Bits de uma cor de 24 bits.
     constant COLOR_BITS   : positive := 3 * OUT_CHANNEL_BITS;
     -- Entradas da tabela de inicialização (zero sem o sequenciador).
-    constant INIT_ENTRIES : natural  := pick(init_enable, init_count(init_table), 0);
+    constant INIT_ENTRIES : natural  := pick(init_enable, init_count(init_table) + init_count(audio_init_table), 0);
 
     -- Reset do sistema levado ao domínio de pixel, em vetor de um bit.
     signal pix_rst_vec    : std_logic_vector(0 downto 0);
@@ -265,8 +268,10 @@ begin
     assert is_valid_format(pixel_format)
         report "hdmi_tx: pixel_format deve ser indexed ou direct"
         severity failure;
-    assert is_valid_table(init_table)
-        report "hdmi_tx: init_table deve ter quatro dígitos hexadecimais por entrada, no máximo 255 entradas"
+    assert is_valid_table(init_table) and is_valid_table(audio_init_table) and
+          init_count(init_table) + init_count(audio_init_table) <= MAX_INIT_ENTRIES
+        report "hdmi_tx: init_table e audio_init_table devem ter quatro dígitos hexadecimais por entrada, " &
+               "no máximo 255 entradas juntas"
         severity failure;
 
     o_tx_clk      <= i_pixel_clk;
@@ -501,6 +506,7 @@ begin
         u_seq : entity work.hdmi_init_seq
             generic map (
                 init_table => init_table,
+                audio_table => audio_init_table,
                 auto_start => init_auto_start
             )
             port map (

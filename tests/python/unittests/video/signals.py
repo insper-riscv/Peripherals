@@ -4,8 +4,10 @@ from typing import Protocol
 
 from cocotb.handle import LogicArrayObject, LogicObject
 
+from tests.python.unittests.video.registers import ModeDut
 
-class VideoDut(Protocol):
+
+class VideoDut(ModeDut, Protocol):
     """Sinais do periférico de vídeo."""
 
     i_clk: LogicObject
@@ -21,9 +23,11 @@ class VideoDut(Protocol):
     o_vga_b: LogicArrayObject
     o_vga_hs: LogicObject
     o_vga_vs: LogicObject
+    o_vga_blank_n: LogicObject
+    o_vga_sync_n: LogicObject
 
 
-class TimingDut(Protocol):
+class TimingDut(ModeDut, Protocol):
     """Sinais do gerador de temporização."""
 
     fb_width: LogicArrayObject
@@ -35,6 +39,7 @@ class TimingDut(Protocol):
     o_vs: LogicObject
     o_vsync: LogicObject
     o_vblank: LogicObject
+    o_visible: LogicObject
     o_image: LogicObject
     o_fb_x: LogicArrayObject
     o_fb_y: LogicArrayObject
@@ -55,6 +60,7 @@ class DpramDut(Protocol):
 class RegsDut(Protocol):
     """Sinais dos registradores do lado do processador."""
 
+    channel_bits: LogicArrayObject
     i_clk: LogicObject
     i_rst: LogicObject
     i_data_in: LogicArrayObject
@@ -77,12 +83,12 @@ class ScanoutDut(Protocol):
 
     fb_width: LogicArrayObject
     fb_height: LogicArrayObject
-    pixel_bits: LogicArrayObject
+    channel_bits: LogicArrayObject
     i_clk: LogicObject
-    i_rst: LogicObject
     i_enable: LogicObject
     i_hs: LogicObject
     i_vs: LogicObject
+    i_visible: LogicObject
     i_image: LogicObject
     i_fb_x: LogicArrayObject
     i_fb_y: LogicArrayObject
@@ -90,8 +96,30 @@ class ScanoutDut(Protocol):
     i_fb_data: LogicArrayObject
     o_pal_addr: LogicArrayObject
     i_pal_data: LogicArrayObject
-    o_vga_r: LogicArrayObject
-    o_vga_g: LogicArrayObject
-    o_vga_b: LogicArrayObject
-    o_vga_hs: LogicObject
-    o_vga_vs: LogicObject
+    o_color: LogicArrayObject
+    o_lit: LogicObject
+    o_visible: LogicObject
+    o_hs: LogicObject
+    o_vs: LogicObject
+
+
+class VgaDut(Protocol):
+    """Sinais do backend VGA."""
+
+    channel_bits: LogicArrayObject
+    h_sync_positive: LogicObject
+    v_sync_positive: LogicObject
+    i_clk: LogicObject
+    i_rst: LogicObject
+    i_color: LogicArrayObject
+    i_lit: LogicObject
+    i_visible: LogicObject
+    i_hs: LogicObject
+    i_vs: LogicObject
+    o_r: LogicArrayObject
+    o_g: LogicArrayObject
+    o_b: LogicArrayObject
+    o_hs: LogicObject
+    o_vs: LogicObject
+    o_blank_n: LogicObject
+    o_sync_n: LogicObject
