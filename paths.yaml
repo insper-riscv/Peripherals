@@ -9,6 +9,7 @@ references:
   - {name: CLINT documents, paths: [docs/pt-br/CLINT/clint.md, docs/en/CLINT/clint.md]}
   - {name: PLIC documents, paths: [docs/pt-br/PLIC/plic.md, docs/en/PLIC/plic.md]}
   - {name: USB bridge documents, paths: [docs/pt-br/USB/usb_bridge.md, docs/en/USB/usb_bridge.md]}
+  - {name: USB driver, paths: [docs/pt-br/USB/usb_driver.md, docs/en/USB/usb_driver.md, src/USB/soc/driver/c/driver.yaml, src/USB/soc/driver/c/rv32_usb.h, src/USB/soc/driver/c/rv32_usb.c, src/USB/soc/driver/c/rv32_usb_unverified.c, src/USB/soc/driver/c/rv32_usb_platform.h, src/USB/soc/driver/c/examples/main.c.in, tests/c/usb_hpi.c]}
   - {name: FLASH controller documents, paths: [docs/pt-br/flash-controller/flash_controller.md, docs/en/flash-controller/flash_controller.md]}
   - {name: serial UART documents, paths: [docs/pt-br/UART/serial_uart.md, docs/en/UART/serial_uart.md]}
   - {name: display documents, paths: [docs/pt-br/display/seg_display.md, docs/en/display/seg_display.md]}
