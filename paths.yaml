@@ -4,8 +4,8 @@
 repository: Peripherals
 references:
   - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
-  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/PS2/host, src/PS2/keyboard, src/PS2/mouse, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/video/soc, src/SD/spi, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/ps2_host_tb.vhd, tests/vhdl/ps2_keyboard_tb.vhd, tests/vhdl/ps2_mouse_top_tb.vhd, tests/vhdl/ps2_cable_tb.vhd, tests/vhdl/gpio_zero_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd]}
-  - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/uart_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, formal/sd_spi_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}
+  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/PS2/host, src/PS2/keyboard, src/PS2/mouse, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/video/soc, src/SD/spi, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/ps2_host_tb.vhd, tests/vhdl/ps2_keyboard_tb.vhd, tests/vhdl/ps2_mouse_top_tb.vhd, tests/vhdl/ps2_cable_tb.vhd, tests/vhdl/gpio_partition_pkg.vhd, tests/vhdl/gpio_cell_tb.vhd, tests/vhdl/seg_display_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd]}
+  - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/gpio_props.sv, formal/seg_display_props.sv, formal/uart_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, formal/sd_spi_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}
   - {name: CLINT documents, paths: [docs/pt-br/CLINT/clint.md, docs/en/CLINT/clint.md]}
   - {name: PLIC documents, paths: [docs/pt-br/PLIC/plic.md, docs/en/PLIC/plic.md]}
   - {name: FLASH controller documents, paths: [docs/pt-br/flash-controller/flash_controller.md, docs/en/flash-controller/flash_controller.md]}
@@ -24,7 +24,9 @@ tree:
       alu_ge_unsigned: []
       clock_prescaler: []
       counter_overflow: []
+      gpio: []
       gpio_cell: []
+      seg_display: []
       timer: []
       uart: []
       uart_fifo: []
@@ -45,10 +47,12 @@ provides:
       - src/CLINT/soc/clint_consts.vhd
       - src/CLINT/soc/clint.vhd
   GPIO:
-    requires: [Common-Components/registers, Common-Components/mux, Common-Components/synchronizer, Common-Components/tristate_buffer]
+    requires: [Common-Components/config, Common-Components/registers, Common-Components/mux, Common-Components/synchronizer, Common-Components/utils]
     sources:
+      - src/GPIO/soc/gpio_pkg.vhd
       - src/GPIO/soc/gpio_operation_decoder.vhd
       - src/GPIO/soc/gpio_cell.vhd
+      - src/GPIO/soc/gpio_group.vhd
       - src/GPIO/soc/gpio.vhd
   TIMER:
     requires: [Common-Components/adder, Common-Components/registers, Common-Components/mux, Common-Components/tristate_buffer, alu_ge_unsigned]
@@ -115,15 +119,16 @@ provides:
       - src/video/soc/video_dpram.vhd
       - src/video/soc/video_timing.vhd
       - src/video/soc/video_scanout.vhd
+      - src/video/soc/video_vga.vhd
       - src/video/soc/video_regs.vhd
       - src/video/soc/video.vhd
   display:
-    requires: [Common-Components/synchronizer]
+    requires: [GPIO, Common-Components/config, Common-Components/synchronizer]
     sources:
       - src/display/soc/hex_to_seg7.vhd
       - src/display/soc/seg_display.vhd
   display_shell:
-    requires: [display, Common-Components/virtual_jtag]
+    requires: [display, Common-Components/config, Common-Components/virtual_jtag]
     sources:
       - src/display/cyclone-v/seg_display_shell.vhd
   flash-controller:
