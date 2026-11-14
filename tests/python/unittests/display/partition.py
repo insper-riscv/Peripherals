@@ -21,7 +21,6 @@ from tests.python.unittests.dut import Dut
 GROUP_WORDS = 16
 FULL_DIGITS = 8
 UPPER_NIBBLE = 0xF << 28
-BLANK = 0x7F
 
 
 @dataclass(frozen=True)
@@ -34,10 +33,21 @@ class Layout:
         Digits of the display.
     groups : tuple[tuple[int, ...], ...]
         Digit indices of each group, in the written order.
+    has_dp : bool
+        Digits have the eighth segment (the decimal point).
     """
 
     digits: int
     groups: tuple[tuple[int, ...], ...]
+    has_dp: bool = False
+
+    def width(self) -> int:
+        """Return the bits of o_hex per digit."""
+        return 8 if self.has_dp else 7
+
+    def blank(self) -> int:
+        """Return the pattern of a blank digit, active low."""
+        return (1 << self.width()) - 1
 
     def listed(self) -> set[int]:
         """Return the digits that are in some group."""
@@ -50,8 +60,10 @@ def segments(layout: Layout, value: int) -> int:
     for n in range(layout.digits):
         pattern = PATTERNS[(value >> (4 * n)) & 0xF]
         if n not in layout.listed():
-            pattern = BLANK
-        out |= pattern << (7 * n)
+            pattern = layout.blank() & 0x7F
+        if layout.has_dp:
+            pattern |= 0x80
+        out |= pattern << (layout.width() * n)
     return out
 
 
@@ -110,7 +122,9 @@ async def check_unused(dut: Dut, layout: Layout) -> None:
             continue
         hex_value = int(dut.o_hex.value)
         check_equal(
-            (hex_value >> (7 * digit)) & 0x7F, BLANK, f"digit {digit} blank"
+            (hex_value >> (layout.width() * digit)) & layout.blank(),
+            layout.blank(),
+            f"digit {digit} blank",
         )
 
 
