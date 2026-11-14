@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formal verification of the CLINT, the PLIC, the audio (master clock generator, frame clocks and registers), the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART and the console with SymbiYosys. Needs
+# Formal verification of the CLINT, the PLIC, the HDMI output, the audio (master clock generator, frame clocks and registers), the timer (with its prescaler, overflow detector and comparator), the GPIO cell, the UART FIFO, the UART and the console with SymbiYosys. Needs
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
@@ -722,6 +722,9 @@ source "$root/formal/lcd.sh"
 source "$root/formal/eth.sh"
 # HDMI output (own file): timing generator, registers, I2C writer and the initialization sequencer.
 source "$root/formal/hdmi.sh"
+
+# HDMI audio output (own file): clock counts and the data timing of the I2S bus to the ADV7513.
+source "$root/formal/hdmi_audio.sh"
 
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }

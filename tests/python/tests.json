@@ -2562,6 +2562,214 @@
             "--std=08"
         ]
     },
+    "HdmiAudio48k": {
+        "toplevel": "hdmi_audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd",
+            "src/HDMI/soc/hdmi_audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_audio_48k",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "sample_rate": 48000,
+            "mclk_ratio": 256,
+            "word_bits": 24
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiAudio44k1": {
+        "toplevel": "hdmi_audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd",
+            "src/HDMI/soc/hdmi_audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_audio_44k1",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "sample_rate": 44100,
+            "mclk_ratio": 128,
+            "word_bits": 16
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiAudio32k": {
+        "toplevel": "hdmi_audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd",
+            "src/HDMI/soc/hdmi_audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_audio_32k",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "sample_rate": 32000,
+            "mclk_ratio": 256,
+            "word_bits": 16
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiAudioTone": {
+        "toplevel": "hdmi_audio",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/audio/soc/audio_consts.vhd",
+            "src/audio/soc/audio_xck_gen.vhd",
+            "src/audio/soc/audio_frame_clocks.vhd",
+            "src/audio/soc/audio_i2s_tx.vhd",
+            "src/audio/soc/audio_i2s_rx.vhd",
+            "src/audio/soc/audio_tone.vhd",
+            "src/audio/soc/audio.vhd",
+            "src/HDMI/soc/hdmi_audio.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_audio_tone",
+        "parameters": {
+            "tx_fifo_depth": 8,
+            "sample_rate": 44100,
+            "mclk_ratio": 256,
+            "word_bits": 24,
+            "autostart": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiInitSeqAudio": {
+        "toplevel": "hdmi_init_seq",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_init_seq",
+        "parameters": {
+            "init_table": "98030100",
+            "audio_table": "1520AF16",
+            "auto_start": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiInitSeqAudioOnly": {
+        "toplevel": "hdmi_init_seq",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_init_seq",
+        "parameters": {
+            "audio_table": "980301001520AF16",
+            "auto_start": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "HdmiTxInitAudio": {
+        "toplevel": "hdmi_tx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/HDMI/soc/hdmi_consts.vhd",
+            "src/HDMI/adv7513/hdmi_i2c_writer.vhd",
+            "src/HDMI/adv7513/hdmi_init_seq.vhd",
+            "src/HDMI/soc/hdmi_scanout.vhd",
+            "src/HDMI/soc/hdmi_out.vhd",
+            "src/HDMI/soc/hdmi_regs.vhd",
+            "src/HDMI/soc/hdmi_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.hdmi_tx_init",
+        "parameters": {
+            "fb_width": 24,
+            "fb_height": 16,
+            "scale": 2,
+            "addr_width": 12,
+            "h_visible": 64,
+            "h_front_porch": 4,
+            "h_sync": 8,
+            "h_back_porch": 12,
+            "h_sync_positive": false,
+            "v_visible": 40,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 6,
+            "v_sync_positive": true,
+            "mode_id": 0,
+            "pixel_clock_khz": 25000,
+            "pixel_format": "indexed",
+            "init_enable": true,
+            "init_table": "98030100",
+            "clk_freq": 4000000,
+            "audio_init_table": "1520AF16"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "EthTx": {
         "toplevel": "eth",
         "sources": [
