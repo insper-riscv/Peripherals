@@ -12,6 +12,15 @@ typedef struct {
 } rv32_display_t;
 
 rv32_display_t rv32_display_new(uintptr_t base, size_t digit_count);
+
+/* Bytes of the register file of one group of the display. */
+#define RV32_DISPLAY_GROUP_BYTES 64U
+
+/* Handle for group `group` of a display whose first group starts at `base`;
+ * digit_count is the number of digits of the group.
+ */
+rv32_display_t rv32_display_group_new(uintptr_t base, size_t group,
+                                      size_t digit_count);
 bool rv32_display_valid(rv32_display_t display);
 /* Digit zero is the least-significant nibble; values are 0..15.
  * Digit update uses RMW and must be serialized against other writers/host.

@@ -164,6 +164,8 @@ Set/clear/toggle use atomic hardware registers. Direction/IRQ configuration
 preserves other bits but callers must serialize configuration. The previous
 whole-mask API remains available for grouped operations.
 
+In the block with several groups, each group has its own 64-byte register file, and `rv32_gpio_group_new(base, group, group_pins)` returns the handle of group `group`. The pin index of the handle is the position of the pin in the list of the group. The same holds for the display, with `rv32_display_group_new(base, group, group_digits)`.
+
 Pin reads return the currently synchronized value without waiting. Tests that
 write and observe a pin use bounded condition polling, not arbitrary `settle()`
 delays in every operation. Reading IRQ status clears ALL instance events;

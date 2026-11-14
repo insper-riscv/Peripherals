@@ -164,6 +164,8 @@ Set/clear/toggle usam os registradores atômicos do hardware. Direção e config
 de IRQ preservam os outros bits, mas exigem serialização entre chamadores.
 A API anterior de máscaras completas continua disponível para operações em grupo.
 
+No bloco com vários grupos, cada grupo tem o seu arquivo de registradores de 64 bytes, e `rv32_gpio_group_new(base, grupo, pinos_do_grupo)` devolve o handle do grupo `grupo`. O índice de pino do handle é a posição do pino na lista do grupo. O mesmo vale para o display, com `rv32_display_group_new(base, grupo, digitos_do_grupo)`.
+
 A leitura de pino retorna o valor sincronizado disponível naquele momento. Ela
 não espera propagação. Um teste que escreve e verifica o pino deve fazer polling
 com limite de tentativas; não use um `settle()` arbitrário em toda operação.

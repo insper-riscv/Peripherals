@@ -113,6 +113,15 @@ rv32_gpio_t rv32_gpio_new(uintptr_t base, size_t pin_count)
     return gpio;
 }
 
+rv32_gpio_t rv32_gpio_group_new(uintptr_t base, size_t group, size_t pin_count)
+{
+    if (base == 0 || group > (UINTPTR_MAX - base) / RV32_GPIO_GROUP_BYTES) {
+        return rv32_gpio_new(0, 0);
+    }
+
+    return rv32_gpio_new(base + group * RV32_GPIO_GROUP_BYTES, pin_count);
+}
+
 bool rv32_gpio_valid(rv32_gpio_t gpio)
 {
     return gpio.base != 0 && gpio.pin_count > 0 && gpio.pin_count <= 32;

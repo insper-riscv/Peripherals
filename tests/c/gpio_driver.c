@@ -122,6 +122,18 @@ int main(void)
     assert(!rv32_gpio_valid(rv32_gpio_new((uintptr_t)words, 33)));
     assert(!rv32_gpio_valid(rv32_gpio_new(UINTPTR_MAX - 3, 4)));
 
+    {
+        volatile uint32_t block[32] = {0};
+        rv32_gpio_t group1 = rv32_gpio_group_new((uintptr_t)block, 1, 4);
+
+        assert(rv32_gpio_valid(group1));
+        assert(rv32_gpio_pin_direction(group1, 2, RV32_GPIO_OUTPUT_PIN));
+        assert(block[16] == 4);
+        assert(block[0] == 0);
+        assert(!rv32_gpio_valid(rv32_gpio_group_new(0, 1, 4)));
+        assert(!rv32_gpio_valid(rv32_gpio_group_new(UINTPTR_MAX - 64, 2, 4)));
+    }
+
     test_register_compatibility(gpio, words);
     test_pin_access(gpio, words);
     test_pin_interrupts(gpio, words);

@@ -167,7 +167,7 @@ provides:
     sources:
       - src/video/soc/video_dpram.vhd
   video:
-    requires: [video_dpram, Common-Components/utils, Common-Components/synchronizer]
+    requires: [video_dpram, Common-Components/utils, Common-Components/config, Common-Components/synchronizer]
     sources:
       - src/video/soc/video_consts.vhd
       - src/video/soc/video_timing.vhd

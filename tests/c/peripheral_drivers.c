@@ -162,6 +162,18 @@ static void test_display(void)
 
     assert(!rv32_display_valid(rv32_display_new((uintptr_t)&word, 9)));
     assert(!rv32_display_valid(rv32_display_new((uintptr_t)&word, 0)));
+    {
+        volatile uint32_t block[32] = {0};
+        rv32_display_t group1 = rv32_display_group_new((uintptr_t)block, 1, 4);
+
+        assert(rv32_display_valid(group1));
+        rv32_display_write(group1, 0xabcd);
+        assert(block[16] == 0xabcd);
+        assert(block[0] == 0);
+        assert(!rv32_display_valid(rv32_display_group_new(0, 1, 4)));
+        assert(!rv32_display_valid(
+            rv32_display_group_new(UINTPTR_MAX - 64, 2, 4)));
+    }
     rv32_display_write(display, 0x12345678);
     assert(rv32_display_write_digit(display, 7, 15));
     assert(word == 0xf2345678);

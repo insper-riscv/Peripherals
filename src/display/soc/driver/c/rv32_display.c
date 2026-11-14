@@ -19,6 +19,17 @@ rv32_display_t rv32_display_new(uintptr_t base, size_t digit_count)
     return display;
 }
 
+rv32_display_t rv32_display_group_new(uintptr_t base, size_t group,
+                                      size_t digit_count)
+{
+    if (base == 0 || group > (UINTPTR_MAX - base) / RV32_DISPLAY_GROUP_BYTES) {
+        return rv32_display_new(0, 0);
+    }
+
+    return rv32_display_new(base + group * RV32_DISPLAY_GROUP_BYTES,
+                            digit_count);
+}
+
 bool rv32_display_valid(rv32_display_t display)
 {
     return display.base != 0 && display.digit_count > 0;

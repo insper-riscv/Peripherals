@@ -21,6 +21,15 @@ typedef struct {
 /* Low-level compatibility constructor. Application code uses platform_new. */
 rv32_gpio_t rv32_gpio_new(uintptr_t base, size_t pin_count);
 
+/* Bytes of the register file of one group of the adaptive GPIO block. */
+#define RV32_GPIO_GROUP_BYTES 64U
+
+/* Handle for group `group` of a block whose first group starts at `base`.
+ * The pin indices of the handle are the positions in the member list of the
+ * group, and pin_count is the size of the group.
+ */
+rv32_gpio_t rv32_gpio_group_new(uintptr_t base, size_t group, size_t pin_count);
+
 typedef enum {
     RV32_GPIO_DEFAULT_INSTANCE,
     RV32_GPIO_SWITCHES_INSTANCE,
