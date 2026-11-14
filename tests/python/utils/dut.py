@@ -73,6 +73,14 @@ class PlicArbiterDut(Protocol):
     o_valid: LogicObject
 
 
+class GpioGroupDut(IrqDut, Protocol):
+    """Signals of one GPIO group, which does not touch the pads."""
+
+    i_pins: LogicArrayObject
+    o_pins_drv: LogicArrayObject
+    o_pins_en: LogicArrayObject
+
+
 class GpioDut(IrqDut, Protocol):
     """Signals of the GPIO testbench."""
 
@@ -318,35 +326,98 @@ class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
 
 
+class SdSpiDut(IrqDut, Protocol):
+    """Signals of the SD card controller in SPI mode."""
+
+    o_sd_sclk: LogicObject
+    o_sd_mosi: LogicObject
+    i_sd_miso: LogicObject
+    o_sd_cs_n: LogicObject
+
+
+class SdSpiPhyDut(ResettableDut, Protocol):
+    """Signals of the one-byte SPI master of the SD controller."""
+
+    i_divider: LogicArrayObject
+    i_start: LogicObject
+    i_tx_data: LogicArrayObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_rx_data: LogicArrayObject
+    o_sclk: LogicObject
+    o_mosi: LogicObject
+    i_miso: LogicObject
+class IrDut(IrqDut, Protocol):
+    """Signals of the infrared receiver."""
+    i_irda_rxd: LogicObject
+class LcdDut(IrqDut, Protocol):
+    """Signals of the LCD controller."""
+    i_lcd_data: LogicArrayObject
+    o_lcd_data: LogicArrayObject
+    o_lcd_data_oe: LogicObject
+    o_lcd_rs: LogicObject
+    o_lcd_rw: LogicObject
+    o_lcd_en: LogicObject
+    o_lcd_on: LogicObject
+    o_lcd_blon: LogicObject
+class LcdRegsDut(BusDut, Protocol):
+    """Signals of the LCD registers."""
+    o_irq: LogicObject
+    o_push: LogicObject
+    o_push_rs: LogicObject
+    o_push_data: LogicArrayObject
+    i_push_accepted: LogicObject
+    i_fifo_full: LogicObject
+    i_fifo_empty: LogicObject
+    i_fifo_level: LogicArrayObject
+    i_phy_busy: LogicObject
+    i_init_busy: LogicObject
+    i_timeout: LogicObject
+    o_poll_enable: LogicObject
+    o_delay: LogicArrayObject
+    o_delay_long: LogicArrayObject
+    o_lcd_on: LogicObject
+    o_lcd_blon: LogicObject
+class LcdPhyDut(ResettableDut, Protocol):
+    """Signals of the LCD physical layer."""
+    i_rs: LogicObject
+    i_data: LogicArrayObject
+    i_poll: LogicObject
+    i_delay: LogicArrayObject
+    i_busy_flag: LogicObject
+    o_ready: LogicObject
+    o_timeout: LogicObject
+    o_lcd_rs: LogicObject
+    o_lcd_rw: LogicObject
+    o_lcd_en: LogicObject
+    o_lcd_data: LogicArrayObject
+    o_lcd_data_oe: LogicObject
+class LcdInitDut(ResettableDut, Protocol):
+    """Signals of the LCD initialization sequence."""
+    i_phy_ready: LogicObject
+    o_start: LogicObject
+    o_data: LogicArrayObject
+    o_delay: LogicArrayObject
 class I2cDut(IrqDut, Protocol):
     """Signals of the I2C master testbench."""
-
     i_slave_scl_low: LogicObject
     i_slave_sda_low: LogicObject
     o_scl: LogicObject
     o_sda: LogicObject
-
-
 class I2cCoreDut(ResettableDut, Protocol):
     """Signals of the line state machine of the I2C master."""
-
     i_enable: LogicObject
     i_abort: LogicObject
-    i_divider: LogicArrayObject
     i_cmd_valid: LogicObject
     i_cmd_start: LogicObject
     i_cmd_stop: LogicObject
     i_cmd_read: LogicObject
     i_cmd_write: LogicObject
     i_cmd_nack: LogicObject
-    i_tx_data: LogicArrayObject
     i_scl: LogicObject
     i_sda: LogicObject
-    o_busy: LogicObject
     o_bus_active: LogicObject
-    o_done: LogicObject
     o_nack: LogicObject
     o_arb_lost: LogicObject
-    o_rx_data: LogicArrayObject
     o_scl_low: LogicObject
     o_sda_low: LogicObject

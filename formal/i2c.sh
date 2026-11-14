@@ -5,7 +5,7 @@ for n in i2c_consts i2c_core i2c_master; do path_of[$n]="$root/src/I2C/soc/$n.vh
 i2c_core_srcs=(i2c_core)
 i2c_master_srcs=(config_pkg i2c_consts i2c_core i2c_master)
 icp="$f/i2c_core_props.sv"
-mut_expose=(); mut_open=0
+mut_expose=()
 build i2c_core i2ccore "${i2c_core_srcs[@]}" --
 expect "the done pulse lasts one cycle and ends the command; reset, abort and disabled release both lines; the line state is idle or SCL held low between commands; no arbitration loss on lines it alone drives (bounded, 60 cycles)" PASS "$(prove i2ccore.v "$icp" bmc 60 '' i2ccore_safety)"
 expect "cover: a start and a stop complete a transaction, and a sent byte gets a NACK" PASS "$(prove i2ccore.v "$icp" cover 220 '-DCOVER' i2ccore_cover)"
