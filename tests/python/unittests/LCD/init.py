@@ -45,11 +45,21 @@ async def start(dut: LcdInitDut) -> None:
     dut.i_rst.value = 0
 
 
-@cocotb.test()
-async def runs_the_sequence(dut: LcdInitDut) -> None:
-    """Espere a energização, envie os sete comandos e termine."""
-    await start(dut)
-    check(int(dut.o_busy.value) == 1, "ocupado depois do reset")
+async def _drive_sequence(
+    dut: LcdInitDut,
+) -> tuple[list[tuple[int, int]], int | None]:
+    """Atende a sequência até o fim e devolve o que foi enviado.
+
+    Parameters
+    ----------
+    dut : LcdInitDut
+        Sequência de inicialização sob teste.
+
+    Returns
+    -------
+    tuple[list[tuple[int, int]], int | None]
+        Pares dado e atraso enviados, e o ciclo do primeiro envio.
+    """
     sent: list[tuple[int, int]] = []
     first_start = None
     await Timer(1, unit="ns")
@@ -68,6 +78,15 @@ async def runs_the_sequence(dut: LcdInitDut) -> None:
             continue
         await RisingEdge(dut.i_clk)
         await Timer(1, unit="ns")
+    return sent, first_start
+
+
+@cocotb.test()
+async def runs_the_sequence(dut: LcdInitDut) -> None:
+    """Espere a energização, envie os sete comandos e termine."""
+    await start(dut)
+    check(int(dut.o_busy.value) == 1, "ocupado depois do reset")
+    sent, first_start = await _drive_sequence(dut)
     check(int(dut.o_busy.value) == 0, "a sequência terminou")
     check([row[0] for row in sent] == BYTES, f"bytes {sent}")
     check([row[1] for row in sent] == DELAYS, f"atrasos {sent}")

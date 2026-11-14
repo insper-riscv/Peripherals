@@ -117,12 +117,19 @@ begin
 
     -- Máquina de estados do quadro NEC.
     p_fsm : process (i_clk) is
+        -- Palavra de 32 bits do quadro recebido.
         variable w   : unsigned(31 downto 0);
+        -- Indica que o quadro recebido é inválido.
         variable bad : boolean;
+        -- Bit decodificado do pulso atual.
         variable b   : std_logic;
+        -- Primeiro byte de endereço do quadro.
         variable a0  : std_logic_vector(7 downto 0);
+        -- Segundo byte de endereço do quadro.
         variable a1  : std_logic_vector(7 downto 0);
+        -- Byte de comando do quadro.
         variable c   : std_logic_vector(7 downto 0);
+        -- Byte de comando invertido do quadro.
         variable ic  : std_logic_vector(7 downto 0);
     begin
 

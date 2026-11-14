@@ -194,6 +194,26 @@ def to_rgb565(luma: int, cb: int, cr: int) -> int:
     return (red >> 3) << 11 | (green >> 2) << 5 | blue >> 3
 
 
+def source_row(src_y: int, field_sel: int) -> int | None:
+    """Devolva a linha do quadro que a captura lê, se ela existir.
+
+    Parameters
+    ----------
+    src_y : int
+        Linha da origem já decimada, contada no campo ou no quadro.
+    field_sel : int
+        0 para os dois campos, 1 ou 2 para só um campo.
+
+    Returns
+    -------
+    int | None
+        Linha do quadro, ou None se a captura não chega até ela.
+    """
+    if field_sel == 0:
+        return src_y if src_y < ACTIVE_LINES else None
+    return 2 * src_y + field_sel - 1 if src_y < FIELD_LINES else None
+
+
 def expected_frame(
     divisors: tuple[int, int],
     luma_format: bool,
@@ -222,10 +242,8 @@ def expected_frame(
     width, height = size
     out: dict[int, int] = {}
     for row in range(height):
-        src_y = row * div_y
-        limit = ACTIVE_LINES if field_sel == 0 else FIELD_LINES
-        frame_y = src_y if field_sel == 0 else 2 * src_y + field_sel - 1
-        if src_y >= limit:
+        frame_y = source_row(row * div_y, field_sel)
+        if frame_y is None:
             continue
         for col in range(min(width, -(-ACTIVE_PIXELS // div_x))):
             pixel = content(col * div_x, frame_y)

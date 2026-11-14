@@ -81,20 +81,47 @@ class ChipModel:
         else:
             self.regs[which][self.command[which]] = sample.data
 
+    def _sample(self) -> Sample:
+        """Lê os pinos do controlador neste instante.
+
+        Returns
+        -------
+        Sample
+            Valor dos pinos.
+        """
+        return Sample(
+            cs_n=int(self.dut.o_otg_cs_n.value),
+            rd_n=int(self.dut.o_otg_rd_n.value),
+            wr_n=int(self.dut.o_otg_wr_n.value),
+            addr=int(self.dut.o_otg_addr.value),
+            data=int(self.dut.o_otg_data.value),
+            oe=int(self.dut.o_otg_data_oe.value),
+        )
+
+    def _bus_value(self, sample: Sample) -> int:
+        """Dado que o chip põe no barramento para a amostra.
+
+        Parameters
+        ----------
+        sample : Sample
+            Valor dos pinos.
+
+        Returns
+        -------
+        int
+            O registrador lido, ou o valor de repouso.
+        """
+        if sample.cs_n == 0 and sample.rd_n == 0:
+            return self._read_value(sample.addr)
+        return IDLE_BUS
+
     async def _run(self) -> None:
         """Amostra os pinos a cada clock e dirige o dado."""
         previous: Sample | None = None
         while True:
             await RisingEdge(self.dut.i_clk)
             await Timer(1, unit="ns")
-            sample = Sample(
-                cs_n=int(self.dut.o_otg_cs_n.value),
-                rd_n=int(self.dut.o_otg_rd_n.value),
-                wr_n=int(self.dut.o_otg_wr_n.value),
-                addr=int(self.dut.o_otg_addr.value),
-                data=int(self.dut.o_otg_data.value),
-                oe=int(self.dut.o_otg_data_oe.value),
-            )
+            sample = self._sample()
             self.log.append(sample)
             if sample.rd_n == 0 and sample.oe == 1:
                 self.contention = True
@@ -104,9 +131,5 @@ class ChipModel:
                 and sample.wr_n == 1
             ):
                 self._commit_write(previous)
-            if sample.cs_n == 0 and sample.rd_n == 0:
-                value = self._read_value(sample.addr)
-            else:
-                value = IDLE_BUS
-            self.dut.i_otg_data.value = value
+            self.dut.i_otg_data.value = self._bus_value(sample)
             previous = sample

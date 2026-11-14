@@ -150,6 +150,7 @@ begin
     -- Leitura combinacional de cada registrador.
     p_read : process (i_address, en_r, frame_ie_r, err_ie_r, ext_en_r, raw_ie_r, empty, full, frame_err_r,
                       overflow_r, i_line_active, raw_new_r, level, frame_out, raw_mark_r, raw_space_r) is
+        -- Palavra de leitura montada para o endereço atual.
         variable v : word_t;
     begin
 

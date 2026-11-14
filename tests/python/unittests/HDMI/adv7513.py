@@ -212,6 +212,22 @@ class Adv7513Model:
         self._w.bits = BITS_PER_BYTE
         return ack
 
+    def _on_sda_change(self, new_sda: int) -> None:
+        """Trata a mudança de SDA com SCL alto: início ou parada.
+
+        Parameters
+        ----------
+        new_sda : int
+            Novo nível de SDA.
+        """
+        if new_sda == 0:
+            self._w.active = True
+            self._w.bytes = []
+            self._w.bits = 0
+            self._w.shift = 0
+        elif self._w.active:
+            self._finish()
+
     async def run(self) -> None:
         """Observa o barramento até o fim da simulação."""
         await Timer(1, unit="ns")
@@ -223,13 +239,7 @@ class Adv7513Model:
             )
             new_scl, new_sda = self._bus()
             if new_scl == 1 and scl == 1 and new_sda != sda:
-                if new_sda == 0:
-                    self._w.active = True
-                    self._w.bytes = []
-                    self._w.bits = 0
-                    self._w.shift = 0
-                elif self._w.active:
-                    self._finish()
+                self._on_sda_change(new_sda)
             elif new_scl == 1 and scl == 0:
                 self._on_scl_rise(new_sda)
             elif new_scl == 0 and scl == 1:

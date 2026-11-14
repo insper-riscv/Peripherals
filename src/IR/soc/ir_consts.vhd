@@ -70,6 +70,7 @@ end package ir_consts;
 package body ir_consts is
 
     function us_to_cycles (clk_freq_hz : positive; us : natural) return positive is
+        -- Quantidade de ciclos de clock do intervalo, antes do arredondamento.
         variable cycles : natural;
     begin
 
@@ -84,6 +85,7 @@ package body ir_consts is
     end function us_to_cycles;
 
     function nec_unit_cycles (clk_freq_hz : positive) return positive is
+        -- Quantidade de ciclos de clock da unidade de tempo do NEC.
         variable cycles : natural;
     begin
 

@@ -60,6 +60,7 @@ architecture rtl of i2c_master is
 
     -- Divisor de reset calculado dos generics, nunca abaixo do mínimo aceito.
     function default_divider return natural is
+        -- Divisor em construção, em ciclos de clock por bit.
         variable v_div : natural;
     begin
 

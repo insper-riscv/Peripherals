@@ -1,5 +1,6 @@
 """Software de teste: o que o programa faz com a ponte."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from cocotb.triggers import RisingEdge, Timer
@@ -157,6 +158,30 @@ async def settle(dut: UsbDut, count: int) -> None:
     await Timer(1, unit="ns")
 
 
+def _advance(
+    log: list[Sample], index: int, keep: Callable[[Sample], bool]
+) -> int:
+    """Avança enquanto a condição valer para a amostra.
+
+    Parameters
+    ----------
+    log : list[Sample]
+        Amostras dos pinos.
+    index : int
+        Posição inicial.
+    keep : Callable[[Sample], bool]
+        Condição para seguir adiante.
+
+    Returns
+    -------
+    int
+        Primeira posição em que a condição deixa de valer.
+    """
+    while keep(log[index]):
+        index += 1
+    return index
+
+
 def transactions(log: list[Sample]) -> list[Transaction]:
     """Extrai os acessos do histórico dos pinos.
 
@@ -178,14 +203,11 @@ def transactions(log: list[Sample]) -> list[Transaction]:
             index += 1
             continue
         first = index
-        while log[index].rd_n and log[index].wr_n:
-            index += 1
+        index = _advance(log, index, lambda s: bool(s.rd_n and s.wr_n))
         strobe = index
-        while not (log[index].rd_n and log[index].wr_n):
-            index += 1
+        index = _advance(log, index, lambda s: not (s.rd_n and s.wr_n))
         end = index
-        while not log[index].cs_n:
-            index += 1
+        index = _advance(log, index, lambda s: not s.cs_n)
         sample = log[strobe]
         found.append(
             Transaction(
