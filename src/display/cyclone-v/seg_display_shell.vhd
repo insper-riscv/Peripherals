@@ -5,7 +5,7 @@
 -- na simulação, onde o testbench faz o papel da instância e dirige seg_display
 -- direto. O hospedeiro vê a instância de índice 2, ao lado da porta de debug da
 -- SDRAM (0) e da UART (1), com registrador de instrução de 2 bits; a instrução 1
--- seleciona o registrador de 25 bits de seg_display e a instrução 2, o de 2 bits da
+-- seleciona o registrador de 4*digits+1 bits de seg_display e a instrução 2, o de 2 bits da
 -- bandeira de falha.
 -- =============================================================================
 
@@ -16,6 +16,20 @@ library work;
 use work.config_pkg.all;
 
 entity seg_display_shell is
+    generic (
+        -- Número de dígitos de sete segmentos da placa.
+        digits        : natural range 1 to 8                           := 6;
+        -- Segmentos acesos em nível baixo (placas DE) quando verdadeiro.
+        active_low    : boolean                                        := true;
+        -- Grupos de dígitos (de 1 a 8).
+        group_count   : positive range 1 to 8                          := 1;
+        -- Total de índices de dígito listados em group_members.
+        member_count  : positive range 1 to 8                          := 6;
+        -- Dígitos de cada grupo, um campo de 8 bits por grupo.
+        group_sizes   : std_logic_vector(8 * group_count - 1 downto 0)  := x"06";
+        -- Índices de dígito de todos os grupos, um campo de 8 bits por membro, na ordem escrita.
+        group_members : std_logic_vector(8 * member_count - 1 downto 0) := x"050403020100"
+    );
     port (
         -- Clock do módulo.
         i_clk     : in    std_logic;
@@ -29,10 +43,10 @@ entity seg_display_shell is
         i_write   : in    std_logic;
         -- Dado lido.
         o_rdata   : out   word_t;
-        -- Segmentos dos seis displays, HEX0 nos bits 6:0 e HEX5 nos bits 41:36 (nível baixo).
-        o_hex     : out   std_logic_vector(41 downto 0);
-        -- Valor de 24 bits guardado no registrador do display.
-        o_value   : out   std_logic_vector(23 downto 0);
+        -- Segmentos dos displays, o dígito 0 nos bits 6:0 e o último nos bits mais altos (polaridade de active_low).
+        o_hex     : out   std_logic_vector(7 * digits - 1 downto 0);
+        -- Valor guardado no registrador do display, 4 bits por dígito.
+        o_value   : out   std_logic_vector(4 * digits - 1 downto 0);
         -- Bandeira de falha gravada pelo hospedeiro ('1' = houve falha).
         o_fail    : out   std_logic
     );
@@ -77,6 +91,14 @@ begin
         );
 
     u_display : entity work.seg_display
+        generic map (
+            digits        => digits,
+            active_low    => active_low,
+            group_count   => group_count,
+            member_count  => member_count,
+            group_sizes   => group_sizes,
+            group_members => group_members
+        )
         port map (
             i_clk       => i_clk,
             i_rst       => i_rst,

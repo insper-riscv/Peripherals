@@ -14,6 +14,8 @@ library work;
 
 entity gpio_cell is
     generic (
+        -- Direção do pino: 0 livre (registrador DIR), 1 fixa em entrada, 2 fixa em saída. Num pino fixo, DIR lê o valor fixo e ignora a escrita.
+        dir_mode   : natural range 0 to 2 := 0;
         -- Polaridade do pino: '1' faz o pino valer o oposto do que o programa vê (ativo em nível baixo).
         active_low : boolean := false
     );
@@ -33,8 +35,12 @@ entity gpio_cell is
         -- Operação de saída: 00 carrega, 01 liga, 10 limpa, 11 inverte.
         i_wr_op      : in    std_logic_vector(1 downto 0);
 
-        -- Pino de E/S físico (bidirecional).
-        io_gpio_pin : inout std_logic
+        -- Valor que o pino físico tem agora, vindo do bloco que liga o tristate.
+        i_pin     : in    std_logic;
+        -- Valor que a célula dirige ao pino, com a polaridade aplicada.
+        o_pin_drv : out   std_logic;
+        -- A célula dirige o pino ('1') ou o solta em alta impedância ('0').
+        o_pin_en  : out   std_logic
     );
 end entity gpio_cell;
 
@@ -42,6 +48,8 @@ architecture rtl of gpio_cell is
 
     -- Registrador de direção (0 = entrada, 1 = saída).
     signal   dir_reg          : std_logic;
+    -- Registrador de direção escrito pelo programa (vale só no modo livre).
+    signal   dir_written      : std_logic;
     -- Registrador de saída, o valor enviado ao pino.
     signal   out_reg          : std_logic;
     -- Entrada do pino sincronizada com o clock.
@@ -94,7 +102,7 @@ architecture rtl of gpio_cell is
 begin
 
     -- A polaridade fica só aqui: o programa vê e escreve sempre ativo em '1', e o pino inverte os dois sentidos.
-    pin_logic   <= not io_gpio_pin when active_low else io_gpio_pin;
+    pin_logic   <= not i_pin when active_low else i_pin;
     drive_logic <= not out_reg when active_low else out_reg;
 
     load_vector   <= (0 => i_data_in);
@@ -113,7 +121,7 @@ begin
             i_rst    => i_rst,
             i_enable => i_wr_signals(0),
             i_d      => i_data_in,
-            o_d      => dir_reg
+            o_d      => dir_written
         );
 
     -----------------------------------------------------------------------------
@@ -150,16 +158,12 @@ begin
         );
 
     -----------------------------------------------------------------------------
-    -- Buffer tristate: liga o registrador de saída ao pino conforme a direção.
-    -- Com dir_reg = '1', o buffer está habilitado e out_reg vai ao pino.
-    -- Com dir_reg = '0', o buffer está desabilitado e o pino fica em alta impedância.
+    -- Direção efetiva: o registrador no modo livre, e o valor fixo nos outros modos.
+    -- O bloco que contém a célula liga o tristate do pino com o_pin_en e o_pin_drv.
     -----------------------------------------------------------------------------
-    u_gpio_buffer : entity work.tristate_buffer_1bit
-        port map (
-            i_d      => drive_logic,
-            i_enable => dir_reg,
-            o_d      => io_gpio_pin
-        );
+    dir_reg   <= dir_written when dir_mode = 0 else '0' when dir_mode = 1 else '1';
+    o_pin_en  <= dir_reg;
+    o_pin_drv <= drive_logic;
 
     -----------------------------------------------------------------------------
     -- Sincronizador: leva a entrada assíncrona do pino ao domínio do clock.
