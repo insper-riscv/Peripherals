@@ -1,0 +1,7 @@
+schema: 1
+name: USB
+instances: [USB]
+register_bytes: 36
+headers: [rv32_usb.h, rv32_usb_platform.h]
+sources: [rv32_usb.c, rv32_usb_unverified.c]
+example: examples/main.c.in

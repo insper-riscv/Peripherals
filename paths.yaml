@@ -13,27 +13,32 @@ references:
   - {name: standalone C driver examples, paths: [src/CLINT/soc/driver/c/examples/main.c.in, src/GPIO/soc/driver/c/examples/main.c.in, src/PLIC/soc/driver/c/examples/main.c.in, src/TIMER/soc/driver/c/examples/main.c.in, src/UART/console/driver/c/examples/main.c.in, src/display/soc/driver/c/examples/main.c.in, src/flash-controller/soc/driver/c/examples/main.c.in]}
   - {name: C driver tests and style, paths: [tests/c/peripheral_drivers.c, .clang-format]}
   - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
-  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/PS2/host, src/PS2/keyboard, src/PS2/mouse, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/video/soc, src/SD/spi, src/IR/soc, src/LCD/soc, src/USB/soc, src/I2C/soc, src/audio/soc, src/HDMI/soc, src/HDMI/adv7513, src/TV/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/ps2_host_tb.vhd, tests/vhdl/ps2_keyboard_tb.vhd, tests/vhdl/ps2_mouse_top_tb.vhd, tests/vhdl/ps2_cable_tb.vhd, tests/vhdl/gpio_partition_pkg.vhd, tests/vhdl/gpio_cell_tb.vhd, tests/vhdl/seg_display_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd]}
-  - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/gpio_props.sv, formal/seg_display_props.sv, formal/uart_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, formal/sd_spi_props.sv, formal/ir_fifo_props.sv, formal/ir_regs_props.sv, formal/lcd_phy_props.sv, formal/lcd_regs_props.sv, formal/usb_bridge_props.sv, formal/i2c_core_props.sv, formal/i2c_master_props.sv, formal/i2c.sh, formal/audio_xck_gen_props.sv, formal/audio_frame_clocks_props.sv, formal/audio_props.sv, formal/eth_crc32_props.sv, formal/eth_async_fifo_props.sv, formal/eth_regs_props.sv, formal/eth.sh, formal/hdmi_timing_props.sv, formal/hdmi_regs_props.sv, formal/hdmi_init_seq_props.sv, formal/hdmi_i2c_writer_props.sv, formal/hdmi.sh, formal/tv_regs_props.sv, formal/tv_capture_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}
+  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/PS2/host, src/PS2/keyboard, src/PS2/mouse, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/video/soc, src/SD/spi, src/SD/native, src/SPI/master, src/ADC/sweep, src/ADC/adc128s022, src/ADC/ltc2308, src/ADXL345, src/IR/soc, src/LCD/soc, src/USB/soc, src/I2C/soc, src/audio/soc, tests/python/unittests/audio, tests/python/utils/i2s_codec.py, src/HDMI/soc, src/HDMI/adv7513, src/TV/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/ps2_host_tb.vhd, tests/vhdl/ps2_keyboard_tb.vhd, tests/vhdl/ps2_mouse_top_tb.vhd, tests/vhdl/ps2_cable_tb.vhd, tests/vhdl/gpio_partition_pkg.vhd, tests/vhdl/gpio_cell_tb.vhd, tests/vhdl/seg_display_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd, src/ADC/soc, src/ADC/max10, src/ADC/max10/ip/generate.sh, src/ADC/max10/ip/max10_adc_core.tcl, tests/vhdl/max10_adc_tb.vhd, tests/vhdl/max10_adc_core_model.vhd, tests/quartus/check_max10_adc_synthesis.sh]}
+  - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/gpio_props.sv, formal/seg_display_props.sv, formal/uart_props.sv, formal/uart_flow_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, formal/sd_spi_props.sv, formal/spi_master_props.sv, formal/adc_sweep_props.sv, formal/adc_frame_props.sv, formal/adxl345_props.sv, formal/sd_crc_props.sv, formal/sd_cmd_props.sv, formal/ir_fifo_props.sv, formal/ir_regs_props.sv, formal/lcd_phy_props.sv, formal/lcd_regs_props.sv, formal/usb_bridge_props.sv, formal/i2c_core_props.sv, formal/i2c_master_props.sv, formal/i2c.sh, formal/audio_xck_gen_props.sv, formal/audio_frame_clocks_props.sv, formal/audio_props.sv, formal/eth_crc32_props.sv, formal/eth_async_fifo_props.sv, formal/eth_regs_props.sv, formal/eth_speed_props.sv, formal/eth.sh, formal/hdmi_timing_props.sv, formal/hdmi_regs_props.sv, formal/hdmi_init_seq_props.sv, formal/hdmi_i2c_writer_props.sv, formal/hdmi.sh, formal/hdmi_audio.sh, formal/hdmi_audio_props.sv, formal/tv_regs_props.sv, formal/tv_capture_props.sv, formal/adc.sh, formal/max10_adc_sequencer_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}
   - {name: CLINT documents, paths: [docs/pt-br/CLINT/clint.md, docs/en/CLINT/clint.md]}
   - {name: PLIC documents, paths: [docs/pt-br/PLIC/plic.md, docs/en/PLIC/plic.md]}
   - {name: USB bridge documents, paths: [docs/pt-br/USB/usb_bridge.md, docs/en/USB/usb_bridge.md]}
+  - {name: USB driver, paths: [docs/pt-br/USB/usb_driver.md, docs/en/USB/usb_driver.md, src/USB/soc/driver/c/driver.yaml, src/USB/soc/driver/c/rv32_usb.h, src/USB/soc/driver/c/rv32_usb.c, src/USB/soc/driver/c/rv32_usb_unverified.c, src/USB/soc/driver/c/rv32_usb_platform.h, src/USB/soc/driver/c/examples/main.c.in, tests/c/usb_hpi.c]}
   - {name: FLASH controller documents, paths: [docs/pt-br/flash-controller/flash_controller.md, docs/en/flash-controller/flash_controller.md]}
-  - {name: serial UART documents, paths: [docs/pt-br/UART/serial_uart.md, docs/en/UART/serial_uart.md]}
+  - {name: serial UART documents, paths: [docs/pt-br/UART/serial_uart.md, docs/en/UART/serial_uart.md, src/UART/serial/example/uart_flow.c]}
   - {name: display documents, paths: [docs/pt-br/display/seg_display.md, docs/en/display/seg_display.md]}
   - {name: audio documents, paths: [docs/pt-br/audio/audio.md, docs/en/audio/audio.md]}
   - {name: video documents, paths: [docs/pt-br/video/video.md, docs/en/video/video.md]}
   - {name: IR documents, paths: [docs/pt-br/IR/ir_receiver.md, docs/en/IR/ir_receiver.md]}
   - {name: LCD documents, paths: [docs/pt-br/LCD/lcd.md, docs/en/LCD/lcd.md]}
   - {name: I2C documents, paths: [docs/pt-br/I2C/i2c_master.md, docs/en/I2C/i2c_master.md]}
-  - {name: HDMI documents, paths: [docs/pt-br/HDMI/hdmi_tx.md, docs/en/HDMI/hdmi_tx.md]}
+  - {name: HDMI documents, paths: [docs/pt-br/HDMI/hdmi_tx.md, docs/en/HDMI/hdmi_tx.md, docs/pt-br/HDMI/hdmi_audio.md, docs/en/HDMI/hdmi_audio.md]}
   - {name: TV documents, paths: [docs/pt-br/TV/tv.md, docs/en/TV/tv.md]}
+  - {name: MAX 10 ADC documents, paths: [docs/pt-br/ADC/max10_adc.md, docs/en/ADC/max10_adc.md]}
   - {name: GPIO documents, paths: [docs/pt-br/GPIO/gpio.md, docs/en/GPIO/gpio.md]}
   - {name: PS2 documents, paths: [docs/pt-br/PS2/ps2_host.md, docs/en/PS2/ps2_host.md, docs/pt-br/PS2/ps2_keyboard.md, docs/en/PS2/ps2_keyboard.md]}
   - {name: PS2 mouse documents, paths: [docs/pt-br/PS2/ps2_mouse.md, docs/en/PS2/ps2_mouse.md]}
-  - {name: SD documents, paths: [docs/pt-br/SD/sd_spi.md, docs/en/SD/sd_spi.md]}
+  - {name: SD documents, paths: [docs/pt-br/SD/sd_spi.md, docs/en/SD/sd_spi.md, docs/pt-br/SD/sd_native.md, docs/en/SD/sd_native.md]}
+  - {name: SPI documents, paths: [docs/pt-br/SPI/spi.md, docs/en/SPI/spi.md]}
+  - {name: ADC documents, paths: [docs/pt-br/ADC/adc128s022.md, docs/en/ADC/adc128s022.md, docs/pt-br/ADC/ltc2308.md, docs/en/ADC/ltc2308.md]}
+  - {name: ADXL345 documents, paths: [docs/pt-br/ADXL345/adxl345.md, docs/en/ADXL345/adxl345.md]}
   - {name: console documents, paths: [docs/pt-br/UART/console.md, docs/en/UART/console.md]}
-  - {name: Ethernet documents, paths: [docs/pt-br/ETH/eth.md, docs/en/ETH/eth.md]}
+  - {name: Ethernet documents, paths: [docs/pt-br/ETH/eth.md, docs/en/ETH/eth.md, docs/pt-br/ETH/eth_rgmii.md, docs/en/ETH/eth_rgmii.md]}
   - {name: JTAG UART documents, paths: [docs/pt-br/UART/jtag_uart.md, docs/en/UART/jtag_uart.md, docs/pt-br/bugs/JTAG_UART_RESPOSTA_PERDIDA.md, docs/en/bugs/JTAG_UART_RESPOSTA_PERDIDA.md]}
 tree:
   coverage:
@@ -48,6 +53,7 @@ tree:
       eth_async_fifo: []
       eth_crc32: []
       eth_regs: []
+      eth_speed: []
       gpio_cell: []
       seg_display: []
       ir_fifo: []
@@ -57,15 +63,27 @@ tree:
       i2c_core: []
       i2c_master: []
       hdmi_i2c_writer: []
+      hdmi_audio: []
       hdmi_init_seq: []
       hdmi_regs: []
+      max10_adc_sequencer: []
       timer: []
       tv_capture: []
       tv_regs: []
       uart: []
       uart_fifo: []
+    exceptions:
+      max10_adc_ip: wraps the Quartus IP altera_modular_adc, covered by the synthesis check of tests/quartus
+      max10_adc_shell: structural top of the board, covered by the synthesis check of tests/quartus
   # The peripherals are named after what they are, in capitals, like the extensions of the Core.
-  identifier_folders: [CLINT, ETH, GPIO, HDMI, I2C, IR, LCD, PLIC, PS2, SD, TIMER, TV, UART, USB]
+  identifier_folders: [ADC, ADXL345, CLINT, ETH, GPIO, HDMI, I2C, IR, LCD, PLIC, PS2, SD, SPI, TIMER, TV, UART, USB]
+  vhdl_style:
+    # The generated IP altera_modular_adc (max10_adc_core) and the Verilog PLL max10_adc_pll enter as component, and their
+    # names are not yet in vendor_primitives.yaml of riscv-tools; the two files that declare them are left out like the
+    # other generated IP. The two DDR registers of the RGMII board build wrap the megafunctions altddio_in and
+    # altddio_out (library altera_mf), which also enter as component and are not in that list either.
+    exclude: [src/ADC/max10/max10_adc_ip.vhd, src/ADC/max10/max10_adc_shell.vhd, src/ETH/rgmii/altera/eth_ddr_in.vhd,
+      src/ETH/rgmii/altera/eth_ddr_out.vhd]
 
 provides:
   # Each component lists its sources in GHDL dependency order and the components it needs. A requires with the
@@ -81,6 +99,19 @@ provides:
       - src/I2C/soc/i2c_consts.vhd
       - src/I2C/soc/i2c_core.vhd
       - src/I2C/soc/i2c_master.vhd
+  ADC:
+    requires: [Common-Components/config]
+    sources:
+      - src/ADC/soc/max10_adc_consts.vhd
+      - src/ADC/soc/max10_adc_sequencer.vhd
+      - src/ADC/soc/max10_adc.vhd
+  max10_adc_shell:
+    # Board only: needs the IP that src/ADC/max10/ip/generate.sh makes (max10_adc_core.qip) and the altpll megafunction.
+    requires: [ADC]
+    sources:
+      - src/ADC/max10/max10_adc_ip.vhd
+      - src/ADC/max10/max10_adc_pll.v
+      - src/ADC/max10/max10_adc_shell.vhd
   CLINT:
     requires: [Common-Components/registers, Common-Components/counter64, alu_ge_unsigned]
     sources:
@@ -147,11 +178,27 @@ provides:
     requires: [ps2_host, ps2_mouse]
     sources:
       - src/PS2/mouse/ps2_mouse_top.vhd
-  sd_spi:
+  SPI:
     requires: [Common-Components/utils, Common-Components/config, Common-Components/synchronizer, UART]
+    sources:
+      - src/SPI/master/spi_master.vhd
+      - src/SPI/master/spi.vhd
+  sd_spi:
+    requires: [Common-Components/utils, Common-Components/config, Common-Components/synchronizer, UART, SPI]
     sources:
       - src/SD/spi/sd_spi_phy.vhd
       - src/SD/spi/sd_spi.vhd
+  sd_native:
+    requires: [Common-Components/utils, Common-Components/config]
+    sources:
+      - src/SD/native/sd_native_pkg.vhd
+      - src/SD/native/sd_crc7.vhd
+      - src/SD/native/sd_crc16.vhd
+      - src/SD/native/sd_clock_gen.vhd
+      - src/SD/native/sd_cmd.vhd
+      - src/SD/native/sd_data.vhd
+      - src/SD/native/sd_block_buffer.vhd
+      - src/SD/native/sd_native.vhd
   audio:
     requires: [Common-Components/utils, Common-Components/config, Common-Components/synchronizer, UART]
     sources:
@@ -166,6 +213,22 @@ provides:
     requires: []
     sources:
       - src/video/soc/video_dpram.vhd
+  adc_sweep:
+    requires: [Common-Components/config]
+    sources:
+      - src/ADC/sweep/adc_sweep.vhd
+  adc128s022:
+    requires: [Common-Components/config, Common-Components/synchronizer, SPI, adc_sweep]
+    sources:
+      - src/ADC/adc128s022/adc128s022.vhd
+  ltc2308:
+    requires: [Common-Components/config, Common-Components/synchronizer, SPI, adc_sweep]
+    sources:
+      - src/ADC/ltc2308/ltc2308.vhd
+  adxl345:
+    requires: [Common-Components/config, Common-Components/synchronizer, SPI]
+    sources:
+      - src/ADXL345/adxl345.vhd
   video:
     requires: [video_dpram, Common-Components/utils, Common-Components/config, Common-Components/synchronizer]
     sources:
@@ -200,7 +263,7 @@ provides:
       - src/USB/soc/usb_regs.vhd
       - src/USB/soc/usb_bridge.vhd
   HDMI:
-    requires: [video, Common-Components/utils, Common-Components/synchronizer]
+    requires: [video, audio, Common-Components/utils, Common-Components/synchronizer]
     sources:
       - src/HDMI/soc/hdmi_consts.vhd
       - src/HDMI/adv7513/hdmi_i2c_writer.vhd
@@ -209,6 +272,7 @@ provides:
       - src/HDMI/soc/hdmi_out.vhd
       - src/HDMI/soc/hdmi_regs.vhd
       - src/HDMI/soc/hdmi_tx.vhd
+      - src/HDMI/soc/hdmi_audio.vhd
   TV:
     requires: [video_dpram, Common-Components/utils, Common-Components/config, Common-Components/synchronizer]
     sources:
@@ -242,6 +306,7 @@ provides:
     requires: [Common-Components/config, Common-Components/synchronizer]
     sources:
       - src/ETH/mac/eth_consts.vhd
+      - src/ETH/mac/eth_gmii_consts.vhd
       - src/ETH/mac/eth_crc32.vhd
       - src/ETH/mac/eth_dpram.vhd
       - src/ETH/mac/eth_async_fifo.vhd
@@ -251,5 +316,23 @@ provides:
       - src/ETH/mac/eth_mac_rx.vhd
       - src/ETH/mac/eth_rx_store.vhd
       - src/ETH/mdio/eth_mdio.vhd
+      - src/ETH/mac/eth_speed.vhd
       - src/ETH/mac/eth_regs.vhd
       - src/ETH/mac/eth.vhd
+  # The RGMII layer and the top of the MAC with RGMII; a platform adds exactly one of ETH_ddr_sim (simulation) and
+  # ETH_ddr_altera (board), the two files of each name being the same entities.
+  ETH_rgmii:
+    requires: [ETH]
+    sources:
+      - src/ETH/rgmii/eth_rgmii.vhd
+      - src/ETH/rgmii/eth_rgmii_mac.vhd
+  ETH_ddr_sim:
+    requires: []
+    sources:
+      - src/ETH/rgmii/sim/eth_ddr_in.vhd
+      - src/ETH/rgmii/sim/eth_ddr_out.vhd
+  ETH_ddr_altera:
+    requires: []
+    sources:
+      - src/ETH/rgmii/altera/eth_ddr_in.vhd
+      - src/ETH/rgmii/altera/eth_ddr_out.vhd

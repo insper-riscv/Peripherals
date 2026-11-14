@@ -19,7 +19,9 @@ entity seg_display_tb is
         -- Segmentos acesos em nível baixo quando verdadeiro.
         active_low : boolean               := true;
         -- Partição em texto: índices de dígito separados por vírgula e grupos separados por barra.
-        partition  : string                := "0,1,2,3,4,5"
+        partition  : string                := "0,1,2,3,4,5";
+        -- Dígitos de oito segmentos (com o ponto decimal) quando verdadeiro.
+        has_dp     : boolean               := false
     );
     port (
         -- Clock do core.
@@ -54,8 +56,10 @@ entity seg_display_tb is
         o_fail      : out   std_logic;
         -- Valor guardado, quatro bits por dígito.
         o_value   : out   std_logic_vector(4 * digits - 1 downto 0);
-        -- Segmentos dos dígitos, sete bits por dígito, em nível baixo.
-        o_hex     : out   std_logic_vector(7 * digits - 1 downto 0)
+        -- Segmentos dos dígitos, sete bits por dígito (oito com has_dp, o ponto no bit 7).
+        o_hex     : out   std_logic_vector((7 + boolean'pos(has_dp)) * digits - 1 downto 0);
+        -- Bits do ponto decimal guardados, um por dígito.
+        o_dp      : out   std_logic_vector(digits - 1 downto 0)
     );
 end entity seg_display_tb;
 
@@ -70,7 +74,8 @@ begin
             group_count   => count_groups(partition),
             member_count  => count_members(partition),
             group_sizes   => encode_sizes(partition),
-            group_members => encode_members(partition)
+            group_members => encode_members(partition),
+            has_dp        => has_dp
         )
         port map (
             i_clk       => i_clk,
@@ -89,7 +94,8 @@ begin
             i_state_uir => i_state_uir,
             o_value     => o_value,
             o_fail      => o_fail,
-            o_hex       => o_hex
+            o_hex       => o_hex,
+            o_dp        => o_dp
         );
 
 end architecture rtl;

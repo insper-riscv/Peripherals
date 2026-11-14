@@ -1,10 +1,11 @@
 -- ==========================================================================
 -- UART serial mapeada em memória com filas de recepção e transmissão
 -- ==========================================================================
--- Envolve a camada física 8N1 do OpenCores com duas filas síncronas. O
--- software enfileira bytes para transmissão e retira os bytes recebidos em
--- ordem. A interface mapeada em memória continua concluindo cada acesso em um
--- ciclo e sinaliza tentativas rejeitadas por falta de espaço.
+-- Envolve a camada física do OpenCores (8N1, com paridade e segundo bit de
+-- parada opcionais) com duas filas síncronas. O software enfileira bytes para
+-- transmissão e retira os bytes recebidos em ordem. A interface mapeada em
+-- memória continua concluindo cada acesso em um ciclo e sinaliza tentativas
+-- rejeitadas por falta de espaço.
 --
 -- Mapa de registradores, em endereços de palavra:
 --
@@ -12,15 +13,36 @@
 --   1 RX_DATA   R      bits 7:0, byte mais antigo, removido pela leitura
 --   2 STATUS    R/W1C  bits 0 RX_VALID, 1 TX_READY, 2 RX_OVERRUN,
 --                      3 TX_DROPPED, 4 RX_FULL, 5 TX_EMPTY, 6 TX_IDLE,
---                      15:8 RX_LEVEL e 23:16 TX_LEVEL
+--                      7 FRAME_ERROR, 15:8 RX_LEVEL, 23:16 TX_LEVEL,
+--                      24 PARITY_ERROR, 25 CTS_ACTIVE, 26 RTS_ACTIVE
+--                      (CTS_ACTIVE e RTS_ACTIVE só leitura, e só com
+--                      has_flow_control; sem ele leem zero)
 --   3 CONTROL   R/W    bit 0 RX_IRQ_ENABLE, 1 TX_EMPTY_IRQ_ENABLE,
---                      2 ERROR_IRQ_ENABLE
+--                      2 ERROR_IRQ_ENABLE, 3 PARITY_ENABLE, 4 PARITY_ODD,
+--                      5 STOP_BITS_2, 6 LINE_ERROR_IRQ_ENABLE e, só com
+--                      has_flow_control, 7 FLOW_ENABLE e 15:8 RTS_THRESHOLD
 --
--- A saída o_irq é de nível e vale a soma de três causas, cada uma com a sua
+-- A saída o_irq é de nível e vale a soma de quatro causas, cada uma com a sua
 -- habilitação (zero no reset): fila de recepção não vazia (RX_VALID), fila de
--- transmissão vazia (TX_EMPTY) e erro (RX_OVERRUN ou TX_DROPPED, que o
--- software limpa escrevendo 1 no bit em STATUS). As duas primeiras param
--- quando a condição some (leitura de RX_DATA, escrita em TX_DATA).
+-- transmissão vazia (TX_EMPTY), erro de fila (RX_OVERRUN ou TX_DROPPED) e erro
+-- de linha (FRAME_ERROR ou PARITY_ERROR). Os erros são persistentes e o
+-- software os limpa escrevendo 1 no bit em STATUS. As duas primeiras causas
+-- param quando a condição some (leitura de RX_DATA, escrita em TX_DATA).
+--
+-- O quadro é 8N1 até o software escrever em CONTROL: PARITY_ENABLE acrescenta
+-- o bit de paridade depois dos dados (par, ou ímpar com PARITY_ODD) e
+-- STOP_BITS_2 envia dois bits de parada. O receptor confere a paridade e o
+-- primeiro bit de parada; o byte com erro entra na fila como qualquer outro, e
+-- só as flags registram o erro. O formato só deve mudar com a linha ociosa.
+--
+-- Com has_flow_control, FLOW_ENABLE (zero no reset) liga o controle de fluxo
+-- por hardware, com as duas linhas de nível baixo ativo. Com i_uart_cts em
+-- nível alto o transmissor não inicia um novo quadro (o quadro em curso
+-- termina e os bytes esperam na fila). o_uart_rts sobe, registrado, enquanto a
+-- fila de recepção tem RTS_THRESHOLD bytes ou mais, e desce quando tem menos;
+-- RTS_THRESHOLD vale a metade da fila (no mínimo 1) no reset, e zero mantém
+-- o_uart_rts sempre inativo. Sem FLOW_ENABLE, ou sem o generic, a UART ignora
+-- i_uart_cts e mantém o_uart_rts ativo (baixo).
 -- ==========================================================================
 
 library ieee;
@@ -38,7 +60,9 @@ entity uart is
         -- Quantidade de bytes na fila de recepção.
         rx_fifo_depth : positive := 16;
         -- Quantidade de bytes na fila de transmissão.
-        tx_fifo_depth : positive := 16
+        tx_fifo_depth : positive := 16;
+        -- Inclui o controle de fluxo por hardware (RTS e CTS); falso mantém o comportamento só com RX e TX.
+        has_flow_control : boolean := false
     );
     port (
         -- Clock do módulo.
@@ -60,7 +84,11 @@ entity uart is
         -- Linha serial de recepção.
         i_uart_rx  : in    std_logic;
         -- Linha serial de transmissão.
-        o_uart_tx  : out   std_logic
+        o_uart_tx  : out   std_logic;
+        -- Clear to send, nível baixo ativo: o outro lado aceita bytes. Ignorada sem has_flow_control.
+        i_uart_cts : in    std_logic := '0';
+        -- Request to send, nível baixo ativo: há espaço na fila de recepção. Ativa (baixa) sem has_flow_control.
+        o_uart_rts : out   std_logic
     );
 end entity uart;
 
@@ -136,10 +164,51 @@ architecture rtl of uart is
     -- Habilitação da interrupção por erro (overrun de recepção ou descarte de transmissão).
     signal err_irq_enable : std_logic;
 
+    -- Pulso do receptor físico: o bit de parada foi amostrado em zero.
+    signal phy_frame_error  : std_logic;
+    -- Pulso do receptor físico: o bit de paridade não confere com o byte.
+    signal phy_parity_error : std_logic;
+    -- Erro persistente de quadro (bit de parada em zero).
+    signal frame_error      : std_logic;
+    -- Erro persistente de paridade.
+    signal parity_error     : std_logic;
+    -- Habilitação do bit de paridade nos dois sentidos.
+    signal parity_enable    : std_logic;
+    -- Paridade ímpar quando um, par quando zero.
+    signal parity_odd       : std_logic;
+    -- Dois bits de parada na transmissão.
+    signal stop_bits_2      : std_logic;
+    -- Habilitação da interrupção por erro de linha (quadro ou paridade).
+    signal line_irq_enable  : std_logic;
+
+    -- Habilitação do controle de fluxo (sempre zero sem has_flow_control).
+    signal flow_enable   : std_logic;
+    -- Nível da fila de recepção a partir do qual o_uart_rts fica inativo.
+    signal rts_threshold : unsigned(7 downto 0);
+    -- Saída de RTS registrada, um é inativo.
+    signal rts_inactive  : std_logic;
+    -- Entrada de CTS sincronizada com o clock em dois estágios, um é inativo.
+    signal cts_sync      : std_logic_vector(1 downto 0);
+    -- Indica que o transmissor pode iniciar um novo quadro.
+    signal cts_ok        : std_logic;
+
+    -- Limiar de RTS do reset: metade da fila de recepção, no mínimo um byte.
+
+    function reset_threshold return natural is
+    begin
+
+        if rx_fifo_depth / 2 < 1 then
+            return 1;
+        end if;
+
+        return rx_fifo_depth / 2;
+
+    end function reset_threshold;
+
 begin
 
-    assert data_width >= 24
-        report "UART data_width must be at least 24"
+    assert data_width >= 32
+        report "UART data_width must be at least 32"
         severity failure;
 
     assert baud_freq <= 16#FFF#
@@ -162,8 +231,12 @@ begin
                     when i_write = '1' and i_address = TX_DATA_ADDRESS else
                     '0';
     tx_fifo_pop  <= '1'
-                    when phy_tx_busy = '0' and tx_fifo_empty = '0' else
+                    when phy_tx_busy = '0' and tx_fifo_empty = '0' and cts_ok = '1' else
                     '0';
+
+    cts_ok <= '1' when (not has_flow_control) or flow_enable = '0' or cts_sync(1) = '0' else '0';
+
+    o_uart_rts <= rts_inactive;
 
     rx_fifo_push <= phy_new_rx_data;
     rx_fifo_pop  <= '1'
@@ -175,7 +248,8 @@ begin
 
     o_irq <= ((not rx_fifo_empty) and rx_irq_enable)
              or (tx_fifo_empty and tx_irq_enable)
-             or ((rx_overrun or tx_dropped) and err_irq_enable);
+             or ((rx_overrun or tx_dropped) and err_irq_enable)
+             or ((frame_error or parity_error) and line_irq_enable);
 
     u_tx_fifo : entity work.uart_fifo
         generic map (
@@ -228,23 +302,53 @@ begin
             newrxdata => phy_new_rx_data,
             baudfreq  => BAUD_FREQ_VALUE,
             baudlimit => BAUD_LIMIT_VALUE,
-            baudclk   => open
+            baudclk   => open,
+            cfgparityen  => parity_enable,
+            cfgparityodd => parity_odd,
+            cfgstop2     => stop_bits_2,
+            frameerr     => phy_frame_error,
+            parityerr    => phy_parity_error
         );
 
     p_registers : process (i_rst, i_clk) is
     begin
 
         if i_rst = '1' then
-            rx_overrun     <= '0';
-            tx_dropped     <= '0';
-            rx_irq_enable  <= '0';
-            tx_irq_enable  <= '0';
-            err_irq_enable <= '0';
+            rx_overrun      <= '0';
+            tx_dropped      <= '0';
+            rx_irq_enable   <= '0';
+            tx_irq_enable   <= '0';
+            err_irq_enable  <= '0';
+            frame_error     <= '0';
+            parity_error    <= '0';
+            parity_enable   <= '0';
+            parity_odd      <= '0';
+            stop_bits_2     <= '0';
+            line_irq_enable <= '0';
+            flow_enable     <= '0';
+            rts_threshold   <= to_unsigned(reset_threshold, 8);
+            rts_inactive    <= '0';
+            cts_sync        <= (others => '1');
         elsif rising_edge(i_clk) then
+            -- Sem o generic, o fluxo fica desligado e o limiar parado no valor do reset.
+            if not has_flow_control then
+                flow_enable   <= '0';
+                rts_threshold <= to_unsigned(reset_threshold, 8);
+            end if;
+
             if i_write = '1' and i_address = CONTROL_ADDRESS then
-                rx_irq_enable  <= i_data_in(0);
-                tx_irq_enable  <= i_data_in(1);
-                err_irq_enable <= i_data_in(2);
+                rx_irq_enable   <= i_data_in(0);
+                tx_irq_enable   <= i_data_in(1);
+                err_irq_enable  <= i_data_in(2);
+                parity_enable   <= i_data_in(3);
+                parity_odd      <= i_data_in(4);
+                stop_bits_2     <= i_data_in(5);
+                line_irq_enable <= i_data_in(6);
+
+                if has_flow_control then
+                    flow_enable   <= i_data_in(7);
+                    rts_threshold <= unsigned(i_data_in(15 downto 8));
+                end if;
             end if;
 
             -- Os eventos novos têm prioridade sobre uma limpeza simultânea.
@@ -255,6 +359,12 @@ begin
                 if i_data_in(3) = '1' then
                     tx_dropped <= '0';
                 end if;
+                if i_data_in(7) = '1' then
+                    frame_error <= '0';
+                end if;
+                if i_data_in(24) = '1' then
+                    parity_error <= '0';
+                end if;
             end if;
 
             if tx_fifo_push = '1' and tx_fifo_push_accepted = '0' then
@@ -264,6 +374,23 @@ begin
             if rx_fifo_push = '1' and rx_fifo_push_accepted = '0' then
                 rx_overrun <= '1';
             end if;
+
+            if phy_frame_error = '1' then
+                frame_error <= '1';
+            end if;
+
+            if phy_parity_error = '1' then
+                parity_error <= '1';
+            end if;
+
+            -- CTS vem de fora do domínio de clock; RTS sai registrado, sem glitch.
+            cts_sync <= cts_sync(0) & i_uart_cts;
+
+            if flow_enable = '1' and rx_fifo_level >= to_integer(rts_threshold) then
+                rts_inactive <= '1';
+            else
+                rts_inactive <= '0';
+            end if;
         end if;
 
     end process p_registers;
@@ -271,7 +398,8 @@ begin
     p_readback : process (
                           i_address, rx_fifo_data, rx_fifo_empty, rx_fifo_full, rx_fifo_level, tx_fifo_empty,
                           tx_fifo_full, tx_fifo_level, phy_tx_busy, rx_overrun, tx_dropped, rx_irq_enable,
-                          tx_irq_enable, err_irq_enable
+                          tx_irq_enable, err_irq_enable, frame_error, parity_error, parity_enable, parity_odd,
+                          stop_bits_2, line_irq_enable, flow_enable, rts_threshold, rts_inactive, cts_sync
                          ) is
 
         -- Valor montado para o registrador selecionado.
@@ -300,14 +428,30 @@ begin
                 value(4)            := rx_fifo_full;
                 value(5)            := tx_fifo_empty;
                 value(6)            := tx_fifo_empty and not phy_tx_busy;
+                value(7)            := frame_error;
                 value(15 downto 8)  := std_logic_vector(to_unsigned(rx_fifo_level, 8));
                 value(23 downto 16) := std_logic_vector(to_unsigned(tx_fifo_level, 8));
+                value(24)           := parity_error;
+
+                if has_flow_control then
+                    value(25) := not cts_sync(1);
+                    value(26) := not rts_inactive;
+                end if;
 
             when CONTROL_ADDRESS =>
 
                 value(0) := rx_irq_enable;
                 value(1) := tx_irq_enable;
                 value(2) := err_irq_enable;
+                value(3) := parity_enable;
+                value(4) := parity_odd;
+                value(5) := stop_bits_2;
+                value(6) := line_irq_enable;
+
+                if has_flow_control then
+                    value(7)           := flow_enable;
+                    value(15 downto 8) := std_logic_vector(rts_threshold);
+                end if;
 
             when others =>
 

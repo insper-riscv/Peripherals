@@ -10,8 +10,9 @@
 --   "jtag"   (padrão) jtag_uart, cuja outra ponta é o hospedeiro no Virtual
 --            JTAG; usa as portas i_tck a i_state_uir e o_tdo, e deixa os
 --            pinos sem uso (o_tx em repouso, i_rx ignorado).
---   "pinos"  uart serial 8N1, cuja outra ponta são os pinos i_rx e o_tx da
---            placa; as portas do Virtual JTAG ficam sem uso (o_tdo em zero).
+--   "pinos"  uart serial (8N1 até o software configurar o quadro), cuja outra
+--            ponta são os pinos i_rx e o_tx da placa, mais i_cts e o_rts com
+--            has_flow_control; as portas do Virtual JTAG ficam sem uso (o_tdo em zero).
 --
 -- Os dois blocos têm a mesma forma de palavra no barramento: palavra 0 envia
 -- um byte, palavra 1 recebe um byte nos bits 7:0 e palavra 3 habilita as
@@ -47,7 +48,9 @@ entity console is
         -- Inverte a polaridade do pino de transmissão (backend "pinos").
         tx_invert     : boolean  := false;
         -- Inverte a polaridade do pino de recepção (backend "pinos").
-        rx_invert     : boolean  := false
+        rx_invert     : boolean  := false;
+        -- Inclui as linhas de controle de fluxo RTS e CTS na UART serial (backend "pinos").
+        has_flow_control : boolean := false
     );
     port (
         -- Clock do módulo.
@@ -72,6 +75,11 @@ entity console is
         i_rx : in    std_logic := '1';
         -- Linha serial de transmissão (backend "pinos"); em repouso no outro.
         o_tx : out   std_logic;
+
+        -- Clear to send, nível baixo ativo (backend "pinos" com has_flow_control).
+        i_cts : in    std_logic := '0';
+        -- Request to send, nível baixo ativo (backend "pinos" com has_flow_control); ativo nos outros casos.
+        o_rts : out   std_logic;
 
         -- Clock da cadeia JTAG (backend "jtag").
         i_tck       : in    std_logic                    := '0';
@@ -128,6 +136,7 @@ begin
 
         -- Linha serial em repouso (nível alto antes da polaridade).
         o_tx <= '0' when tx_invert else '1';
+        o_rts <= '0';
     end generate gen_jtag;
 
     gen_pins : if backend = "pinos" generate
@@ -142,7 +151,8 @@ begin
                 baud_freq     => baud_freq,
                 baud_limit    => baud_limit,
                 rx_fifo_depth => rx_fifo_depth,
-                tx_fifo_depth => tx_fifo_depth
+                tx_fifo_depth => tx_fifo_depth,
+                has_flow_control => has_flow_control
             )
             port map (
                 i_clk      => i_clk,
@@ -154,7 +164,9 @@ begin
                 o_data_out => o_rdata,
                 o_irq      => o_irq,
                 i_uart_rx  => uart_rx,
-                o_uart_tx  => uart_tx
+                o_uart_tx  => uart_tx,
+                i_uart_cts => i_cts,
+                o_uart_rts => o_rts
             );
 
         o_tx    <= not uart_tx when tx_invert else uart_tx;

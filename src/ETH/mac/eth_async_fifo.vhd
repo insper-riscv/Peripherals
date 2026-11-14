@@ -11,7 +11,8 @@
 --
 -- Uma escrita com a fila cheia e uma leitura com a fila vazia são ignoradas. As
 -- flags são conservadoras: o_full e o_empty podem durar alguns ciclos além do
--- estado real, nunca o contrário. Cada lado tem seu reset síncrono, e os dois
+-- estado real, nunca o contrário. o_full_next antecipa em um
+-- ciclo o o_full que a escrita deste ciclo causa. Cada lado tem seu reset síncrono, e os dois
 -- devem ser ativados juntos e por tempo suficiente para o sincronizador do
 -- outro domínio enxergar os ponteiros zerados.
 -- =============================================================================
@@ -40,6 +41,8 @@ entity eth_async_fifo is
         i_wdata : in    std_logic_vector(data_width - 1 downto 0);
         -- Fila cheia, visto do lado de escrita.
         o_full  : out   std_logic;
+        -- Fila cheia depois da escrita deste ciclo, para quem escreve a cada ciclo.
+        o_full_next : out std_logic;
         -- Clock de leitura.
         i_rclk  : in    std_logic;
         -- Reset síncrono do lado de leitura.
@@ -134,6 +137,10 @@ begin
     end process p_wptr;
 
     o_full <= full;
+
+    -- Cheia depois de aceitar a escrita deste ciclo: o ponteiro seguinte é o da volta à frente do de leitura.
+    o_full_next <= '1' when to_gray(wbin + 1) = (not rgray_sync(addr_bits) & not rgray_sync(addr_bits - 1)
+                                                  & rgray_sync(addr_bits - 2 downto 0)) else '0';
 
     -----------------------------------------------------------------------------
     -- Lado de leitura

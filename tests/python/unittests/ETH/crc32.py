@@ -16,6 +16,7 @@ CLOCK_NS = 10
 FINAL_XOR = 0xFFFFFFFF
 RESIDUE = 0xDEBB20E3
 MESSAGES = 20
+WIDE_INPUTS = ("i_clear", "i_enable", "i_nibble", "i_nibble_hi", "i_wide")
 
 
 async def absorb(dut: Dut, data: bytes) -> None:
@@ -68,3 +69,49 @@ async def test_matches_host_crc(dut: Dut) -> None:
         await absorb(dut, fcs(data))
         check_equal(int(dut.o_crc.value), RESIDUE)
         check_equal(int(dut.o_residue_ok.value), 1)
+
+
+async def absorb_bytes(dut: Dut, data: bytes) -> None:
+    """Feed the bytes of the data to the register, a byte per cycle.
+
+    Parameters
+    ----------
+    dut : Dut
+        The design under test.
+    data : bytes
+        Bytes to absorb.
+    """
+    dut.i_wide.value = 1
+    for byte in data:
+        dut.i_nibble.value = byte & 0xF
+        dut.i_nibble_hi.value = byte >> 4
+        dut.i_enable.value = 1
+        await RisingEdge(dut.i_clk)
+    dut.i_enable.value = 0
+    dut.i_wide.value = 0
+    await Timer(1, unit="ns")
+
+
+@cocotb.test()
+async def test_wide_matches_host_crc(dut: Dut) -> None:
+    """A byte per cycle gives the host CRC-32."""
+    cocotb.start_soon(Clock(dut.i_clk, CLOCK_NS, unit="ns").start())
+    for name in WIDE_INPUTS:
+        getattr(dut, name).value = 0
+    await reset_edges(dut, 1)
+    await Timer(1, unit="ns")
+    rng = seeded(11)
+    for length in range(1, MESSAGES + 1):
+        data = rng.randbytes(length * 5)
+        await clear(dut)
+        await absorb_bytes(dut, data)
+        check_equal(int(dut.o_crc.value) ^ FINAL_XOR, zlib.crc32(data))
+        check_equal(int(dut.o_residue_ok.value), 0)
+        await absorb_bytes(dut, fcs(data))
+        check_equal(int(dut.o_crc.value), RESIDUE)
+        check_equal(int(dut.o_residue_ok.value), 1)
+        await clear(dut)
+        half = len(data) // 2
+        await absorb_bytes(dut, data[:half])
+        await absorb(dut, data[half:])
+        check_equal(int(dut.o_crc.value) ^ FINAL_XOR, zlib.crc32(data))
