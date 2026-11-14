@@ -29,6 +29,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 - [docs/en/TV/tv.md](docs/en/TV/tv.md): video capture from the DE2-115 ADV7180 TV decoder (BT.656 receiver, conversion to RGB565 or luma, decimation, two-clock frame memory, registers and end-of-frame interrupt).
 - [docs/en/flash-controller/flash_controller.md](docs/en/flash-controller/flash_controller.md): the FLASH controller (command, address, status and page buffer registers).
 - [docs/en/USB/usb_bridge.md](docs/en/USB/usb_bridge.md): the 16-bit parallel bridge to the board USB chip (four access ports, timing per register, interrupts, chip reset and chip identifier read).
+- [docs/en/USB/usb_driver.md](docs/en/USB/usb_driver.md): the C driver for the USB bridge and the CY7C67200 HPI (ports, chip memory, mailbox, code loading, confidence levels and what the datasheet must confirm).
 - [contracts/01-es-de-placa.md](docs/en/contracts/01-es-de-placa.md) and [contracts/02-console.md](docs/en/contracts/02-console.md): contracts K8 (I/O vectors by role, normalized polarity, zero width) and K9 (`jtag` or `pinos` console).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/en/contracts/02-barramento-e-memoria.md): bus protocol adopted by the peripherals.
 
@@ -54,7 +55,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/HDMI/soc/`, `src/HDMI/adv7513/` | HDMI output for the ADV7513: 24-bit pixel path, output register, HDMI registers and the `hdmi_tx` top level (reusing the timing, memory and registers of the video), write-only I2C writer and table-driven initialization sequencer |
 | `src/TV/soc/` | TV capture: 8-bit BT.656 receiver, single-frame capture control with decimation, YCbCr to RGB565 or luma conversion and registers with an end-of-frame interrupt (`tv`) |
 | `src/flash-controller/soc/` | FLASH controller: command, address, status and page buffer registers that carry the erase, program and protect commands to the FLASH chip of the Memory repository |
-| `src/USB/soc/` | USB bridge: master of the chip parallel bus (configurable setup, pulse, hold and recovery), registers and the `usb_bridge` top with synchronizers |
+| `src/USB/soc/` | USB bridge: master of the chip parallel bus (configurable setup, pulse, hold and recovery), registers and the `usb_bridge` top with synchronizers; `driver/c/` holds the C23 driver for the bridge and the HPI |
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
 | `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,ETH,GPIO,HDMI,I2C,IR,LCD,PLIC,PS2,SD,TIMER,TV,UART,USB,audio,display,flash_controller,video}` |
 | `src/IR/soc/` | Infrared receiver: pulse filter and meter, NEC decoder, frame FIFO and registers (`ir_receiver`) |

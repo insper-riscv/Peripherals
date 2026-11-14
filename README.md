@@ -29,6 +29,7 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 - [docs/pt-br/TV/tv.md](docs/pt-br/TV/tv.md): a captura de vídeo do decodificador de TV ADV7180 da DE2-115 (receptor BT.656, conversão para RGB565 ou luminância, decimação, memória de quadro de dois clocks, registradores e interrupção de fim de quadro).
 - [docs/pt-br/flash-controller/flash_controller.md](docs/pt-br/flash-controller/flash_controller.md): o controlador de FLASH (registradores de comando, endereço, estado e buffer de página).
 - [docs/pt-br/USB/usb_bridge.md](docs/pt-br/USB/usb_bridge.md): a ponte paralela de 16 bits para o chip USB da placa (quatro portas de acesso, temporização por registrador, interrupções, reset do chip e leitura do identificador).
+- [docs/pt-br/USB/usb_driver.md](docs/pt-br/USB/usb_driver.md): o driver C da ponte USB e da HPI do CY7C67200 (portas, memória do chip, mailbox, carga de código, níveis de confiança e o que falta do datasheet).
 - [contracts/01-es-de-placa.md](docs/pt-br/contracts/01-es-de-placa.md) e [contracts/02-console.md](docs/pt-br/contracts/02-console.md): contratos K8 (vetores de E/S por papel, polaridade normalizada, largura zero) e K9 (console `jtag` ou `pinos`).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/pt-br/contracts/02-barramento-e-memoria.md): protocolo de barramento adotado pelos periféricos.
 
@@ -54,7 +55,7 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `src/HDMI/soc/`, `src/HDMI/adv7513/` | Saída HDMI para o ADV7513: caminho de pixel de 24 bits, registrador de saída, registradores do HDMI e topo `hdmi_tx` (reaproveitam a temporização, a memória e os registradores do vídeo), escritor I2C de escrita e sequenciador de inicialização por tabela |
 | `src/TV/soc/` | Captura de TV: receptor BT.656 de 8 bits, controle da captura de um quadro com decimação, conversão YCbCr para RGB565 ou luminância e registradores com interrupção de fim de quadro (`tv`) |
 | `src/flash-controller/soc/` | Controlador de FLASH: registradores de comando, endereço, estado e buffer de página que levam os comandos de apagar, gravar e proteger ao chip de FLASH do repositório Memory |
-| `src/USB/soc/` | Ponte USB: mestre do barramento paralelo do chip (preparação, pulso, retenção e recuperação configuráveis), registradores e topo `usb_bridge` com sincronizadores |
+| `src/USB/soc/` | Ponte USB: mestre do barramento paralelo do chip (preparação, pulso, retenção e recuperação configuráveis), registradores e topo `usb_bridge` com sincronizadores; `driver/c/` traz o driver C23 da ponte e da HPI |
 | `src/display/` | Display de sete segmentos: o registrador do valor, o conversor de hexadecimal para segmentos (`soc/`) e a casca do Virtual JTAG da placa (`cyclone-v/`) |
 | `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,ETH,GPIO,HDMI,I2C,IR,LCD,PLIC,PS2,SD,TIMER,TV,UART,USB,audio,display,flash_controller,video}` |
 | `src/LCD/soc/` | Controlador do LCD 16x2 (HD44780): registradores e fila de escrita (`lcd_regs`), camada física do barramento paralelo (`lcd_phy`), inicialização opcional (`lcd_init`) e o topo `lcd` |
