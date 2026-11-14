@@ -20,6 +20,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 - [docs/en/PS2/ps2_mouse.md](docs/en/PS2/ps2_mouse.md): the PS/2 mouse (initialization, 3-byte packets, saturating displacement accumulators, buttons, interrupt, channel 1 and the Y cable).
 - [docs/en/video/video.md](docs/en/video/video.md): the 640x480 at 60 Hz VGA video peripheral (dual-clock dual-port framebuffer, pixel magnification, optional palette, frame counter and register map).
 - [docs/en/SD/sd_spi.md](docs/en/SD/sd_spi.md): the SD card controller in SPI mode (SPI master with configurable divider, transmit and receive queues, chip select, interrupts, board pins, initialization sequence and a C example of reading a sector).
+- [docs/en/SD/sd_native.md](docs/en/SD/sd_native.md): the SD card controller in native mode (command with CRC7, checked short and long responses, 512-byte blocks on one or four lines with one CRC16 per line, block buffer, busy detection on DAT0, SD_CLK divider, interrupts, board pins, initialization sequence and C example).
 - [docs/en/flash-controller/flash_controller.md](docs/en/flash-controller/flash_controller.md): the FLASH controller (command, address, status and page buffer registers).
 - [contracts/01-es-de-placa.md](docs/en/contracts/01-es-de-placa.md) and [contracts/02-console.md](docs/en/contracts/02-console.md): contracts K8 (I/O vectors by role, normalized polarity, zero width) and K9 (`jtag` or `pinos` console).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/en/contracts/02-barramento-e-memoria.md): bus protocol adopted by the peripherals.
@@ -40,11 +41,12 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/PS2/mouse/` | PS/2 mouse: protocol decoder, saturating accumulator per axis and registers (`ps2_mouse`), and the `ps2_mouse_top` that wires it to the `ps2_host` |
 | `src/video/soc/` | VGA video: 640x480 at 60 Hz timing generator, dual-port framebuffer memory, pixel path with optional palette and registers with the retrace status and the frame counter (`video`) |
 | `src/SD/spi/` | SD card in SPI mode: one-byte SPI master (`sd_spi_phy`) and the memory-mapped top with queues, chip select and interrupt (`sd_spi`) |
+| `src/SD/native/` | SD card in native mode: SD_CLK generator (`sd_clock_gen`), command controller (`sd_cmd`), data controller (`sd_data`), serial CRC7 and CRC16 (`sd_crc7`, `sd_crc16`), block buffer (`sd_block_buffer`) and the memory-mapped top (`sd_native`) |
 | `src/flash-controller/soc/` | FLASH controller: command, address, status and page buffer registers that carry the erase, program and protect commands to the FLASH chip of the Memory repository |
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
 | `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,GPIO,PLIC,PS2,SD,TIMER,UART,display,flash_controller,video}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO, `ps2_host_tb`, with two `ps2_host` channels, `ps2_keyboard_tb`, with the keyboard and its lines reachable by cocotb, and `ps2_cable_tb`, with the keyboard and the mouse active at the same time |
-| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, `uart`, and `sd_spi`, the `run.sh`, and the engine aggregator |
+| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, `uart`, `sd_spi`, `sd_crc7`, `sd_crc16`, and `sd_cmd`, the `run.sh`, and the engine aggregator |
 | `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), PS/2 documents (`PS2/`), UART documents (`UART/`), the FLASH controller (`flash-controller/`), the video (`video/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
 
 ## 3. Interface
