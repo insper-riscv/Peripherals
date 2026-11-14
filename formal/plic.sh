@@ -4,7 +4,7 @@ echo "plic_gateway"
 for n in plic_consts plic_gateway plic_arbiter plic; do path_of[$n]="$root/src/PLIC/soc/$n.vhd"; done
 gw_srcs=(plic_gateway)
 gwp="$f/plic_gateway_props.sv"
-mut_expose=(); mut_open=0
+mut_expose=()
 build plic_gateway plicgw "${gw_srcs[@]}" --
 expect "pending follows the ideal gateway: one request per service, the claim clears it, only the complete unmasks (bounded, 16 cycles)" PASS "$(prove plicgw.v "$gwp" bmc 16 '' plicgw_safety)"
 expect "cover: a request, a claim and a new request after the complete are reachable" PASS "$(prove plicgw.v "$gwp" cover 12 '-DCOVER' plicgw_cover)"

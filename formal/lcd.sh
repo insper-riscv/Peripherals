@@ -5,7 +5,7 @@ for n in lcd_consts lcd_regs lcd_phy; do path_of[$n]="$root/src/LCD/soc/$n.vhd";
 lcdr_srcs=(lcd_consts lcd_regs)
 lcdr_gen=(-gfifo_depth=3 -gdelay_reset=5 -gdelay_long_reset=9)
 lrp="$f/lcd_regs_props.sv"
-mut_expose=(); mut_open=0
+mut_expose=()
 build lcd_regs lcdr "${lcdr_srcs[@]}" -- "${lcdr_gen[@]}"
 expect "CONTROL, DELAY and DELAY_LONG keep what is written and reset to their values; DROPPED and TIMEOUT rise on their events and fall only by writing 1 (an event wins over the clear); the push is only a write to COMMAND or DATA with RS from the address; the IRQ is the empty queue enabled and not initializing; every address reads as the model (bounded, 14 cycles, 3 words)" PASS "$(prove lcdr.v "$lrp" bmc 14 '' lcdr_safety)"
 expect "cover: DROPPED set then cleared, TIMEOUT set, the IRQ high, and the delays changed are reachable" PASS "$(prove lcdr.v "$lrp" cover 14 '-DCOVER' lcdr_cover)"
