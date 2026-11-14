@@ -11,6 +11,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+library work;
+use work.config_pkg.all;
+
 entity jtag_uart_shell is
     port (
         -- Clock do módulo.
@@ -20,13 +23,13 @@ entity jtag_uart_shell is
         -- Endereço do acesso.
         i_addr  : in    std_logic_vector(7 downto 0);
         -- Dado de escrita.
-        i_wdata : in    std_logic_vector(31 downto 0);
+        i_wdata : in    word_t;
         -- Escrita ('1') ou leitura ('0').
         i_we    : in    std_logic;
         -- Leitura ('1').
         i_re    : in    std_logic;
         -- Dado lido.
-        o_rdata : out   std_logic_vector(31 downto 0);
+        o_rdata : out   word_t;
         -- Requisição de interrupção de nível da UART.
         o_irq   : out   std_logic
     );

@@ -19,7 +19,7 @@ Além das portas comuns dos periféricos, o CLINT tem duas saídas de interrupç
 | Porta | Sentido | Função |
 | :--- | :--- | :--- |
 | `i_clk`, `i_rst` | entrada | Clock e reset, ativo em 1 |
-| `i_data_in`, `i_address` | entrada | Dado de escrita de 32 bits e endereço de palavra de 14 bits |
+| `i_data_in`, `i_address` | entrada | Dado de escrita de `XLEN` bits (`word_t`) e endereço de palavra de 14 bits |
 | `i_write` | entrada | Pulso de escrita |
 | `o_data_out` | saída | Dado de leitura, combinacional no endereço |
 | `o_irq_timer` | saída | `MTIP` |

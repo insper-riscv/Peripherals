@@ -27,6 +27,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 library work;
+use work.config_pkg.all;
 use work.utils_pkg.all;
 use work.video_consts.all;
 
@@ -52,7 +53,7 @@ entity video is
         i_rst       : in    std_logic;
 
         -- Dado de escrita vindo do processador.
-        i_data_in  : in    std_logic_vector(31 downto 0);
+        i_data_in  : in    word_t;
         -- Endereço de palavra dentro do periférico.
         i_address  : in    std_logic_vector(addr_width - 1 downto 0);
         -- Habilitação de bytes da escrita, um bit por byte.
@@ -60,7 +61,7 @@ entity video is
         -- Pulso de escrita do processador ('1' = escreve).
         i_write    : in    std_logic;
         -- Dado de leitura para o processador.
-        o_data_out : out   std_logic_vector(31 downto 0);
+        o_data_out : out   word_t;
 
         -- Canal vermelho do conversor VGA da placa.
         o_vga_r  : out   std_logic_vector(CHANNEL_BITS - 1 downto 0);

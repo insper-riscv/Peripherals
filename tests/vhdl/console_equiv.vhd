@@ -12,6 +12,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+library work;
+use work.config_pkg.all;
+
 entity console_equiv is
     generic (
         -- Backend do console: "jtag" ou "pinos".
@@ -39,7 +42,7 @@ entity console_equiv is
         -- Endereço de palavra do acesso.
         i_addr      : in    std_logic_vector(7 downto 0);
         -- Dado de escrita.
-        i_wdata     : in    std_logic_vector(31 downto 0);
+        i_wdata     : in    word_t;
         -- Escrita ('1').
         i_we        : in    std_logic;
         -- Leitura ('1').
@@ -47,9 +50,9 @@ entity console_equiv is
         -- Linha serial de recepção.
         i_rx        : in    std_logic;
         -- Dado lido do console.
-        o_rdata_dut : out   std_logic_vector(31 downto 0);
+        o_rdata_dut : out   word_t;
         -- Dado lido da referência.
-        o_rdata_ref : out   std_logic_vector(31 downto 0);
+        o_rdata_ref : out   word_t;
         -- Interrupção do console.
         o_irq_dut   : out   std_logic;
         -- Interrupção da referência.
