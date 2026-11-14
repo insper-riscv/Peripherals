@@ -25,6 +25,7 @@ from tests.python.utils.uart_frame import (
 TX_DATA, RX_DATA, STATUS, CONTROL = range(4)
 RX_VALID = 1 << 0
 RX_OVERRUN = 1 << 2
+TX_READY = 1 << 1
 TX_EMPTY = 1 << 5
 TX_IDLE = 1 << 6
 CTS_ACTIVE = 1 << 25
@@ -42,6 +43,7 @@ READ_PERIOD_CYCLES = 600
 NO_START_FRAMES = 6
 LOOP_BYTES = 8
 BYTE_PLAIN = 0x6B
+BYTE_LOOP = 0x70
 BYTE_FIRST = 0xC4
 BYTE_SECOND = 0xC5
 
@@ -350,6 +352,55 @@ async def test_terminal_that_ignores_rts_overruns_without_flow(
     check(await bus.read(dut, STATUS) & RX_OVERRUN != 0)
 
 
+async def fill_tx(dut: UartFlowDut, pending: list[int]) -> None:
+    """Escreva em TX enquanto houver byte e espaço, sem ler RX.
+
+    Parameters
+    ----------
+    dut : UartFlowDut
+        UART exercitada pelo teste.
+    pending : list[int]
+        Bytes a enviar; os enviados saem da lista.
+    """
+    for _ in range(POLL_LIMIT):
+        if not pending:
+            return
+        if await bus.read(dut, STATUS) & TX_READY:
+            await bus.write(dut, TX_DATA, pending.pop(0))
+
+
+async def drain_rx(
+    dut: UartFlowDut, pending: list[int], count: int
+) -> list[int]:
+    """Leia RX e envie o que falta até receber a quantidade pedida.
+
+    Parameters
+    ----------
+    dut : UartFlowDut
+        UART exercitada pelo teste.
+    pending : list[int]
+        Bytes ainda por enviar; os enviados saem da lista.
+    count : int
+        Quantidade de bytes a receber.
+
+    Returns
+    -------
+    list[int]
+        Bytes recebidos, na ordem.
+    """
+    got: list[int] = []
+    for _ in range(POLL_LIMIT * count * 4):
+        status = await bus.read(dut, STATUS)
+        check(status & RX_OVERRUN == 0)
+        if status & RX_VALID:
+            got.append(await bus.read(dut, RX_DATA))
+        if pending and status & TX_READY:
+            await bus.write(dut, TX_DATA, pending.pop(0))
+        if len(got) == count:
+            break
+    return got
+
+
 @cocotb.test()
 async def test_self_loopback_regulates_itself(dut: UartFlowDut) -> None:
     """Com TX em RX e RTS em CTS a UART se regula e não perde byte."""
@@ -357,26 +408,13 @@ async def test_self_loopback_regulates_itself(dut: UartFlowDut) -> None:
     cocotb.start_soon(self_wire(dut))
     await bus.write(dut, CONTROL, flow(RESET_THRESHOLD))
 
-    sent = [0x70 + index for index in range(LOOP_BYTES)]
+    sent = [BYTE_LOOP + index for index in range(LOOP_BYTES)]
     pending = list(sent)
-    for _ in range(POLL_LIMIT):
-        if not pending:
-            break
-        if await bus.read(dut, STATUS) & 2:
-            await bus.write(dut, TX_DATA, pending.pop(0))
+    await fill_tx(dut, pending)
     await bus.cycles(dut, FRAME_CYCLES * NO_START_FRAMES)
     status = await bus.read(dut, STATUS)
     check(status & RX_OVERRUN == 0)
     check(RESET_THRESHOLD <= rx_level(status) < FIFO_DEPTH, f"{status:#x}")
 
-    got: list[int] = []
-    for _ in range(POLL_LIMIT * LOOP_BYTES * 4):
-        status = await bus.read(dut, STATUS)
-        check(status & RX_OVERRUN == 0)
-        if status & RX_VALID:
-            got.append(await bus.read(dut, RX_DATA))
-        if pending and status & 2:
-            await bus.write(dut, TX_DATA, pending.pop(0))
-        if len(got) == LOOP_BYTES:
-            break
+    got = await drain_rx(dut, pending, LOOP_BYTES)
     check(got == sent, f"{got}")
