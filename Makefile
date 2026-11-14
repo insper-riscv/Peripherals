@@ -5,7 +5,9 @@ WDIR  := build/ghdl
 
 # The peripherals use the blocks of Common-Components, included as a submodule in src/common. The Quartus
 # shells of src/*/cyclone-v/ need Intel's megafunctions, which the toolchain image does not carry.
-VHDL      := $(shell find src tests/vhdl -name '*.vhd' -not -path 'src/common/*' -not -path '*/cyclone-v/*' -not -path '*/max10/*' | sort) $(sort $(wildcard src/common/src/*.vhd))
+# The files of an altera/ folder wrap the megafunctions of Intel, which the toolchain image does not carry, and
+# stand in the board build for the model of the sibling sim/ folder.
+VHDL      := $(shell find src tests/vhdl -name '*.vhd' -not -path 'src/common/*' -not -path '*/cyclone-v/*' -not -path '*/max10/*' -not -path '*/altera/*' | sort) $(sort $(wildcard src/common/src/*.vhd))
 
 .PHONY: check test driver-test usb-driver-test paths formal clean
 
