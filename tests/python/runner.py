@@ -5,7 +5,7 @@ import json
 import os
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
@@ -41,6 +41,8 @@ class Config:
         Leave the test out of the sweep of all tests.
     skip_reason : str
         Why the test is skipped.
+    c_driver : dict
+        Fontes e teste C associados ao contrato do periférico.
     """
 
     toplevel: str
@@ -51,6 +53,7 @@ class Config:
     test_args: list[str] = field(default_factory=list[str])
     skip: bool = False
     skip_reason: str = NO_REASON
+    c_driver: InitVar[dict[str, str | list[str]] | None] = None
 
 
 def _resolve_path_parameter(value: str, repo_root: Path) -> str:

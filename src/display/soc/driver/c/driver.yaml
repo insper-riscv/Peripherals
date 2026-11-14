@@ -1,0 +1,7 @@
+schema: 1
+name: DISPLAY
+instances: [DISPLAY]
+register_bytes: 4
+headers: [rv32_display.h, rv32_display_platform.h]
+sources: [rv32_display.c]
+example: examples/main.c.in

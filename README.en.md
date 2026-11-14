@@ -18,17 +18,8 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 - [docs/en/PS2/ps2_host.md](docs/en/PS2/ps2_host.md): the PS/2 physical layer (`ps2_host`: channels 0 and 1 of the Y cable, glitch filter, 11-bit frame and command sending).
 - [docs/en/PS2/ps2_keyboard.md](docs/en/PS2/ps2_keyboard.md): the PS/2 keyboard (`ps2_keyboard`: set 2 scancode queue, `DATA`, `STATUS`, `COMMAND` and `CONTROL` registers, commands and interrupt).
 - [docs/en/PS2/ps2_mouse.md](docs/en/PS2/ps2_mouse.md): the PS/2 mouse (initialization, 3-byte packets, saturating displacement accumulators, buttons, interrupt, channel 1 and the Y cable).
-- [docs/en/video/video.md](docs/en/video/video.md): the generic VGA video peripheral (mode, polarity and channel width set by generics, default 640x480 at 60 Hz with 4 bits per channel; dual-clock dual-port framebuffer, pixel magnification, indexed format with a palette or direct format, frame counter and register map).
-- [docs/en/SD/sd_spi.md](docs/en/SD/sd_spi.md): the SD card controller in SPI mode (SPI master with configurable divider, transmit and receive queues, chip select, interrupts, board pins, initialization sequence and a C example of reading a sector).
-- [docs/en/IR/ir_receiver.md](docs/en/IR/ir_receiver.md): the DE2-115 infrared receiver (NEC decoder with repeat and extended address, frame FIFO, raw pulse and space measure, errors and interrupt).
-- [docs/en/LCD/lcd.md](docs/en/LCD/lcd.md): the DE2-115 16x2 LCD (HD44780) controller (write queue, parallel bus timing, wait for the busy flag or a delay, optional hardware initialization and registers).
-- [docs/en/I2C/i2c_master.md](docs/en/I2C/i2c_master.md): the general-purpose I2C master (start, repeated start and stop, bytes with ACK and NACK, clock stretching, arbitration, 100 kHz and 400 kHz divider, interrupt, register map and a C example for 2 to 64 Kbit EEPROMs).
-- [docs/en/audio/audio.md](docs/en/audio/audio.md): the I2S audio interface for the WM8731 codec (`audio`: fractional master clock, bit and channel clocks, 16, 24 and 32-bit serializer and deserializer, queues, hardware test tone and interrupt).
-- [docs/en/ETH/eth.md](docs/en/ETH/eth.md): the 10/100 Mbit/s Ethernet MAC over MII with an MDIO master (sending with preamble, padding and FCS, receiving with a filter and a Gray-code asynchronous FIFO, frame buffers, counters, interrupts and the pins of the DE2-115 ports).
-- [docs/en/HDMI/hdmi_tx.md](docs/en/HDMI/hdmi_tx.md): the HDMI video output for the ADV7513 transmitter (`hdmi_tx`: a wrapper over the blocks of the generic video, 8-bit indexed framebuffer with a 24-bit palette or RGB565, CEA-861 modes by generics, I2C writer and chip initialization sequencer, registers, interrupts and the resolutions that fit the M10K blocks of the DE10-Nano).
-- [docs/en/TV/tv.md](docs/en/TV/tv.md): video capture from the DE2-115 ADV7180 TV decoder (BT.656 receiver, conversion to RGB565 or luma, decimation, two-clock frame memory, registers and end-of-frame interrupt).
+- [docs/en/video/video.md](docs/en/video/video.md): the 640x480 at 60 Hz VGA video peripheral (dual-clock dual-port framebuffer, pixel magnification, optional palette, frame counter and register map).
 - [docs/en/flash-controller/flash_controller.md](docs/en/flash-controller/flash_controller.md): the FLASH controller (command, address, status and page buffer registers).
-- [docs/en/USB/usb_bridge.md](docs/en/USB/usb_bridge.md): the 16-bit parallel bridge to the board USB chip (four access ports, timing per register, interrupts, chip reset and chip identifier read).
 - [contracts/01-es-de-placa.md](docs/en/contracts/01-es-de-placa.md) and [contracts/02-console.md](docs/en/contracts/02-console.md): contracts K8 (I/O vectors by role, normalized polarity, zero width) and K9 (`jtag` or `pinos` console).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/en/contracts/02-barramento-e-memoria.md): bus protocol adopted by the peripherals.
 
@@ -37,7 +28,7 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | Path | Contents |
 | :--- | :--- |
 | `src/common/` | Common-Components submodule, edited only at its source |
-| `src/GPIO/soc/` | General-purpose I/O: adaptive blocks of groups (partition, fixed direction and polarity per pin from generics) with direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising-edge, falling-edge or level interrupts |
+| `src/GPIO/soc/` | General-purpose I/O: direction, output (load, set, clear, toggle), synchronized pin read, and per-pin rising-edge, falling-edge or level interrupts |
 | `src/TIMER/soc/` | Timer and PWM: a counter with `TOP`, a prescaler, a duty-cycle comparator, an overflow status, and an interrupt |
 | `src/CLINT/soc/` | CLINT: 64-bit `mtime` with a registered carry, `mtimecmp`, `msip` and the timer and software interrupt outputs |
 | `src/UART/serial/` | Memory-mapped 8N1 UART: parameterized RX and TX queues, separate registers, levels, status and error flags, and an optional RX interrupt; the physical layer is the OpenCores `uart2bus`, vendored in the repository |
@@ -46,30 +37,19 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/PS2/host/` | PS/2 physical layer of one channel (`ps2_host`): synchronizer, glitch filter, reception of 11-bit frames with odd parity and command sending with the clock inhibited; one instance per channel (keyboard on channel 0, mouse on channel 1) |
 | `src/PS2/keyboard/` | Memory-mapped PS/2 keyboard (`ps2_keyboard`): scancode byte queue, status with overflow and error, command sending and a level interrupt |
 | `src/PS2/mouse/` | PS/2 mouse: protocol decoder, saturating accumulator per axis and registers (`ps2_mouse`), and the `ps2_mouse_top` that wires it to the `ps2_host` |
-| `src/video/soc/` | Generic VGA video: timing generator set by generics, dual-port framebuffer memory, indexed or direct pixel path, VGA backend with the channel width as a generic and registers with the retrace status and the frame counter (`video`) |
-| `src/SD/spi/` | SD card in SPI mode: one-byte SPI master (`sd_spi_phy`) and the memory-mapped top with queues, chip select and interrupt (`sd_spi`) |
-| `src/I2C/soc/` | I2C master: line state machine with start, stop, byte, ACK, clock stretching and arbitration (`i2c_core`) and registers with interrupt (`i2c_master`), with the pins as a drive-low and input pair |
-| `src/audio/soc/` | I2S audio: fractional master clock generator, master-mode bit and channel clocks, serializer, deserializer, test tone and registers with queues (`audio`) |
-| `src/ETH/` | MII Ethernet MAC (`eth`: registers, transmitter, receiver, asynchronous FIFO, frame storage, dual-port memory, CRC-32 and clock crossings) and the MDIO master in `mdio/` |
-| `src/HDMI/soc/`, `src/HDMI/adv7513/` | HDMI output for the ADV7513: 24-bit pixel path, output register, HDMI registers and the `hdmi_tx` top level (reusing the timing, memory and registers of the video), write-only I2C writer and table-driven initialization sequencer |
-| `src/TV/soc/` | TV capture: 8-bit BT.656 receiver, single-frame capture control with decimation, YCbCr to RGB565 or luma conversion and registers with an end-of-frame interrupt (`tv`) |
+| `src/video/soc/` | VGA video: 640x480 at 60 Hz timing generator, dual-port framebuffer memory, pixel path with optional palette and registers with the retrace status and the frame counter (`video`) |
 | `src/flash-controller/soc/` | FLASH controller: command, address, status and page buffer registers that carry the erase, program and protect commands to the FLASH chip of the Memory repository |
-| `src/USB/soc/` | USB bridge: master of the chip parallel bus (configurable setup, pulse, hold and recovery), registers and the `usb_bridge` top with synchronizers |
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
-| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,ETH,GPIO,HDMI,I2C,IR,LCD,PLIC,PS2,SD,TIMER,TV,UART,USB,audio,display,flash_controller,video}` |
-| `src/IR/soc/` | Infrared receiver: pulse filter and meter, NEC decoder, frame FIFO and registers (`ir_receiver`) |
-| `src/LCD/soc/` | 16x2 LCD (HD44780) controller: registers and write queue (`lcd_regs`), parallel bus physical layer (`lcd_phy`), optional initialization (`lcd_init`) and the `lcd` top |
+| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,UART,display,flash_controller,video}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO, `ps2_host_tb`, with two `ps2_host` channels, `ps2_keyboard_tb`, with the keyboard and its lines reachable by cocotb, and `ps2_cable_tb`, with the keyboard and the mouse active at the same time |
-| `formal/` | SystemVerilog properties of `gpio_cell`, `gpio`, `seg_display`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, `uart`, `sd_spi`, `ir_fifo`, `ir_regs`, `lcd_phy`, `lcd_regs`, `usb_bridge`, `i2c_core`, `i2c_master`, `audio_xck_gen`, `audio_frame_clocks`, `audio`, `eth_crc32`, `eth_async_fifo`, `eth_regs`, `hdmi_timing`, `hdmi_regs`, `hdmi_init_seq`, and `hdmi_i2c_writer`, `tv_regs`, and `tv_capture`, the `run.sh`, and the engine aggregator |
-| `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), PS/2 documents (`PS2/`), UART documents (`UART/`), the FLASH controller (`flash-controller/`), the video (`video/`), the SD card (`SD/`), the infrared receiver (`IR/`), the LCD (`LCD/`), the USB bridge (`USB/`), the I2C master (`I2C/`), the audio (`audio/`), the Ethernet MAC (`ETH/`), the HDMI output (`HDMI/`), the TV capture (`TV/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
+| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, and `uart`, the `run.sh`, and the engine aggregator |
+| `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), PS/2 documents (`PS2/`), UART documents (`UART/`), the FLASH controller (`flash-controller/`), the video (`video/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
 
 ## 3. Interface
 
 Every peripheral shares the same set of ports, following the bus of the Core contract: `i_clk`, `i_rst`, `i_data_in`, `i_address` (word offset inside the peripheral), `i_write`, `i_read`, `o_data_out`, and `o_irq`; the CLINT has no `i_read`, because a read has no side effect. The register maps are in the `*_operation_decoder` entities and in `tests/python/unittests/*/*_operation_decoder.py`.
 
 ### 3.1. GPIO Registers
-
-Each group of the block has its own 16-word (64-byte) file, and group $g$ starts at word $16g$; the detail is in `docs/en/GPIO/gpio.md`. The addresses below are those of one group.
 
 | Address | Register |
 | :--- | :--- |
@@ -78,7 +58,6 @@ Each group of the block has its own 16-word (64-byte) file, and group $g$ starts
 | 5, 6, 7 | Interrupt mask, rising-edge mask, and falling-edge mask |
 | 8 | Interrupt status (a read returns the value and clears it) |
 | 9 | Pins, after a two-stage synchronizer |
-| 10 | Per-pin interrupt level mode |
 
 ### 3.2. TIMER Registers
 
@@ -137,6 +116,10 @@ docker run --rm -v "$PWD:/workspace" -w /workspace ghcr.io/insper-riscv/ci-vhdl:
   bash -c "uv sync && make check && make test && make paths && make formal"
 ```
 
+GPIO, TIMER, CLINT, PLIC, UART (serial/JTAG), display and FLASH controller include C23 drivers and descriptors for automatic SDK integration. All handles use `*_new()` constructors without dynamic allocation. APIs accept pin, digit or source numbers and hide register arithmetic. See [driver usage and conventions](docs/en/GPIO/gpio.md).
+
 ---
 
 Copyright 2026 Insper. Licensed under the [Apache License, Version 2.0](LICENSE).
+
+Each C descriptor also supplies an example template. SDK 0.8 generates one standalone C project in `vendor/<DRIVER>/example`, inheriting the application platform/profile. Examples use constructors and numeric indices, with bounded waits. The FLASH example reads status only. Copy a generated project before editing managed files.

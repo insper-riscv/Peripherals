@@ -1,0 +1,7 @@
+schema: 1
+name: UART
+instances: [UART, UART_JTAG, UART_PINS]
+register_bytes: 16
+headers: [rv32_uart.h, rv32_uart_platform.h]
+sources: [rv32_uart.c]
+example: examples/main.c.in

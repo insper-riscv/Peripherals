@@ -1,0 +1,22 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include "rv32_drivers.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    rv32_flash_t flash = rv32_flash_platform_new();
+
+    if (!rv32_flash_valid(flash)) {
+        return 1;
+    }
+
+    /* Read-only demonstration: no write-enable, erase or program command. */
+    bool busy = rv32_flash_busy(flash);
+    bool refused = rv32_flash_refused(flash);
+
+    printf("FLASH status: busy=%u, refused=%u\n", (unsigned)busy, (unsigned)refused);
+    puts("FLASH example: PASS");
+
+    return 0;
+}
