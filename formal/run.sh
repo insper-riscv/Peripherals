@@ -343,6 +343,15 @@ expect "cover: partition A writes the two groups and reads a group back" PASS "$
 build seg_display disp_b "${display_srcs[@]}" -- "${disp_b[@]}"
 expect "partition B: a single digit in a group, the other five digits blank (bounded, 8 cycles)" PASS "$(prove disp_b.v "$f/seg_display_props.sv" bmc 8 '-DPART_B' disp_b_safety)"
 expect "cover: partition B writes the digit and reads it back" PASS "$(prove disp_b.v "$f/seg_display_props.sv" cover 8 '-DPART_B -DCOVER' disp_b_cover)"
+# Partitions C and D: the layouts of A and B with has_dp true, the eighth segment of every digit (the decimal point).
+disp_c=("${disp_a[@]}" -ghas_dp=true)
+disp_d=("${disp_b[@]}" -ghas_dp=true)
+build seg_display disp_c "${display_srcs[@]}" -- "${disp_c[@]}"
+expect "partition C (has_dp): the point of the digit k of a group is the bit k of its word 1, o_hex has the point at bit 7 of each digit, blank digits keep it off (bounded, 8 cycles)" PASS "$(prove disp_c.v "$f/seg_display_props.sv" bmc 8 '-DPART_A -DDP' disp_c_safety)"
+expect "cover: partition C writes a point in each group and reads the point word back" PASS "$(prove disp_c.v "$f/seg_display_props.sv" cover 8 '-DPART_A -DDP -DCOVER' disp_c_cover)"
+build seg_display disp_d "${display_srcs[@]}" -- "${disp_d[@]}"
+expect "partition D (has_dp): a single digit in a group, the other five digits and their points blank (bounded, 8 cycles)" PASS "$(prove disp_d.v "$f/seg_display_props.sv" bmc 8 '-DPART_B -DDP' disp_d_safety)"
+expect "cover: partition D writes the point and reads it back" PASS "$(prove disp_d.v "$f/seg_display_props.sv" cover 8 '-DPART_B -DDP -DCOVER' disp_d_cover)"
 
 echo "uart_fifo"
 mut_expose=()
@@ -559,6 +568,12 @@ mutant seg_display "$sp" seg_display '-DPART_A' disp_write_by_position "s/value(
 mutant seg_display "$sp" seg_display '-DPART_A' disp_off_digit_lit "s/seg_low(7 \* n + 6 downto 7 \* n) <= (others => '1');/seg_low(7 * n + 6 downto 7 * n) <= (others => '0');/" 8 "${display_srcs[@]}" -- "${disp_a[@]}"
 mutant seg_display "$sp" seg_display '-DPART_A' disp_group_zero "s/if sel = g then/if sel = 0 then/" 8 "${display_srcs[@]}" -- "${disp_a[@]}"
 mutant seg_display "$sp" seg_display '-DPART_B' disp_any_word_writes "s/elsif i_write = '1' and digits > 0 and i_address(3 downto 0) = \"0000\" then/elsif i_write = '1' and digits > 0 then/" 8 "${display_srcs[@]}" -- "${disp_b[@]}"
+
+mutant seg_display "$sp" seg_display '-DPART_A -DDP' dp_polarity_inverted "s/o_hex(DIGIT_BITS \* n + 7) <= not dp(n) when active_low else dp(n);/o_hex(DIGIT_BITS * n + 7) <= dp(n) when active_low else not dp(n);/" 8 "${display_srcs[@]}" -- "${disp_c[@]}"
+mutant seg_display "$sp" seg_display '-DPART_A -DDP' dp_read_by_position "s/o_rdata(k) <= dp(m);/o_rdata(k) <= dp(k);/" 8 "${display_srcs[@]}" -- "${disp_c[@]}"
+mutant seg_display "$sp" seg_display '-DPART_A -DDP' dp_write_by_position "s/dp(m) <= i_data_in(k);/dp(k) <= i_data_in(k);/" 8 "${display_srcs[@]}" -- "${disp_c[@]}"
+mutant seg_display "$sp" seg_display '-DPART_A -DDP' dp_not_cleared_by_reset "s/dp <= (others => '0');/null;/" 8 "${display_srcs[@]}" -- "${disp_c[@]}"
+mutant seg_display "$sp" seg_display '-DPART_B -DDP' dp_any_word_writes "s/and i_write = '1' and digits > 0 and i_address(3 downto 0) = \"0001\" then/and i_write = '1' and digits > 0 then/" 8 "${display_srcs[@]}" -- "${disp_d[@]}"
 
 mut_expose=()
 fp="$f/uart_fifo_props.sv"

@@ -552,6 +552,106 @@
             "--std=08"
         ]
     },
+    "SegDisplayDecimalPoint": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_dp",
+        "parameters": {
+            "digits": 8,
+            "partition": "0,1,2,3/5,6",
+            "has_dp": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayDecimalPointHigh": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_dp_high",
+        "parameters": {
+            "digits": 3,
+            "active_low": false,
+            "partition": "0,1,2",
+            "has_dp": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayGroupsWithDecimalPoint": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_groups_dp",
+        "parameters": {
+            "digits": 8,
+            "partition": "0,1,2,3/5,6",
+            "has_dp": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "SegDisplayWithoutDecimalPoint": {
+        "toplevel": "seg_display_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "tests/vhdl/gpio_partition_pkg.vhd",
+            "src/display/soc/hex_to_seg7.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/display/soc/seg_display.vhd",
+            "tests/vhdl/seg_display_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.display.display_no_dp",
+        "parameters": {
+            "digits": 6,
+            "partition": "0,1,2,3,4,5"
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "SegDisplayZeroDigits": {
         "toplevel": "seg_display_zero_tb",
         "sources": [
