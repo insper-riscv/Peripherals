@@ -3104,6 +3104,7 @@
         "toplevel": "hdmi_tx",
         "sources": [
             "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
             "src/common/src/synchronizer.vhd",
             "src/video/soc/video_consts.vhd",
             "src/video/soc/video_timing.vhd",

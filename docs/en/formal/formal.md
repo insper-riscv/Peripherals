@@ -130,7 +130,7 @@ make formal FORMAL_ENGINE=yices      # another engine
 
 `abc-bmc3` skips the induction proofs and the covers, which it does not do, and answers for the bounded proofs and the mutants.
 
-`yices` skips four bounded proofs of the console, of 200 cycles over the whole UART, which it does not close within `FORMAL_TIMEOUT` (900 s by default): the pins backend, the inverted pins backend and the mutants `console_rx_polarity` and `console_read_strobe`. `bitwuzla`, `boolector` and `abc-bmc3` answer all four, and the aggregator `formal/aggregate.sh` still demands a verdict from at least one engine for each proof, so the `yices` skip hides none of them.
+`yices` skips the bounded proofs it does not close within `FORMAL_TIMEOUT` (900 s by default) or that, added up, do not fit the time limit of the job of that engine: four of the console, of 200 cycles over the whole UART (the pins backend, the inverted pins backend and the mutants `console_rx_polarity` and `console_read_strobe`), the two of the `adc_sweep`, the frame of the `ltc2308` and that of the `adc128s022`, the two sequences of the `adxl345`, the nine bounded proofs of the `sd_cmd` with a response, a busy wait or a free strobe (124 to 216 cycles) and the seven of the `uart` with parity and two stop bits (210 to 260 cycles). `bitwuzla`, `boolector` and `abc-bmc3` answer all of them, and the aggregator `formal/aggregate.sh` still demands a verdict from at least one engine for each proof, so the `yices` skip hides none of them.
 
 ## 5. Warnings are errors
 

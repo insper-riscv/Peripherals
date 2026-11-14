@@ -130,7 +130,7 @@ make formal FORMAL_ENGINE=yices      # outro engine
 
 O `abc-bmc3` pula as provas de indução e os covers, que não faz, e responde pelas provas limitadas e pelos mutantes.
 
-O `yices` pula quatro provas limitadas do console, de 200 ciclos sobre a UART inteira, que ele não fecha dentro do `FORMAL_TIMEOUT` (900 s por padrão): o backend pinos, o backend pinos invertido e os mutantes `console_rx_polarity` e `console_read_strobe`. O `bitwuzla`, o `boolector` e o `abc-bmc3` respondem às quatro, e o agregador `formal/aggregate.sh` continua exigindo veredito de pelo menos um engine para cada prova, de modo que o pulo do `yices` não esconde nenhuma delas.
+O `yices` pula as provas limitadas que ele não fecha dentro do `FORMAL_TIMEOUT` (900 s por padrão) ou que, somadas, não cabem no limite de tempo do job desse engine: quatro do console, de 200 ciclos sobre a UART inteira (o backend pinos, o backend pinos invertido e os mutantes `console_rx_polarity` e `console_read_strobe`), as duas do `adc_sweep`, o quadro do `ltc2308` e o do `adc128s022`, as duas sequências do `adxl345`, as nove provas limitadas do `sd_cmd` com resposta, espera de ocupado ou estrobo livre (124 a 216 ciclos) e as sete da `uart` com paridade e dois bits de parada (210 a 260 ciclos). O `bitwuzla`, o `boolector` e o `abc-bmc3` respondem a todas, e o agregador `formal/aggregate.sh` continua exigindo veredito de pelo menos um engine para cada prova, de modo que o pulo do `yices` não esconde nenhuma delas.
 
 ## 5. Avisos são erros
 

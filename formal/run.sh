@@ -174,10 +174,16 @@ expose() {
 # The verdict, the exit code and the milliseconds go to <tag>.res, and the tag to .last, for expect.
 # Four bounded proofs of the console (200 cycles over the whole UART), the two of the adc_sweep (40 cycles with free
 # frame timing), the frame of the ltc2308 (170 cycles) and the two sequences of the adxl345 (380 cycles) do not close
-# in FORMAL_TIMEOUT with yices, while bitwuzla, boolector and abc-bmc3 answer them: yices is structurally slow on a design this deep. The yices run skips
-# exactly these tags, as it skips what abc-bmc3 does not do, and formal/aggregate.sh still demands an answer from the
-# other engines for each of them.
+# in FORMAL_TIMEOUT with yices, while bitwuzla, boolector and abc-bmc3 answer them: yices is structurally slow on a
+# design this deep. Two proofs of the sd_cmd (the free strobe and the busy wait, up to 216 cycles) do not close either,
+# and the other bounded frames of the sd_cmd (124 to 208 cycles), of the uart with parity and two stop bits (210 to
+# 260 cycles) and of the adc128s022 (120 cycles) take yices from one to seven minutes each, which together do not fit
+# the time limit of the job of that engine. The yices run skips exactly these tags, as it skips what abc-bmc3 does not
+# do, and formal/aggregate.sh still demands an answer from the other engines for each of them.
 yices_slow=" console_pins console_inv mut_console_rx_polarity mut_console_read_strobe sweep_safety sweep0_safety ltc_frame adxl3_seq adxl4_seq "
+yices_slow+="sdcmd_frame_free sdcmd_resp_busy sdcmd_timeout sdcmd_timeout_cover sdcmd_resp_short sdcmd_resp_nocrc "
+yices_slow+="sdcmd_resp_badcrc sdcmd_resp_badidx sdcmd_resp_badend uart_tx_even uart_tx_odd2 uart_tx_stop2 uart_rx_even "
+yices_slow+="uart_rx_odd2 uart_rx_badpar uart_rx_badstop adc128_frame "
 prove() {
   echo "$6" > "$out/.last"
   if [ "$engine" = yices ] && [[ "$yices_slow" == *" $6 "* ]]; then
@@ -920,7 +926,7 @@ mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP' sdcmd_crc_check_inverted "s/and rx_cr
 mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP -DBADIDX' sdcmd_index_check_off "s/if response_r = RSP_SHORT and rsp_shift(37 downto 32) \/= index_r then/if response_r = RSP_NONE and rsp_shift(37 downto 32) \/= index_r then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
 mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP' sdcmd_body_first_late "s/if pos >= body_first and pos <= body_last then/if pos > body_first and pos <= body_last then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
 mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP' sdcmd_crc_range_short "s/bit_cnt <= SHORT_HEAD_LAST then/bit_cnt < SHORT_HEAD_LAST then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
-mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP' sdcmd_rx_crc_range "s/if pos > body_last and pos <= crc_last then/if pos >= body_last and pos <= crc_last then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
+mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP' sdcmd_rx_crc_range "s/if pos > body_last and pos <= crc_last then/if pos > body_last + 1 and pos <= crc_last then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
 mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP -DBADEND' sdcmd_end_check_off "s/if i_cmd \/= '1' then/if i_cmd \/= '1' and false then/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
 mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP -DBADCRC' sdcmd_ok_on_error "s/resp_ok <= not (crc_bad or index_bad or frame_bad);/resp_ok <= '1';/" 208 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
 mutant sd_cmd "$cm" sd_cmd '-DFAST -DRESP -DBUSY' sdcmd_busy_polarity "s/if i_dat0 = '1' then/if i_dat0 = '0' then/" 216 "${sdcmd_srcs[@]}" -- "${sdcmdgen[@]}"
