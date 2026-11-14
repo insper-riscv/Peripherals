@@ -115,7 +115,7 @@ def expect_pixels(data: bytes) -> list[tuple[int, int, int]]:
     """
     out: list[tuple[int, int, int]] = []
     for i in range(0, len(data), 4):
-        cb, y0, cr, y1 = data[i : i + 4]
+        cb, y0, cr, y1 = data[i:][:4]
         out += [(y0, cb, cr), (y1, cb, cr)]
     return out
 

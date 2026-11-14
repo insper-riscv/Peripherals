@@ -347,11 +347,17 @@ class SdSpiPhyDut(ResettableDut, Protocol):
     o_sclk: LogicObject
     o_mosi: LogicObject
     i_miso: LogicObject
+
+
 class IrDut(IrqDut, Protocol):
     """Signals of the infrared receiver."""
+
     i_irda_rxd: LogicObject
+
+
 class LcdDut(IrqDut, Protocol):
     """Signals of the LCD controller."""
+
     i_lcd_data: LogicArrayObject
     o_lcd_data: LogicArrayObject
     o_lcd_data_oe: LogicObject
@@ -360,8 +366,11 @@ class LcdDut(IrqDut, Protocol):
     o_lcd_en: LogicObject
     o_lcd_on: LogicObject
     o_lcd_blon: LogicObject
+
+
 class LcdRegsDut(BusDut, Protocol):
     """Signals of the LCD registers."""
+
     o_irq: LogicObject
     o_push: LogicObject
     o_push_rs: LogicObject
@@ -378,8 +387,12 @@ class LcdRegsDut(BusDut, Protocol):
     o_delay_long: LogicArrayObject
     o_lcd_on: LogicObject
     o_lcd_blon: LogicObject
+
+
 class LcdPhyDut(ResettableDut, Protocol):
     """Signals of the LCD physical layer."""
+
+    i_start: LogicObject
     i_rs: LogicObject
     i_data: LogicArrayObject
     i_poll: LogicObject
@@ -392,37 +405,55 @@ class LcdPhyDut(ResettableDut, Protocol):
     o_lcd_en: LogicObject
     o_lcd_data: LogicArrayObject
     o_lcd_data_oe: LogicObject
+
+
 class LcdInitDut(ResettableDut, Protocol):
     """Signals of the LCD initialization sequence."""
+
     i_phy_ready: LogicObject
     o_start: LogicObject
     o_data: LogicArrayObject
     o_delay: LogicArrayObject
+    o_busy: LogicObject
+
+
 class I2cDut(IrqDut, Protocol):
     """Signals of the I2C master testbench."""
+
     i_slave_scl_low: LogicObject
     i_slave_sda_low: LogicObject
     o_scl: LogicObject
     o_sda: LogicObject
+
+
 class I2cCoreDut(ResettableDut, Protocol):
     """Signals of the line state machine of the I2C master."""
+
     i_enable: LogicObject
     i_abort: LogicObject
+    i_divider: LogicArrayObject
     i_cmd_valid: LogicObject
     i_cmd_start: LogicObject
     i_cmd_stop: LogicObject
     i_cmd_read: LogicObject
     i_cmd_write: LogicObject
     i_cmd_nack: LogicObject
+    i_tx_data: LogicArrayObject
     i_scl: LogicObject
     i_sda: LogicObject
+    o_busy: LogicObject
     o_bus_active: LogicObject
+    o_done: LogicObject
     o_nack: LogicObject
     o_arb_lost: LogicObject
+    o_rx_data: LogicArrayObject
     o_scl_low: LogicObject
     o_sda_low: LogicObject
+
+
 class AudioDut(IrqDut, Protocol):
     """Sinais do periférico de áudio I2S."""
+
     o_xck: LogicObject
     i_bclk: LogicObject
     o_bclk: LogicObject
@@ -433,35 +464,56 @@ class AudioDut(IrqDut, Protocol):
     o_daclrck: LogicObject
     i_adcdat: LogicObject
     o_dacdat: LogicObject
+
+
 class AudioXckGenDut(ResettableDut, Protocol):
     """Sinais do gerador do clock mestre do áudio."""
+
+    i_enable: LogicObject
     i_step: LogicArrayObject
     i_mod: LogicArrayObject
     o_xck: LogicObject
     o_edge: LogicObject
+
+
 class AudioFrameClocksDut(ResettableDut, Protocol):
     """Sinais dos clocks de bit e de canal do áudio."""
+
+    i_enable: LogicObject
     i_xck_edge: LogicObject
     i_bclk_div: LogicArrayObject
     i_slot_bits: LogicArrayObject
     o_bclk: LogicObject
     o_lrck: LogicObject
+
+
 class AudioToneDut(ResettableDut, Protocol):
     """Sinais do gerador de tom do áudio."""
+
+    i_enable: LogicObject
     i_half: LogicArrayObject
     i_advance: LogicObject
     o_level: LogicObject
+
+
 class AudioTxDut(ResettableDut, Protocol):
     """Sinais do serializador I2S de reprodução."""
+
+    i_enable: LogicObject
     i_bclk: LogicObject
     i_lrck: LogicObject
     i_available: LogicObject
+    i_data: LogicArrayObject
     o_load: LogicObject
     o_right_slot: LogicObject
     o_underflow: LogicObject
     o_sdata: LogicObject
+
+
 class AudioRxDut(ResettableDut, Protocol):
     """Sinais do desserializador I2S de gravação."""
+
+    i_enable: LogicObject
     i_word_bits: LogicArrayObject
     i_bclk: LogicObject
     i_lrck: LogicObject
@@ -469,6 +521,8 @@ class AudioRxDut(ResettableDut, Protocol):
     o_valid: LogicObject
     o_right: LogicObject
     o_word: LogicArrayObject
+
+
 class TvDut(IrqDut, Protocol):
     """Signals of the TV capture peripheral."""
 

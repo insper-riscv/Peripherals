@@ -109,10 +109,11 @@ async def fixed_delay_write(dut: LcdPhyDut) -> None:
     check(len(trace) == SETUP + PULSE + HOLD + DELAY, f"{len(trace)} ciclos")
     enables = [row[2] for row in trace]
     check(enables == [0] * SETUP + [1] * PULSE + [0] * (HOLD + DELAY), "EN")
-    for row in trace[: SETUP + PULSE + HOLD]:
+    end_of_hold = SETUP + PULSE + HOLD
+    for row in trace[:end_of_hold]:
         check(row[:2] == (1, 0) and row[3] == BYTE_A and row[4] == 1, f"{row}")
     check(
-        all(row[4] == 0 for row in trace[SETUP + PULSE + HOLD :]),
+        all(row[4] == 0 for row in trace[end_of_hold:]),
         "driver solto",
     )
     check(int(dut.o_timeout.value) == 0, "sem tempo limite")
