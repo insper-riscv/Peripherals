@@ -18,13 +18,9 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 - [docs/pt-br/PS2/ps2_host.md](docs/pt-br/PS2/ps2_host.md): a camada física PS/2 (`ps2_host`: canais 0 e 1 do cabo Y, filtro de glitch, quadro de 11 bits e envio de comandos).
 - [docs/pt-br/PS2/ps2_keyboard.md](docs/pt-br/PS2/ps2_keyboard.md): o teclado PS/2 (`ps2_keyboard`: fila de scancodes do conjunto 2, registradores `DATA`, `STATUS`, `COMMAND` e `CONTROL`, comandos e interrupção).
 - [docs/pt-br/PS2/ps2_mouse.md](docs/pt-br/PS2/ps2_mouse.md): o mouse PS/2 (inicialização, pacotes de 3 bytes, acumuladores saturados de deslocamento, botões, interrupção, canal 1 e cabo Y).
-- [docs/pt-br/video/video.md](docs/pt-br/video/video.md): o periférico de vídeo VGA genérico (modo, polaridade e largura do canal por generics, padrão 640x480 a 60 Hz com 4 bits por canal; framebuffer de duas portas com clocks independentes, ampliação do pixel, formato indexado com paleta ou direto, contador de quadros e mapa de registradores).
-- [docs/pt-br/SD/sd_spi.md](docs/pt-br/SD/sd_spi.md): o controlador de cartão SD no modo SPI (mestre SPI com divisor configurável, filas de transmissão e recepção, seleção de chip, interrupções, pinos das placas, sequência de inicialização e exemplo em C de leitura de setor).
-- [docs/pt-br/IR/ir_receiver.md](docs/pt-br/IR/ir_receiver.md): o receptor de infravermelho da DE2-115 (decodificador NEC com repetição e endereço estendido, FIFO de quadros, medida bruta de pulso e espaço, erros e interrupção).
-- [docs/pt-br/LCD/lcd.md](docs/pt-br/LCD/lcd.md): o controlador do LCD 16x2 (HD44780) da DE2-115 (fila de escrita, temporização do barramento paralelo, espera pelo flag de ocupado ou por atraso, inicialização opcional em hardware e registradores).
-- [docs/pt-br/I2C/i2c_master.md](docs/pt-br/I2C/i2c_master.md): o mestre I2C de uso geral (início, repetição de início e parada, bytes com ACK e NACK, esticamento de clock, arbitragem, divisor de 100 kHz e 400 kHz, interrupção, mapa de registradores e exemplo em C para EEPROM de 2 a 64 Kbit).
+- [docs/pt-br/audio/audio.md](docs/pt-br/audio/audio.md): a interface de áudio I2S para o codec WM8731 (`audio`: clock mestre fracionário, clocks de bit e de canal, serializador e desserializador de 16, 24 e 32 bits, filas, tom de teste em hardware e interrupção).
+- [docs/pt-br/video/video.md](docs/pt-br/video/video.md): o periférico de vídeo VGA 640x480 a 60 Hz (framebuffer de duas portas com clocks independentes, ampliação do pixel, paleta opcional, contador de quadros e mapa de registradores).
 - [docs/pt-br/flash-controller/flash_controller.md](docs/pt-br/flash-controller/flash_controller.md): o controlador de FLASH (registradores de comando, endereço, estado e buffer de página).
-- [docs/pt-br/USB/usb_bridge.md](docs/pt-br/USB/usb_bridge.md): a ponte paralela de 16 bits para o chip USB da placa (quatro portas de acesso, temporização por registrador, interrupções, reset do chip e leitura do identificador).
 - [contracts/01-es-de-placa.md](docs/pt-br/contracts/01-es-de-placa.md) e [contracts/02-console.md](docs/pt-br/contracts/02-console.md): contratos K8 (vetores de E/S por papel, polaridade normalizada, largura zero) e K9 (console `jtag` ou `pinos`).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/pt-br/contracts/02-barramento-e-memoria.md): protocolo de barramento adotado pelos periféricos.
 
@@ -33,7 +29,7 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | Caminho | Conteúdo |
 | :--- | :--- |
 | `src/common/` | Submódulo Common-Components, editado só na origem |
-| `src/GPIO/soc/` | Entrada e saída de uso geral: blocos de grupos adaptativos (partição, direção fixa e polaridade por pino vindas de generics) com direção, saída (carga, set, clear, toggle), leitura sincronizada dos pinos e interrupções por borda de subida, de descida ou por nível em cada pino |
+| `src/GPIO/soc/` | Entrada e saída de uso geral: direção, saída (carga, set, clear, toggle), leitura sincronizada dos pinos e interrupções por borda de subida, de descida ou por nível em cada pino |
 | `src/TIMER/soc/` | Temporizador e PWM: contador com `TOP`, prescaler, comparador de duty cycle, status de overflow e interrupção |
 | `src/CLINT/soc/` | CLINT: `mtime` de 64 bits com vai-um registrado, `mtimecmp`, `msip` e as saídas de interrupção de timer e de software |
 | `src/UART/serial/` | UART 8N1 mapeada em memória: filas parametrizáveis de RX e TX, registradores separados, níveis, flags de status e de erro e interrupção de RX opcional; a camada física é a `uart2bus` do OpenCores, trazida para o repositório |
@@ -42,26 +38,20 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `src/PS2/host/` | Camada física PS/2 de um canal (`ps2_host`): sincronizador, filtro de glitch, recepção de quadros de 11 bits com paridade ímpar e envio de comandos com o clock inibido; uma instância por canal (teclado no canal 0, mouse no canal 1) |
 | `src/PS2/keyboard/` | Teclado PS/2 mapeado em memória (`ps2_keyboard`): fila de bytes de scancode, status com overflow e erro, envio de comandos e interrupção de nível |
 | `src/PS2/mouse/` | Mouse PS/2: decodificador de protocolo, acumuladores saturados por eixo e registradores (`ps2_mouse`), e o topo `ps2_mouse_top` que o liga ao `ps2_host` |
-| `src/video/soc/` | Vídeo VGA genérico: gerador de temporização por generics, memória de duas portas do framebuffer, caminho de pixel indexado ou direto, backend VGA com largura de canal por generic e registradores com estado de retrace e contador de quadros (`video`) |
-| `src/SD/spi/` | Cartão SD no modo SPI: mestre SPI de um byte (`sd_spi_phy`) e o topo mapeado em memória com filas, seleção de chip e interrupção (`sd_spi`) |
-| `src/I2C/soc/` | Mestre I2C: máquina de linha com início, parada, byte, ACK, esticamento de clock e arbitragem (`i2c_core`) e registradores com interrupção (`i2c_master`), com os pinos como par saída-baixa e entrada |
+| `src/audio/soc/` | Áudio I2S: gerador fracionário do clock mestre, clocks de bit e de canal do modo mestre, serializador, desserializador, tom de teste e registradores com filas (`audio`) |
+| `src/video/soc/` | Vídeo VGA: gerador de temporização 640x480 a 60 Hz, memória de duas portas do framebuffer, caminho de pixel com paleta opcional e registradores com estado de retrace e contador de quadros (`video`) |
 | `src/flash-controller/soc/` | Controlador de FLASH: registradores de comando, endereço, estado e buffer de página que levam os comandos de apagar, gravar e proteger ao chip de FLASH do repositório Memory |
-| `src/USB/soc/` | Ponte USB: mestre do barramento paralelo do chip (preparação, pulso, retenção e recuperação configuráveis), registradores e topo `usb_bridge` com sincronizadores |
 | `src/display/` | Display de sete segmentos: o registrador do valor, o conversor de hexadecimal para segmentos (`soc/`) e a casca do Virtual JTAG da placa (`cyclone-v/`) |
-| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,GPIO,I2C,IR,LCD,PLIC,PS2,SD,TIMER,UART,USB,display,flash_controller,video}` |
-| `src/LCD/soc/` | Controlador do LCD 16x2 (HD44780): registradores e fila de escrita (`lcd_regs`), camada física do barramento paralelo (`lcd_phy`), inicialização opcional (`lcd_init`) e o topo `lcd` |
+| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,GPIO,PLIC,PS2,TIMER,UART,audio,display,flash_controller,video}` |
 | `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO, `ps2_host_tb`, com dois canais `ps2_host`, `ps2_keyboard_tb`, com o teclado e as linhas acessíveis ao cocotb, e `ps2_cable_tb`, com o teclado e o mouse ativos ao mesmo tempo |
-| `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `gpio`, `seg_display`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, `uart`, `sd_spi`, `ir_fifo`, `ir_regs`, `lcd_phy`, `lcd_regs`, `usb_bridge`, `i2c_core` e `i2c_master`, o `run.sh` e o agregador dos engines |
-| `docs/pt-br/`, `docs/en/` | Documentos do CLINT (`CLINT/`), do PLIC (`PLIC/`), do PS/2 (`PS2/`), da UART (`UART/`), do controlador de FLASH (`flash-controller/`), do vídeo (`video/`), do cartão SD (`SD/`), do receptor de infravermelho (`IR/`), do LCD (`LCD/`), da ponte USB (`USB/`), do mestre I2C (`I2C/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
-| `src/IR/soc/` | Receptor de infravermelho: filtro e medidor de pulsos, decodificador NEC, FIFO de quadros e registradores (`ir_receiver`) |
+| `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo` e `uart`, o `run.sh` e o agregador dos engines |
+| `docs/pt-br/`, `docs/en/` | Documentos do CLINT (`CLINT/`), do PLIC (`PLIC/`), do PS/2 (`PS2/`), da UART (`UART/`), do controlador de FLASH (`flash-controller/`), do áudio (`audio/`), do vídeo (`video/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
 
 ## 3. Interface
 
 Todo periférico compartilha o mesmo conjunto de portas, conforme o barramento do contrato do Core: `i_clk`, `i_rst`, `i_data_in`, `i_address` (deslocamento em palavras dentro do periférico), `i_write`, `i_read`, `o_data_out` e `o_irq`; o CLINT não tem `i_read`, porque a leitura não tem efeito colateral. Os mapas de registradores estão nas entidades `*_operation_decoder` e em `tests/python/unittests/*/*_operation_decoder.py`.
 
 ### 3.1. Registradores da GPIO
-
-Cada grupo do bloco tem o seu arquivo de 16 palavras (64 bytes), e o grupo $g$ começa na palavra $16g$; o detalhe está em `docs/pt-br/GPIO/gpio.md`. Os endereços abaixo são os de um grupo.
 
 | Endereço | Registrador |
 | :--- | :--- |
@@ -70,7 +60,6 @@ Cada grupo do bloco tem o seu arquivo de 16 palavras (64 bytes), e o grupo $g$ c
 | 5, 6, 7 | Máscara de interrupção, máscara de borda de subida e máscara de borda de descida |
 | 8 | Status de interrupção (a leitura devolve o valor e o limpa) |
 | 9 | Pinos, após um sincronizador de dois estágios |
-| 10 | Modo de nível da interrupção por pino |
 
 ### 3.2. Registradores do TIMER
 
