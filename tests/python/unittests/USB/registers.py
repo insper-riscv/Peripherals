@@ -1,0 +1,24 @@
+"""Mapa de registradores da ponte USB (endereços de palavra)."""
+
+HC_DATA = 0
+HC_CMD = 1
+DC_DATA = 2
+DC_CMD = 3
+RDATA = 4
+CTRL = 5
+STATUS = 6
+IRQ_MASK = 7
+TIMING = 8
+
+CTRL_CHIP_RESET = 1 << 0
+CTRL_DACK = 1 << 1
+
+STATUS_INT0 = 1 << 0
+STATUS_INT1 = 1 << 1
+STATUS_DREQ = 1 << 2
+STATUS_BUSY = 1 << 3
+STATUS_ERROR = 1 << 4
+
+DEFAULT_SETUP = 2
+DEFAULT_PULSE = 6
+DEFAULT_RECOVERY = 4
