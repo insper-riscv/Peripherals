@@ -20,6 +20,9 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 - [docs/en/PS2/ps2_mouse.md](docs/en/PS2/ps2_mouse.md): the PS/2 mouse (initialization, 3-byte packets, saturating displacement accumulators, buttons, interrupt, channel 1 and the Y cable).
 - [docs/en/video/video.md](docs/en/video/video.md): the 640x480 at 60 Hz VGA video peripheral (dual-clock dual-port framebuffer, pixel magnification, optional palette, frame counter and register map).
 - [docs/en/SD/sd_spi.md](docs/en/SD/sd_spi.md): the SD card controller in SPI mode (SPI master with configurable divider, transmit and receive queues, chip select, interrupts, board pins, initialization sequence and a C example of reading a sector).
+- [docs/en/SPI/spi.md](docs/en/SPI/spi.md): the generic SPI master (four modes, 1 to 32-bit words, bit order, divider, several chip select lines, queues, interrupt and a listen word for three-wire slaves).
+- [docs/en/ADC/adc128s022.md](docs/en/ADC/adc128s022.md) and [docs/en/ADC/ltc2308.md](docs/en/ADC/ltc2308.md): the controllers of the eight-channel A/D converters of the DE0-Nano (ADC128S022) and of the DE10-Nano and DE0-Nano-SoC (LTC2308), with automatic sweep and a 12-bit register per channel.
+- [docs/en/ADXL345/adxl345.md](docs/en/ADXL345/adxl345.md): the ADXL345 accelerometer controller over SPI (DE0-Nano and DE10-Lite), with configuration, reading of the X, Y and Z axes and an interrupt.
 - [docs/en/flash-controller/flash_controller.md](docs/en/flash-controller/flash_controller.md): the FLASH controller (command, address, status and page buffer registers).
 - [contracts/01-es-de-placa.md](docs/en/contracts/01-es-de-placa.md) and [contracts/02-console.md](docs/en/contracts/02-console.md): contracts K8 (I/O vectors by role, normalized polarity, zero width) and K9 (`jtag` or `pinos` console).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/en/contracts/02-barramento-e-memoria.md): bus protocol adopted by the peripherals.
@@ -39,13 +42,16 @@ Memory-mapped peripherals of the RISC-V RV32 SoC: the blocks the core talks to o
 | `src/PS2/keyboard/` | Memory-mapped PS/2 keyboard (`ps2_keyboard`): scancode byte queue, status with overflow and error, command sending and a level interrupt |
 | `src/PS2/mouse/` | PS/2 mouse: protocol decoder, saturating accumulator per axis and registers (`ps2_mouse`), and the `ps2_mouse_top` that wires it to the `ps2_host` |
 | `src/video/soc/` | VGA video: 640x480 at 60 Hz timing generator, dual-port framebuffer memory, pixel path with optional palette and registers with the retrace status and the frame counter (`video`) |
-| `src/SD/spi/` | SD card in SPI mode: one-byte SPI master (`sd_spi_phy`) and the memory-mapped top with queues, chip select and interrupt (`sd_spi`) |
+| `src/SPI/master/` | Generic SPI master (`spi_master`) and the memory-mapped top with queues, several chip select lines and an interrupt (`spi`) |
+| `src/ADC/` | Eight-channel A/D converters: the common sweep (`sweep/`, `adc_sweep`) and the controllers of the ADC128S022 (`adc128s022/`) and of the LTC2308 (`ltc2308/`) |
+| `src/ADXL345/` | ADXL345 accelerometer controller over SPI (`adxl345`) |
+| `src/SD/spi/` | SD card in SPI mode: the generic SPI master fixed at mode 0 and 8 bits (`sd_spi_phy`) and the memory-mapped top with queues, chip select and interrupt (`sd_spi`) |
 | `src/flash-controller/soc/` | FLASH controller: command, address, status and page buffer registers that carry the erase, program and protect commands to the FLASH chip of the Memory repository |
 | `src/display/` | Seven-segment display: the value register, the hexadecimal-to-segments converter (`soc/`) and the board's Virtual JTAG shell (`cyclone-v/`) |
-| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{CLINT,GPIO,PLIC,PS2,SD,TIMER,UART,display,flash_controller,video}` |
+| `tests/python/` | Per-entity cocotb tests and the catalog (`tests.json`) that drives them, in `unittests/{ADC,ADXL345,CLINT,GPIO,PLIC,PS2,SD,SPI,TIMER,UART,display,flash_controller,video}` |
 | `tests/vhdl/` | `gpio_tb`, a wrapper that lets cocotb drive the `inout` pins of the GPIO, `ps2_host_tb`, with two `ps2_host` channels, `ps2_keyboard_tb`, with the keyboard and its lines reachable by cocotb, and `ps2_cable_tb`, with the keyboard and the mouse active at the same time |
-| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, `uart`, and `sd_spi`, the `run.sh`, and the engine aggregator |
-| `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), PS/2 documents (`PS2/`), UART documents (`UART/`), the FLASH controller (`flash-controller/`), the video (`video/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
+| `formal/` | SystemVerilog properties of `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, `uart`, `sd_spi`, `spi_master`, `adc_sweep`, the frames of the `adc128s022` and of the `ltc2308`, and the sequencer of the `adxl345`, the `run.sh`, and the engine aggregator |
+| `docs/pt-br/`, `docs/en/` | CLINT documents (`CLINT/`), PLIC documents (`PLIC/`), PS/2 documents (`PS2/`), UART documents (`UART/`), the FLASH controller (`flash-controller/`), the video (`video/`), the SD card (`SD/`), the SPI master (`SPI/`), the A/D converters (`ADC/`), the accelerometer (`ADXL345/`), formal proofs (`formal/`), and the defect of the UART over JTAG (`bugs/`) |
 
 ## 3. Interface
 

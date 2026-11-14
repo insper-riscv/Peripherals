@@ -20,6 +20,9 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 - [docs/pt-br/PS2/ps2_mouse.md](docs/pt-br/PS2/ps2_mouse.md): o mouse PS/2 (inicialização, pacotes de 3 bytes, acumuladores saturados de deslocamento, botões, interrupção, canal 1 e cabo Y).
 - [docs/pt-br/video/video.md](docs/pt-br/video/video.md): o periférico de vídeo VGA 640x480 a 60 Hz (framebuffer de duas portas com clocks independentes, ampliação do pixel, paleta opcional, contador de quadros e mapa de registradores).
 - [docs/pt-br/SD/sd_spi.md](docs/pt-br/SD/sd_spi.md): o controlador de cartão SD no modo SPI (mestre SPI com divisor configurável, filas de transmissão e recepção, seleção de chip, interrupções, pinos das placas, sequência de inicialização e exemplo em C de leitura de setor).
+- [docs/pt-br/SPI/spi.md](docs/pt-br/SPI/spi.md): o mestre SPI genérico (quatro modos, palavras de 1 a 32 bits, ordem dos bits, divisor, várias linhas de seleção de chip, filas, interrupção e palavra de escuta para os três fios).
+- [docs/pt-br/ADC/adc128s022.md](docs/pt-br/ADC/adc128s022.md) e [docs/pt-br/ADC/ltc2308.md](docs/pt-br/ADC/ltc2308.md): os controladores dos conversores A/D de oito canais da DE0-Nano (ADC128S022) e da DE10-Nano e DE0-Nano-SoC (LTC2308), com varredura automática e registradores de 12 bits por canal.
+- [docs/pt-br/ADXL345/adxl345.md](docs/pt-br/ADXL345/adxl345.md): o controlador do acelerômetro ADXL345 por SPI (DE0-Nano e DE10-Lite), com configuração, leitura dos eixos X, Y e Z e interrupção.
 - [docs/pt-br/flash-controller/flash_controller.md](docs/pt-br/flash-controller/flash_controller.md): o controlador de FLASH (registradores de comando, endereço, estado e buffer de página).
 - [contracts/01-es-de-placa.md](docs/pt-br/contracts/01-es-de-placa.md) e [contracts/02-console.md](docs/pt-br/contracts/02-console.md): contratos K8 (vetores de E/S por papel, polaridade normalizada, largura zero) e K9 (console `jtag` ou `pinos`).
 - [contracts/02-barramento-e-memoria.md](https://github.com/insper-riscv/Core/blob/main/docs/pt-br/contracts/02-barramento-e-memoria.md): protocolo de barramento adotado pelos periféricos.
@@ -39,13 +42,16 @@ Periféricos mapeados em memória do SoC RISC-V RV32: os blocos com que o núcle
 | `src/PS2/keyboard/` | Teclado PS/2 mapeado em memória (`ps2_keyboard`): fila de bytes de scancode, status com overflow e erro, envio de comandos e interrupção de nível |
 | `src/PS2/mouse/` | Mouse PS/2: decodificador de protocolo, acumuladores saturados por eixo e registradores (`ps2_mouse`), e o topo `ps2_mouse_top` que o liga ao `ps2_host` |
 | `src/video/soc/` | Vídeo VGA: gerador de temporização 640x480 a 60 Hz, memória de duas portas do framebuffer, caminho de pixel com paleta opcional e registradores com estado de retrace e contador de quadros (`video`) |
-| `src/SD/spi/` | Cartão SD no modo SPI: mestre SPI de um byte (`sd_spi_phy`) e o topo mapeado em memória com filas, seleção de chip e interrupção (`sd_spi`) |
+| `src/SPI/master/` | Mestre SPI genérico (`spi_master`) e o topo mapeado em memória com filas, várias linhas de seleção de chip e interrupção (`spi`) |
+| `src/ADC/` | Conversores A/D de oito canais: a varredura comum (`sweep/`, `adc_sweep`) e os controladores do ADC128S022 (`adc128s022/`) e do LTC2308 (`ltc2308/`) |
+| `src/ADXL345/` | Controlador do acelerômetro ADXL345 por SPI (`adxl345`) |
+| `src/SD/spi/` | Cartão SD no modo SPI: o mestre SPI genérico fixo em modo 0 e 8 bits (`sd_spi_phy`) e o topo mapeado em memória com filas, seleção de chip e interrupção (`sd_spi`) |
 | `src/flash-controller/soc/` | Controlador de FLASH: registradores de comando, endereço, estado e buffer de página que levam os comandos de apagar, gravar e proteger ao chip de FLASH do repositório Memory |
 | `src/display/` | Display de sete segmentos: o registrador do valor, o conversor de hexadecimal para segmentos (`soc/`) e a casca do Virtual JTAG da placa (`cyclone-v/`) |
-| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{CLINT,GPIO,PLIC,PS2,SD,TIMER,UART,display,flash_controller,video}` |
+| `tests/python/` | Testes por entidade em cocotb e o catálogo (`tests.json`) que os conduz, em `unittests/{ADC,ADXL345,CLINT,GPIO,PLIC,PS2,SD,SPI,TIMER,UART,display,flash_controller,video}` |
 | `tests/vhdl/` | `gpio_tb`, wrapper que permite ao cocotb dirigir os pinos `inout` da GPIO, `ps2_host_tb`, com dois canais `ps2_host`, `ps2_keyboard_tb`, com o teclado e as linhas acessíveis ao cocotb, e `ps2_cable_tb`, com o teclado e o mouse ativos ao mesmo tempo |
-| `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, `uart` e `sd_spi`, o `run.sh` e o agregador dos engines |
-| `docs/pt-br/`, `docs/en/` | Documentos do CLINT (`CLINT/`), do PLIC (`PLIC/`), do PS/2 (`PS2/`), da UART (`UART/`), do controlador de FLASH (`flash-controller/`), do vídeo (`video/`), do cartão SD (`SD/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
+| `formal/` | Propriedades em SystemVerilog de `gpio_cell`, `timer`, `clock_prescaler`, `counter_overflow`, `alu_ge_unsigned`, `clint`, `plic`, `plic_gateway`, `plic_arbiter`, `flash_controller`, `uart_fifo`, `uart`, `sd_spi`, `spi_master`, `adc_sweep`, os quadros do `adc128s022` e do `ltc2308` e o sequenciador do `adxl345`, o `run.sh` e o agregador dos engines |
+| `docs/pt-br/`, `docs/en/` | Documentos do CLINT (`CLINT/`), do PLIC (`PLIC/`), do PS/2 (`PS2/`), da UART (`UART/`), do controlador de FLASH (`flash-controller/`), do vídeo (`video/`), do cartão SD (`SD/`), do SPI (`SPI/`), dos conversores A/D (`ADC/`), do acelerômetro (`ADXL345/`), das provas formais (`formal/`) e do defeito da UART sobre JTAG (`bugs/`) |
 
 ## 3. Interface
 

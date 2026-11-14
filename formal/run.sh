@@ -131,7 +131,7 @@ expose() {
     nm="${s%%:*}"; w=""; [ "$s" != "$nm" ] && w="[${s#*:}:0] "
     ports+=",
    output ${w}dbg_$nm"
-    if printf '%s' "$top" | grep -qE "(wire|reg)[^;]*[[:space:]]$nm;"; then
+    if grep -qE "(wire|reg)[^;]*[[:space:]]$nm;" <<< "$top"; then
       assigns+="  assign dbg_$nm = $nm;
 "
     else
@@ -171,11 +171,12 @@ open_pin() {
 # abc-bmc3 engine only checks bounded properties of designs with registers, so it answers SKIP for a proof by
 # induction, for a cover and for a combinational design.
 # The verdict, the exit code and the milliseconds go to <tag>.res, and the tag to .last, for expect.
-# Four bounded proofs of the console (200 cycles over the whole UART) do not close in FORMAL_TIMEOUT with yices, while
-# bitwuzla, boolector and abc-bmc3 answer them: yices is structurally slow on a design this deep. The yices run skips
+# Four bounded proofs of the console (200 cycles over the whole UART), the two of the adc_sweep (40 cycles with free
+# frame timing), the frame of the ltc2308 (170 cycles) and the two sequences of the adxl345 (380 cycles) do not close
+# in FORMAL_TIMEOUT with yices, while bitwuzla, boolector and abc-bmc3 answer them: yices is structurally slow on a design this deep. The yices run skips
 # exactly these tags, as it skips what abc-bmc3 does not do, and formal/aggregate.sh still demands an answer from the
 # other engines for each of them.
-yices_slow=" console_pins console_inv mut_console_rx_polarity mut_console_read_strobe "
+yices_slow=" console_pins console_inv mut_console_rx_polarity mut_console_read_strobe sweep_safety sweep0_safety ltc_frame adxl3_seq adxl4_seq "
 prove() {
   echo "$6" > "$out/.last"
   if [ "$engine" = yices ] && [[ "$yices_slow" == *" $6 "* ]]; then
@@ -328,9 +329,10 @@ expect "receive: the byte is sampled mid-bit despite noise at the edges, once, n
 expect "cover: a frame of A5 is received" PASS "$(prove uart.v "$f/uart_props.sv" cover 200 '-DRXF -DCOVER' uart_rx_cover)"
 
 echo "sd_spi"
+path_of[spi_master]="$root/src/SPI/master/spi_master.vhd"
 path_of[sd_spi_phy]="$root/src/SD/spi/sd_spi_phy.vhd"
 path_of[sd_spi]="$root/src/SD/spi/sd_spi.vhd"
-sd_srcs=(config_pkg uart_fifo sd_spi_phy sd_spi)
+sd_srcs=(config_pkg uart_fifo spi_master sd_spi_phy sd_spi)
 sd_exp=(phy_busy phy_done tx_fifo_empty rx_fifo_empty done_flag rx_overrun tx_dropped cs_assert divider:15)
 sdgen=(-gclock_hz=2 -ginit_sclk_hz=1 -grx_fifo_depth=3 -gtx_fifo_depth=3)
 mut_expose=("${sd_exp[@]}"); mut_open=0
@@ -339,6 +341,54 @@ expect "CONTROL, DIVIDER, chip select, interrupt, sticky flags, STATUS and reset
 expect "a byte has exactly 8 rising edges of SCLK, SCLK moves only while busy and MOSI idles high (bounded, 40 cycles)" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" bmc 40 '-DBYTE' sdspi_byte)"
 expect "cover: the done interrupt, the receive interrupt and a dropped write are reachable" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" cover 40 '-DCOVER' sdspi_cover)"
 expect "cover: a complete byte of 8 rising edges is reachable" PASS "$(prove sdspi.v "$f/sd_spi_props.sv" cover 40 '-DBYTE -DCOVER' sdspi_byte_cover)"
+
+echo "spi_master"
+smgen=(-gword_width=4 -gdivider_width=2)
+mut_expose=(); mut_open=0
+build spi_master spim spi_master -- "${smgen[@]}"
+expect "all four modes, widths 1 to 4, both bit orders: idle SCLK, 2n edges, divider + 1 cycles apart, MOSI and MISO bit by bit, driver, done pulse (bounded, 50 cycles, 4-bit words)" PASS "$(prove spim.v "$f/spi_master_props.sv" bmc 50 '' spim_safety)"
+expect "cover: complete words of 4 and 3 bits in the four modes, a listen word and a one-bit word are reachable" PASS "$(prove spim.v "$f/spi_master_props.sv" cover 50 '-DCOVER' spim_cover)"
+
+echo "adc_sweep"
+path_of[adc_sweep]="$root/src/ADC/sweep/adc_sweep.vhd"
+sweep_srcs=(config_pkg adc_sweep)
+swgen=(-greset_divider=3)
+mut_expose=(); mut_open=0
+build adc_sweep sweep "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+expect "one-frame channel latency: the channel asked is the frame number, a sweep has 9 frames, results go to frame - 1, registers, flags and interrupt follow (bounded, 40 cycles)" PASS "$(prove sweep.v "$f/adc_sweep_props.sv" bmc 40 '-DLAT=1' sweep_safety)"
+expect "cover: a continuous sweep, an interrupt, a restart and a one-shot sweep that stops are reachable" PASS "$(prove sweep.v "$f/adc_sweep_props.sv" cover 40 '-DLAT=1 -DCOVER' sweep_cover)"
+build adc_sweep sweep0 "${sweep_srcs[@]}" -- -gchannel_latency=0 "${swgen[@]}"
+expect "no channel latency: the same, with a sweep of 8 frames and results to the channel asked (bounded, 40 cycles)" PASS "$(prove sweep0.v "$f/adc_sweep_props.sv" bmc 40 '-DLAT=0' sweep0_safety)"
+
+echo "adc128s022"
+path_of[adc128s022]="$root/src/ADC/adc128s022/adc128s022.vhd"
+adc_srcs=(config_pkg spi_master adc_sweep adc128s022)
+adc_exp=(frame_start frame_done frame_ch:2)
+adcgen=(-gclock_hz=2 -gsclk_hz=1)
+mut_expose=("${adc_exp[@]}")
+build adc128s022 adc128 "${adc_srcs[@]}" -- "${adcgen[@]}"
+expect "frame: CS low for the whole frame, SCLK idle high, 16 falling and 16 rising edges, the channel address in bits 13:11 of ADC_SADDR, one completion pulse (bounded, 120 cycles)" PASS "$(prove adc128.v "$f/adc_frame_props.sv" bmc 120 '' adc128_frame)"
+expect "cover: a complete frame of 16 clocks is reachable" PASS "$(prove adc128.v "$f/adc_frame_props.sv" cover 120 '-DCOVER' adc128_cover)"
+
+echo "ltc2308"
+path_of[ltc2308]="$root/src/ADC/ltc2308/ltc2308.vhd"
+ltc_srcs=(config_pkg spi_master adc_sweep ltc2308)
+ltcgen=(-gclock_hz=20000000 -gsclk_hz=10000000 -gconvst_ns=150 -gconversion_ns=250 -gacquisition_ns=100)
+mut_expose=("${adc_exp[@]}")
+build ltc2308 ltc "${ltc_srcs[@]}" -- "${ltcgen[@]}"
+expect "frame: CONVST high exactly 3 cycles, 5 cycles of conversion before SCK, SCK idle low, 12 rising and falling edges, the configuration of the channel in ADC_SDI, one completion pulse (bounded, 170 cycles)" PASS "$(prove ltc.v "$f/adc_frame_props.sv" bmc 170 '-DLTC' ltc_frame)"
+expect "cover: a complete frame of 12 clocks is reachable" PASS "$(prove ltc.v "$f/adc_frame_props.sv" cover 170 '-DLTC -DCOVER' ltc_cover)"
+
+echo "adxl345"
+path_of[adxl345]="$root/src/ADXL345/adxl345.vhd"
+adxl_srcs=(config_pkg spi_master adxl345)
+axgen=(-gclock_hz=20000000 -gsclk_hz=10000000 -gsample_hz=1000000 -gcs_high_ns=150)
+mut_expose=()
+build adxl345 adxl3 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=true
+expect "three wires: the five configuration transactions then the burst read, in order, with the commands, data, byte counts, driver and chip select gaps of the contract (bounded, 380 cycles)" PASS "$(prove adxl3.v "$f/adxl345_props.sv" bmc 380 '-DTHREE=1' adxl3_seq)"
+expect "cover: the BW_RATE and the data format transactions are reachable" PASS "$(prove adxl3.v "$f/adxl345_props.sv" cover 170 '-DTHREE=1 -DCOVER' adxl3_cover)"
+build adxl345 adxl4 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=false
+expect "four wires: the same, with the SPI bit of DATA_FORMAT low (bounded, 380 cycles)" PASS "$(prove adxl4.v "$f/adxl345_props.sv" bmc 380 '-DTHREE=0' adxl4_seq)"
 
 echo "console"
 path_of[console]="$root/src/UART/console/console.vhd"
@@ -503,8 +553,57 @@ mutant sd_spi "$sp" sd_spi '' sdspi_divider_address "s/if i_write = '1' and i_ad
 mutant sd_spi "$sp" sd_spi '' sdspi_done_not_cleared "s/done_flag <= done_flag and not i_data_in(5);/done_flag <= done_flag;/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
 mutant sd_spi "$sp" sd_spi '' sdspi_rx_valid_inverted "s/value(0) := not rx_fifo_empty;/value(0) := rx_fifo_empty;/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
 mutant sd_spi "$sp" sd_spi '' sdspi_busy_ignores_done "s/value(3) := phy_busy or phy_done or not tx_fifo_empty;/value(3) := phy_busy or not tx_fifo_empty;/" 24 "${sd_srcs[@]}" -- "${sdgen[@]}"
-mutant sd_spi_phy "$sp" sd_spi '-DBYTE' sdspi_phy_short_byte "s/if bits_left = 1 then/if bits_left = 2 then/" 40 "${sd_srcs[@]}" -- "${sdgen[@]}"
-mutant sd_spi_phy "$sp" sd_spi '-DBYTE' sdspi_phy_mosi_low "s/tx_shift <= tx_shift(6 downto 0) \& '1';/tx_shift <= tx_shift(6 downto 0) \& '0';/" 40 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant spi_master "$sp" sd_spi '-DBYTE' sdspi_phy_short_byte "s/if bits_left = 1 then/if bits_left = 2 then/" 40 "${sd_srcs[@]}" -- "${sdgen[@]}"
+mutant spi_master "$sp" sd_spi '-DBYTE' sdspi_phy_mosi_low "s/tx_shift <= '1' \& tx_shift(word_width - 1 downto 1);/tx_shift <= '0' \& tx_shift(word_width - 1 downto 1);/" 40 "${sd_srcs[@]}" -- "${sdgen[@]}"
+
+mut_expose=(); mut_open=0
+mp="$f/spi_master_props.sv"
+mutant spi_master "$mp" spi_master '' spim_short_word "s/if bits_left = 1 then/if bits_left = 2 then/" 50 spi_master -- "${smgen[@]}"
+mutant spi_master "$mp" spi_master '' spim_early_shift "s/if cpha = '1' and bits_left \/= word_bits then/if cpha = '1' then/" 50 spi_master -- "${smgen[@]}"
+mutant spi_master "$mp" spi_master '' spim_phase_swapped "s/if cpha = '0' then/if cpha = '1' then/" 50 spi_master -- "${smgen[@]}"
+mutant spi_master "$mp" spi_master '' spim_idle_sclk "s/sclk <= i_cpol;/sclk <= '0';/" 50 spi_master -- "${smgen[@]}"
+mutant spi_master "$mp" spi_master '' spim_drive_ignored "s/drive <= i_tx_drive;/drive <= '1';/" 50 spi_master -- "${smgen[@]}"
+mutant spi_master "$mp" spi_master '' spim_order_swapped "s/if lsb_first = '1' then/if lsb_first = '0' then/" 50 spi_master -- "${smgen[@]}"
+mutant spi_master "$mp" spi_master '' spim_period "s/divider <= unsigned(i_divider);/divider <= unsigned(i_divider) + 1;/" 50 spi_master -- "${smgen[@]}"
+mutant spi_master "$mp" spi_master '' spim_miso_stuck "s/arrived := i_miso \& rx_shift/arrived := '1' \& rx_shift/" 50 spi_master -- "${smgen[@]}"
+mutant spi_master "$mp" spi_master '' spim_mosi_idle_low "s/tx_shift <= (others => '1');/tx_shift <= (others => '0');/" 50 spi_master -- "${smgen[@]}"
+
+wp="$f/adc_sweep_props.sv"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_wrong_channel "s/channels(frame - channel_latency) <= i_frame_data;/channels(frame mod 8) <= i_frame_data;/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_short "s/if frame = LAST_FRAME then/if frame = 7 then/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_w1c_ignored "s/sweep_done <= sweep_done and not i_data_in(1);/sweep_done <= sweep_done;/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_irq_mask "s/o_irq <= irq_enable and sweep_done;/o_irq <= sweep_done;/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_never_stops "s/state <= S_ISSUE when enable = '1' else S_IDLE;/state <= S_ISSUE;/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_start_bit "s/i_data_in(2) = '1'/i_data_in(3) = '1'/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_channel_wrap "s/to_unsigned(frame mod 8, 3)/to_unsigned(frame mod 4, 3)/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_valid_missing "s/valid <= '1';/valid <= '0';/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_irq_enable_bit "s/irq_enable <= i_data_in(1);/irq_enable <= i_data_in(2);/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=0' sweep0_result_shifted "s/if frame >= channel_latency then/if frame >= 1 then/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=0 "${swgen[@]}"
+
+mut_expose=("${adc_exp[@]}")
+fp="$f/adc_frame_props.sv"
+mutant adc128s022 "$fp" adc128s022 '' adc128_address_shifted "s/tx_word <= \"00\" \& frame_ch \& \"00000000000\";/tx_word <= \"0\" \& frame_ch \& \"000000000000\";/" 120 "${adc_srcs[@]}" -- "${adcgen[@]}"
+mutant adc128s022 "$fp" adc128s022 '' adc128_cs_never_low "s/cs_n <= '0';/cs_n <= '1';/" 120 "${adc_srcs[@]}" -- "${adcgen[@]}"
+mutant adc128s022 "$fp" adc128s022 '' adc128_short_word "s/\"010000\"/\"001111\"/" 120 "${adc_srcs[@]}" -- "${adcgen[@]}"
+mutant adc128s022 "$fp" adc128s022 '' adc128_idle_low "s/i_cpol => '1',/i_cpol => '0',/" 120 "${adc_srcs[@]}" -- "${adcgen[@]}"
+mutant ltc2308 "$fp" ltc2308 '-DLTC' ltc_config_swapped "s/frame_ch(0) \& frame_ch(2) \& frame_ch(1)/frame_ch(0) \& frame_ch(1) \& frame_ch(2)/" 170 "${ltc_srcs[@]}" -- "${ltcgen[@]}"
+mutant ltc2308 "$fp" ltc2308 '-DLTC' ltc_bipolar "s/\"10\" \& \"000000\"/\"00\" \& \"000000\"/" 170 "${ltc_srcs[@]}" -- "${ltcgen[@]}"
+mutant ltc2308 "$fp" ltc2308 '-DLTC' ltc_conversion_short "s/if wait_cnt = CONVERSION_CYCLES then/if wait_cnt = 1 then/" 170 "${ltc_srcs[@]}" -- "${ltcgen[@]}"
+mutant ltc2308 "$fp" ltc2308 '-DLTC' ltc_convst_long "s/if wait_cnt = CONVST_CYCLES then/if wait_cnt = CONVST_CYCLES + 1 then/" 170 "${ltc_srcs[@]}" -- "${ltcgen[@]}"
+mutant ltc2308 "$fp" ltc2308 '-DLTC' ltc_short_word "s/\"001100\"/\"001011\"/" 170 "${ltc_srcs[@]}" -- "${ltcgen[@]}"
+mutant ltc2308 "$fp" ltc2308 '-DLTC' ltc_idle_high "s/i_cpol => '0',/i_cpol => '1',/" 170 "${ltc_srcs[@]}" -- "${ltcgen[@]}"
+
+mut_expose=()
+xp="$f/adxl345_props.sv"
+mutant adxl345 "$xp" adxl345 '-DTHREE=1' adxl_rate_command "s/constant CMD_BW_RATE : std_logic_vector(7 downto 0) := x\"2C\";/constant CMD_BW_RATE : std_logic_vector(7 downto 0) := x\"2D\";/" 380 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=true
+mutant adxl345 "$xp" adxl345 '-DTHREE=1' adxl_spi_bit "s/data_format := '0' \& spi_bit \& \"00\"/data_format := '0' \& '0' \& \"00\"/" 380 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=true
+mutant adxl345 "$xp" adxl345 '-DTHREE=1' adxl_int_enable "s/constant INT_DATA_READY : std_logic_vector(7 downto 0) := x\"80\";/constant INT_DATA_READY : std_logic_vector(7 downto 0) := x\"40\";/" 380 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=true
+mutant adxl345 "$xp" adxl345 '-DTHREE=1' adxl_power_ctl "s/constant POWER_MEASURE : std_logic_vector(7 downto 0) := x\"08\";/constant POWER_MEASURE : std_logic_vector(7 downto 0) := x\"00\";/" 380 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=true
+mutant adxl345 "$xp" adxl345 '-DTHREE=1' adxl_read_drives_mosi "s/spi_drive <= is_write;/spi_drive <= '1';/" 380 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=true
+mutant adxl345 "$xp" adxl345 '-DTHREE=1' adxl_rate_nibble "s/wdata <= \"0000\" \& rate;/wdata <= \"0001\" \& rate;/" 380 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=true
+mutant adxl345 "$xp" adxl345 '-DTHREE=1' adxl_config_short "s/elsif step = LAST_CONFIG_STEP then/elsif step = 3 then/" 380 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=true
+mutant adxl345 "$xp" adxl345 '-DTHREE=1' adxl_cs_gap "s/if gap_cnt \/= CS_HIGH_CYCLES then/if gap_cnt \/= 1 then/" 380 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=true
+mutant adxl345 "$xp" adxl345 '-DTHREE=0' adxl_spi_bit_four_wire "s/return '0';/return '1';/" 380 "${adxl_srcs[@]}" -- "${axgen[@]}" -gthree_wire=false
 
 
 # PLIC (own file, like the external interrupt controller).
