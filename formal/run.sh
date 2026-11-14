@@ -131,7 +131,7 @@ expose() {
     nm="${s%%:*}"; w=""; [ "$s" != "$nm" ] && w="[${s#*:}:0] "
     ports+=",
    output ${w}dbg_$nm"
-    if printf '%s' "$top" | grep -qE "(wire|reg)[^;]*[[:space:]]$nm;"; then
+    if grep -qE "(wire|reg)[^;]*[[:space:]]$nm;" <<< "$top"; then
       assigns+="  assign dbg_$nm = $nm;
 "
     else
@@ -481,6 +481,9 @@ mutant console "$cp_" console_equiv '' console_address_bits "s/i_address  => i_a
 mutant console "$cp_" console_equiv '' console_read_strobe "s/i_read     => i_re,/i_read     => i_we,/" 200 "${console_srcs[@]}" -- "${cgen_pins[@]}"
 mutant console "$cp_" console_equiv '' console_jtag_write_strobe "s/i_we        => i_we,/i_we        => i_re,/" 30 "${console_srcs[@]}" -- "${cgen_jtag[@]}"
 
+
+# MAX 10 ADC peripheral (own file).
+source "$root/formal/adc.sh"
 
 # PLIC (own file, like the external interrupt controller).
 source "$root/formal/plic.sh"

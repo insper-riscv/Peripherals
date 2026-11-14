@@ -316,3 +316,34 @@ class MouseOperationDecoderDut(Protocol):
 
 class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
+
+
+class Max10AdcDut(IrqDut, Protocol):
+    """Signals of the testbench of the MAX 10 ADC peripheral."""
+
+    i_analog: LogicArrayObject
+    o_cmd_valid: LogicObject
+    o_cmd_channel: LogicArrayObject
+    o_cmd_sop: LogicObject
+    o_cmd_eop: LogicObject
+    o_cmd_ready: LogicObject
+
+
+class Max10AdcSequencerDut(ResettableDut, Protocol):
+    """Signals of the sequencer of the MAX 10 ADC peripheral."""
+
+    i_start: LogicObject
+    i_mask: LogicArrayObject
+    o_cmd_valid: LogicObject
+    o_cmd_channel: LogicArrayObject
+    o_cmd_sop: LogicObject
+    o_cmd_eop: LogicObject
+    i_cmd_ready: LogicObject
+    i_rsp_valid: LogicObject
+    i_rsp_channel: LogicArrayObject
+    i_rsp_data: LogicArrayObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_sample_valid: LogicObject
+    o_sample_channel: LogicArrayObject
+    o_sample_data: LogicArrayObject
