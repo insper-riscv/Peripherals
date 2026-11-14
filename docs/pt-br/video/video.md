@@ -36,7 +36,7 @@ Com os valores padrão a imagem ocupa 640x400 e as faixas pretas têm 40 linhas 
 | :--- | :--- | :--- |
 | `i_clk`, `i_rst` | entrada | Clock do sistema e reset síncrono, ativo em 1 |
 | `i_pixel_clk` | entrada | Clock de pixel, assíncrono em relação a `i_clk` |
-| `i_data_in`, `i_address` | entrada | Dado de escrita de 32 bits e endereço de palavra de `addr_width` bits |
+| `i_data_in`, `i_address` | entrada | Dado de escrita de `XLEN` bits (`word_t`) e endereço de palavra de `addr_width` bits |
 | `i_byteena` | entrada | Habilitação de bytes da escrita, um bit por byte |
 | `i_write` | entrada | Pulso de escrita do processador |
 | `o_data_out` | saída | Dado de leitura, combinacional no endereço |

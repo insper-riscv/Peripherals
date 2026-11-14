@@ -36,7 +36,7 @@ With the default values the image is 640x400 and the black bars are 40 lines at 
 | :--- | :--- | :--- |
 | `i_clk`, `i_rst` | input | System clock and synchronous reset, active at 1 |
 | `i_pixel_clk` | input | Pixel clock, asynchronous to `i_clk` |
-| `i_data_in`, `i_address` | input | 32-bit write data and word address of `addr_width` bits |
+| `i_data_in`, `i_address` | input | `word_t` write data (`XLEN` bits) and word address of `addr_width` bits |
 | `i_byteena` | input | Write byte enables, one bit per byte |
 | `i_write` | input | Write pulse from the processor |
 | `o_data_out` | output | Read data, combinational on the address |
