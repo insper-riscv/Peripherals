@@ -73,14 +73,6 @@ class PlicArbiterDut(Protocol):
     o_valid: LogicObject
 
 
-class GpioGroupDut(IrqDut, Protocol):
-    """Signals of one GPIO group, which does not touch the pads."""
-
-    i_pins: LogicArrayObject
-    o_pins_drv: LogicArrayObject
-    o_pins_en: LogicArrayObject
-
-
 class GpioDut(IrqDut, Protocol):
     """Signals of the GPIO testbench."""
 
@@ -326,24 +318,7 @@ class Ps2CableTbDut(ResettableDut, Protocol):
     """Sinais comuns do testbench do cabo Y, com teclado e mouse."""
 
 
-class SdSpiDut(IrqDut, Protocol):
-    """Signals of the SD card controller in SPI mode."""
+class IrDut(IrqDut, Protocol):
+    """Signals of the infrared receiver."""
 
-    o_sd_sclk: LogicObject
-    o_sd_mosi: LogicObject
-    i_sd_miso: LogicObject
-    o_sd_cs_n: LogicObject
-
-
-class SdSpiPhyDut(ResettableDut, Protocol):
-    """Signals of the one-byte SPI master of the SD controller."""
-
-    i_divider: LogicArrayObject
-    i_start: LogicObject
-    i_tx_data: LogicArrayObject
-    o_busy: LogicObject
-    o_done: LogicObject
-    o_rx_data: LogicArrayObject
-    o_sclk: LogicObject
-    o_mosi: LogicObject
-    i_miso: LogicObject
+    i_irda_rxd: LogicObject
