@@ -1,0 +1,11 @@
+cc -std=c23 -Wall -Wextra -Wpedantic -Werror -Wconversion -Wshadow -Isrc/CLINT/soc/driver/c/ -Isrc/GPIO/soc/driver/c/ -Isrc/PLIC/soc/driver/c/ -Isrc/TIMER/soc/driver/c/ -Isrc/UART/console/driver/c/ -Isrc/display/soc/driver/c/ -Isrc/flash-controller/soc/driver/c/ src/CLINT/soc/driver/c/rv32_clint.c src/GPIO/soc/driver/c/rv32_gpio.c src/PLIC/soc/driver/c/rv32_plic.c src/TIMER/soc/driver/c/rv32_timer.c src/UART/console/driver/c/rv32_uart.c src/display/soc/driver/c/rv32_display.c src/flash-controller/soc/driver/c/rv32_flash.c tests/c/gpio_driver.c -o build/drivers/gpio_driver
+cc -std=c23 -Wall -Wextra -Wpedantic -Werror -Wconversion -Wshadow -Isrc/CLINT/soc/driver/c/ -Isrc/GPIO/soc/driver/c/ -Isrc/PLIC/soc/driver/c/ -Isrc/TIMER/soc/driver/c/ -Isrc/UART/console/driver/c/ -Isrc/display/soc/driver/c/ -Isrc/flash-controller/soc/driver/c/ src/CLINT/soc/driver/c/rv32_clint.c src/GPIO/soc/driver/c/rv32_gpio.c src/PLIC/soc/driver/c/rv32_plic.c src/TIMER/soc/driver/c/rv32_timer.c src/UART/console/driver/c/rv32_uart.c src/display/soc/driver/c/rv32_display.c src/flash-controller/soc/driver/c/rv32_flash.c tests/c/peripheral_drivers.c -o build/drivers/peripheral_drivers
+uv run python tests/python/runner.py 
+error: Failed to parse `uv.lock`
+  cause: TOML parse error at line 38, column 178
+            |
+         38 |     { url = "https://files.pythonhosted.org/packages/e7/9c/cd68994a36705d5a087bde37c8607bedee7a825746ffcda967ab9f04d96e/cocotb-2.1.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:157fff028a3aa0999451ff54b23a14ffabb4a00d1a23adbf17c30.8.0fc2a10f", size = 689071, upload-time = "2026-08-30T19:02:06.711Z" },
+            |                                                                                                                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+         Invalid hash digest (expected only hexadecimal characters): `157fff028a3aa0999451ff54b23a14ffabb4a00d1a23adbf17c30.8.0fc2a10f`
+make: *** [Makefile:20: test] Error 2
+EXIT 2
