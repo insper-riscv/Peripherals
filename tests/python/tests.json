@@ -4225,5 +4225,245 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "MIPILane": {
+        "toplevel": "mipi_lane_rx",
+        "sources": [
+            "src/MIPI/soc/mipi_consts.vhd",
+            "src/MIPI/soc/mipi_lane_rx.vhd"
+        ],
+        "test_module": "tests.python.unittests.MIPI.lane",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MIPIPacket": {
+        "toplevel": "mipi_packet_rx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/MIPI/soc/mipi_consts.vhd",
+            "src/MIPI/soc/mipi_packet_rx.vhd"
+        ],
+        "parameters": {
+            "lanes": 2
+        },
+        "test_module": "tests.python.unittests.MIPI.packet",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MIPIPacket1": {
+        "toplevel": "mipi_packet_rx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/MIPI/soc/mipi_consts.vhd",
+            "src/MIPI/soc/mipi_packet_rx.vhd"
+        ],
+        "parameters": {
+            "lanes": 1
+        },
+        "test_module": "tests.python.unittests.MIPI.packet",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MIPIPacket4": {
+        "toplevel": "mipi_packet_rx",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/MIPI/soc/mipi_consts.vhd",
+            "src/MIPI/soc/mipi_packet_rx.vhd"
+        ],
+        "parameters": {
+            "lanes": 4
+        },
+        "test_module": "tests.python.unittests.MIPI.packet",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MIPICapture": {
+        "toplevel": "mipi_capture",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/MIPI/soc/mipi_consts.vhd",
+            "src/MIPI/soc/mipi_capture.vhd"
+        ],
+        "parameters": {
+            "lanes": 2,
+            "fb_line_bytes": 8,
+            "fb_lines": 3
+        },
+        "test_module": "tests.python.unittests.MIPI.capture",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MIPIRegs": {
+        "toplevel": "mipi_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/MIPI/soc/mipi_consts.vhd",
+            "src/MIPI/soc/mipi_regs.vhd"
+        ],
+        "parameters": {
+            "lanes": 2,
+            "fb_line_bytes": 16,
+            "fb_lines": 4
+        },
+        "test_module": "tests.python.unittests.MIPI.regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MIPI": {
+        "toplevel": "mipi",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/MIPI/soc/mipi_consts.vhd",
+            "src/MIPI/soc/mipi_lane_rx.vhd",
+            "src/MIPI/soc/mipi_packet_rx.vhd",
+            "src/MIPI/soc/mipi_capture.vhd",
+            "src/MIPI/soc/mipi_regs.vhd",
+            "src/MIPI/soc/mipi.vhd"
+        ],
+        "parameters": {
+            "lanes": 2,
+            "fb_line_bytes": 16,
+            "fb_lines": 6
+        },
+        "test_module": "tests.python.unittests.MIPI.mipi",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MIPI1": {
+        "toplevel": "mipi",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/MIPI/soc/mipi_consts.vhd",
+            "src/MIPI/soc/mipi_lane_rx.vhd",
+            "src/MIPI/soc/mipi_packet_rx.vhd",
+            "src/MIPI/soc/mipi_capture.vhd",
+            "src/MIPI/soc/mipi_regs.vhd",
+            "src/MIPI/soc/mipi.vhd"
+        ],
+        "parameters": {
+            "lanes": 1,
+            "fb_line_bytes": 16,
+            "fb_lines": 6
+        },
+        "test_module": "tests.python.unittests.MIPI.mipi",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "MIPI4": {
+        "toplevel": "mipi",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/MIPI/soc/mipi_consts.vhd",
+            "src/MIPI/soc/mipi_lane_rx.vhd",
+            "src/MIPI/soc/mipi_packet_rx.vhd",
+            "src/MIPI/soc/mipi_capture.vhd",
+            "src/MIPI/soc/mipi_regs.vhd",
+            "src/MIPI/soc/mipi.vhd"
+        ],
+        "parameters": {
+            "lanes": 4,
+            "fb_line_bytes": 16,
+            "fb_lines": 6
+        },
+        "test_module": "tests.python.unittests.MIPI.mipi",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "WIFIRegs": {
+        "toplevel": "wifi_regs",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/WIFI/nina/wifi_consts.vhd",
+            "src/WIFI/nina/wifi_regs.vhd"
+        ],
+        "parameters": {
+            "reset_pulse_cycles": 20
+        },
+        "test_module": "tests.python.unittests.WIFI.regs",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "WIFI": {
+        "toplevel": "wifi",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTx.vhd",
+            "src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd",
+            "src/UART/serial/uart_fifo.vhd",
+            "src/UART/serial/uart.vhd",
+            "src/SPI/master/spi_master.vhd",
+            "src/SPI/master/spi.vhd",
+            "src/WIFI/nina/wifi_consts.vhd",
+            "src/WIFI/nina/wifi_regs.vhd",
+            "src/WIFI/nina/wifi.vhd"
+        ],
+        "parameters": {
+            "reset_pulse_ms": 1
+        },
+        "test_module": "tests.python.unittests.WIFI.wifi",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
     }
 }
