@@ -2,7 +2,7 @@
 
 🌐 [Português](../../pt-br/formal/formal.md) · [English](../../en/formal/formal.md)
 
-The formal proofs run in SymbiYosys on the Verilog netlist that GHDL synthesizes from each entity, with the properties written in SystemVerilog around it (`formal/<entity>_props.sv`). The method, the engines (`yices`, `bitwuzla` and `abc-bmc3`), the `build/formal/result-<engine>.tsv` file and the rule of the `formal/aggregate.sh` aggregator are the Core's. This document describes what is proved on the peripherals.
+The formal proofs run in SymbiYosys on the Verilog netlist that GHDL synthesizes from each entity, with the properties written in SystemVerilog around it (`formal/<entity>_props.sv`). The method, the engines (`yices`, `bitwuzla`, `boolector` and `abc-bmc3`), the `build/formal/result-<engine>.tsv` file and the rule of the `formal/aggregate.sh` aggregator are the Core's. This document describes what is proved on the peripherals.
 
 ## 1. What is proved
 
@@ -55,6 +55,7 @@ The formal proofs run in SymbiYosys on the Verilog netlist that GHDL synthesizes
 | `hdmi_init_seq` | `hdmi_init_seq_props.sv` | bounded, 40 cycles, 3 entries | The table goes out in order, one pending write at a time, with the register and value of the current entry; state, done and counters follow the ideal list; the start counts only with the sequence stopped |
 | `hdmi_i2c_writer` | `hdmi_i2c_writer_props.sv` | bounded, 250 cycles, quarter bit of 2 cycles | Open drain only (values always zero), free bus when stopped, SDA changes with SCL high only at start and stop, SDA released in the three acknowledge pulses, 27 data pulses plus the stop pulse and a one-cycle done |
 | `hdmi_audio` | `hdmi_audio_props.sv` | bounded, 520 cycles (ratio 128) and 1030 cycles (ratio 256), system clock at twice the MCLK | Between two LRCLK flips, measured on the outputs alone, the MCLK rises `ratio / 2` times, the SCLK rises 32 times and `ratio` cycles pass; between two SCLK rises the MCLK rises `ratio / 64` times; the serial data changes only in the cycle after an SCLK fall; the first LRCLK flip goes from the left channel to the right one and two flips happen in time |
+| `tmds_encoder` | `tmds_encoder_props.sv` | induction | After a reset the symbol is control symbol 00; without data enable the symbol is the control symbol of C1 C0 and the running disparity returns to zero; with data, the symbol decoded by the DVI inverse path is the input byte; the running disparity is even, the sum of the bits set minus the bits clear of the symbols sent since the last blanking, and its modulus never exceeds 8 |
 
 Each entity has a cover that shows the proved situation is reachable.
 
@@ -102,6 +103,7 @@ Each deliberate defect of the VHDL must make a proof fail. `formal/run.sh` appli
 | `hdmi_init_seq` | `hdmiseq_nack_ignored`, `hdmiseq_index_stuck`, `hdmiseq_done_early`, `hdmiseq_done_never`, `hdmiseq_sent_not_counted`, `hdmiseq_reissues`, `hdmiseq_auto_ignored`, `hdmiseq_register_swapped`, `hdmiseq_audio_overwrites`, `hdmiseq_audio_dropped` |
 | `hdmi_i2c_writer` | `hdmii2c_ack_driven`, `hdmii2c_two_bytes`, `hdmii2c_out_high`, `hdmii2c_busy_short` |
 | `hdmi_audio` | `hdmiaud_slot_short`, `hdmiaud_mclk_half`, `hdmiaud_clocks_swapped`, `hdmiaud_ratio_ignored` |
+| `tmds_encoder` | `tmdsenc_xor_flag_flipped`, `tmdsenc_no_inversion`, `tmdsenc_blank_keeps_disparity`, `tmdsenc_control_swapped`, `tmdsenc_count_wrong` |
 | `jtag_uart` | `jtagu_tx_empty_inverted`, `jtagu_error_mask_ignored`, `jtagu_control_bit_swapped`, `jtagu_lost_stays` |
 | `sd_spi` | `sdspi_cs_bit`, `sdspi_done_enable_bit`, `sdspi_divider_address`, `sdspi_done_not_cleared`, `sdspi_rx_valid_inverted`, `sdspi_busy_ignores_done`, `sdspi_phy_short_byte`, `sdspi_phy_mosi_low` |
 | `sd_crc7` and `sd_crc16` | `sdcrc7_poly`, `sdcrc7_poly_vec`, `sdcrc7_no_feedback_input`, `sdcrc7_clear_ignored`, `sdcrc7_enable_ignored`, `sdcrc7_shift_right`, `sdcrc16_poly`, `sdcrc16_poly_vec`, `sdcrc16_no_feedback_input`, `sdcrc16_clear_ignored`, `sdcrc16_enable_ignored`, `sdcrc16_shift_right` |
@@ -130,7 +132,7 @@ make formal FORMAL_ENGINE=yices      # another engine
 
 `abc-bmc3` skips the induction proofs and the covers, which it does not do, and answers for the bounded proofs and the mutants.
 
-`yices` skips the bounded proofs it does not close within `FORMAL_TIMEOUT` (900 s by default) or that, added up, do not fit the time limit of the job of that engine: four of the console, of 200 cycles over the whole UART (the pins backend, the inverted pins backend and the mutants `console_rx_polarity` and `console_read_strobe`), the two of the `adc_sweep`, the frame of the `ltc2308` and that of the `adc128s022`, the two sequences of the `adxl345`, the nine bounded proofs of the `sd_cmd` with a response, a busy wait or a free strobe (124 to 216 cycles) and the seven of the `uart` with parity and two stop bits (210 to 260 cycles). `bitwuzla` and `abc-bmc3` answer all of them, and the aggregator `formal/aggregate.sh` still demands a verdict from at least one engine for each proof, so the `yices` skip hides none of them.
+`yices` skips the bounded proofs it does not close within `FORMAL_TIMEOUT` (900 s by default) or that, added up, do not fit the time limit of the job of that engine: four of the console, of 200 cycles over the whole UART (the pins backend, the inverted pins backend and the mutants `console_rx_polarity` and `console_read_strobe`), the two of the `adc_sweep`, the frame of the `ltc2308` and that of the `adc128s022`, the two sequences of the `adxl345`, the nine bounded proofs of the `sd_cmd` with a response, a busy wait or a free strobe (124 to 216 cycles) and the seven of the `uart` with parity and two stop bits (210 to 260 cycles). `bitwuzla`, `boolector` and `abc-bmc3` answer all of them, and the aggregator `formal/aggregate.sh` still demands a verdict from at least one engine for each proof, so the `yices` skip hides none of them.
 
 ## 5. Warnings are errors
 
@@ -139,7 +141,7 @@ A warning from GHDL, Yosys or SymbiYosys flags code that is out of the norm or a
 1. After each `ghdl -a` and `ghdl --synth`, `formal/run.sh` scans the output of GHDL. After each `sby`, it scans every log of the proof. This holds for the proofs and for the mutants.
 2. The `scan_warnings` function matches the word `warning` or its plural, in any case, as a whole word. It catches `file.vhd:12:5:warning: ...` from GHDL and `Warning: ...` from Yosys and SymbiYosys. It does not catch names with an underscore (`warning_count`), because the underscore is part of the word, and it skips the Yosys summary with a count of zero (`Warnings: 0 unique messages, 0 total`).
 3. Each line found goes to `build/formal/warnings.txt` and to the standard error as `file:line:text`. At the end of the run, a non-empty `warnings.txt` fails `formal/run.sh`.
-4. There is one exact exception, only for the `abc-bmc3` engine: the messages ABC itself prints when it reads the AIGER file SymbiYosys hands it, `The last N outputs are interpreted as constraints` (the assumptions and the clock of the `clk2ff` step) and `The network has no constraints`. They describe the file format of the tool, not the design, and live in the `abc_notes` variable. The messages `Treating undriven bit props.\clk like $anyseq` and `Treating a total of N undriven bits` are not accepted: the script of the engine flattens the design and purges the aliases of the clock before the AIGER file is written. Yices and bitwuzla have no exception, and any other message, in any engine, is an error.
+4. There is one exact exception, only for the `abc-bmc3` engine: the messages ABC itself prints when it reads the AIGER file SymbiYosys hands it, `The last N outputs are interpreted as constraints` (the assumptions and the clock of the `clk2ff` step) and `The network has no constraints`. They describe the file format of the tool, not the design, and live in the `abc_notes` variable. The messages `Treating undriven bit props.\clk like $anyseq` and `Treating a total of N undriven bits` are not accepted: the script of the engine flattens the design and purges the aliases of the clock before the AIGER file is written. Yices, bitwuzla and boolector have no exception, and any other message, in any engine, is an error.
 
 The warnings that the netlist of each proof had and how each cause was handled:
 

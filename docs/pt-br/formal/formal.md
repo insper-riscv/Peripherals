@@ -2,7 +2,7 @@
 
 🌐 [Português](../../pt-br/formal/formal.md) · [English](../../en/formal/formal.md)
 
-As provas formais rodam no SymbiYosys sobre a netlist Verilog que o GHDL sintetiza de cada entidade, com as propriedades escritas em SystemVerilog em volta dela (`formal/<entidade>_props.sv`). O método, os engines (`yices`, `bitwuzla` e `abc-bmc3`), o arquivo `build/formal/result-<engine>.tsv` e a regra do agregador `formal/aggregate.sh` são os do Core. Este documento descreve o que se prova nos periféricos.
+As provas formais rodam no SymbiYosys sobre a netlist Verilog que o GHDL sintetiza de cada entidade, com as propriedades escritas em SystemVerilog em volta dela (`formal/<entidade>_props.sv`). O método, os engines (`yices`, `bitwuzla`, `boolector` e `abc-bmc3`), o arquivo `build/formal/result-<engine>.tsv` e a regra do agregador `formal/aggregate.sh` são os do Core. Este documento descreve o que se prova nos periféricos.
 
 ## 1. O que se prova
 
@@ -55,6 +55,7 @@ As provas formais rodam no SymbiYosys sobre a netlist Verilog que o GHDL sinteti
 | `hdmi_init_seq` | `hdmi_init_seq_props.sv` | limitada, 40 ciclos, 3 entradas | A tabela sai na ordem, uma escrita pendente por vez, com o registrador e o valor da entrada atual; estado, concluído e contadores seguem a lista ideal; o início só vale com a sequência parada |
 | `hdmi_i2c_writer` | `hdmi_i2c_writer_props.sv` | limitada, 250 ciclos, quarto de bit de 2 ciclos | Só dreno aberto (valores sempre zero), barramento livre parado, SDA muda com SCL alta só na partida e na parada, SDA liberada nos três pulsos de confirmação, 27 pulsos de dado mais o pulso da parada e um ciclo de fim |
 | `hdmi_audio` | `hdmi_audio_props.sv` | limitada, 520 ciclos (razão 128) e 1030 ciclos (razão 256), clock do sistema com o dobro do MCLK | Entre duas trocas do LRCLK, medidas só nas saídas, o MCLK sobe `razão / 2` vezes, o SCLK sobe 32 vezes e passam `razão` ciclos; entre duas subidas do SCLK o MCLK sobe `razão / 64` vezes; o dado serial só muda no ciclo seguinte a uma descida do SCLK; a primeira troca do LRCLK vai do canal esquerdo ao direito e duas trocas ocorrem no prazo |
+| `tmds_encoder` | `tmds_encoder_props.sv` | indução | Depois de um reset o símbolo é o de controle 00; sem habilitação de dados o símbolo é o de controle de C1 C0 e a disparidade acumulada volta a zero; com dados, o símbolo decodificado pelo caminho inverso do DVI é o byte de entrada; a disparidade acumulada é par, a soma dos bits em 1 menos os bits em 0 dos símbolos enviados desde o último apagamento, e o seu módulo nunca passa de 8 |
 
 Cada entidade tem um cover que mostra que a situação provada é alcançável.
 
@@ -102,6 +103,7 @@ Cada defeito proposital do VHDL precisa fazer uma prova falhar. O `formal/run.sh
 | `hdmi_init_seq` | `hdmiseq_nack_ignored`, `hdmiseq_index_stuck`, `hdmiseq_done_early`, `hdmiseq_done_never`, `hdmiseq_sent_not_counted`, `hdmiseq_reissues`, `hdmiseq_auto_ignored`, `hdmiseq_register_swapped`, `hdmiseq_audio_overwrites`, `hdmiseq_audio_dropped` |
 | `hdmi_i2c_writer` | `hdmii2c_ack_driven`, `hdmii2c_two_bytes`, `hdmii2c_out_high`, `hdmii2c_busy_short` |
 | `hdmi_audio` | `hdmiaud_slot_short`, `hdmiaud_mclk_half`, `hdmiaud_clocks_swapped`, `hdmiaud_ratio_ignored` |
+| `tmds_encoder` | `tmdsenc_xor_flag_flipped`, `tmdsenc_no_inversion`, `tmdsenc_blank_keeps_disparity`, `tmdsenc_control_swapped`, `tmdsenc_count_wrong` |
 | `jtag_uart` | `jtagu_tx_empty_inverted`, `jtagu_error_mask_ignored`, `jtagu_control_bit_swapped`, `jtagu_lost_stays` |
 | `sd_spi` | `sdspi_cs_bit`, `sdspi_done_enable_bit`, `sdspi_divider_address`, `sdspi_done_not_cleared`, `sdspi_rx_valid_inverted`, `sdspi_busy_ignores_done`, `sdspi_phy_short_byte`, `sdspi_phy_mosi_low` |
 | `sd_crc7` e `sd_crc16` | `sdcrc7_poly`, `sdcrc7_poly_vec`, `sdcrc7_no_feedback_input`, `sdcrc7_clear_ignored`, `sdcrc7_enable_ignored`, `sdcrc7_shift_right`, `sdcrc16_poly`, `sdcrc16_poly_vec`, `sdcrc16_no_feedback_input`, `sdcrc16_clear_ignored`, `sdcrc16_enable_ignored`, `sdcrc16_shift_right` |
@@ -130,7 +132,7 @@ make formal FORMAL_ENGINE=yices      # outro engine
 
 O `abc-bmc3` pula as provas de indução e os covers, que não faz, e responde pelas provas limitadas e pelos mutantes.
 
-O `yices` pula as provas limitadas que ele não fecha dentro do `FORMAL_TIMEOUT` (900 s por padrão) ou que, somadas, não cabem no limite de tempo do job desse engine: quatro do console, de 200 ciclos sobre a UART inteira (o backend pinos, o backend pinos invertido e os mutantes `console_rx_polarity` e `console_read_strobe`), as duas do `adc_sweep`, o quadro do `ltc2308` e o do `adc128s022`, as duas sequências do `adxl345`, as nove provas limitadas do `sd_cmd` com resposta, espera de ocupado ou estrobo livre (124 a 216 ciclos) e as sete da `uart` com paridade e dois bits de parada (210 a 260 ciclos). O `bitwuzla` e o `abc-bmc3` respondem a todas, e o agregador `formal/aggregate.sh` continua exigindo veredito de pelo menos um engine para cada prova, de modo que o pulo do `yices` não esconde nenhuma delas.
+O `yices` pula as provas limitadas que ele não fecha dentro do `FORMAL_TIMEOUT` (900 s por padrão) ou que, somadas, não cabem no limite de tempo do job desse engine: quatro do console, de 200 ciclos sobre a UART inteira (o backend pinos, o backend pinos invertido e os mutantes `console_rx_polarity` e `console_read_strobe`), as duas do `adc_sweep`, o quadro do `ltc2308` e o do `adc128s022`, as duas sequências do `adxl345`, as nove provas limitadas do `sd_cmd` com resposta, espera de ocupado ou estrobo livre (124 a 216 ciclos) e as sete da `uart` com paridade e dois bits de parada (210 a 260 ciclos). O `bitwuzla`, o `boolector` e o `abc-bmc3` respondem a todas, e o agregador `formal/aggregate.sh` continua exigindo veredito de pelo menos um engine para cada prova, de modo que o pulo do `yices` não esconde nenhuma delas.
 
 ## 5. Avisos são erros
 
@@ -139,7 +141,7 @@ Um aviso do GHDL, do Yosys ou do SymbiYosys indica código fora da norma ou no l
 1. Depois de cada `ghdl -a` e `ghdl --synth`, o `formal/run.sh` varre a saída do GHDL. Depois de cada `sby`, varre todos os logs da prova. Isso vale para as provas e para os mutantes.
 2. A função `scan_warnings` casa a palavra `warning` ou o plural, em qualquer caixa, como palavra inteira. Pega `arquivo.vhd:12:5:warning: ...` do GHDL e `Warning: ...` do Yosys e do SymbiYosys. Não pega nomes com sublinhado (`warning_count`), porque o sublinhado faz parte da palavra, e ignora o resumo do Yosys com contagem zero (`Warnings: 0 unique messages, 0 total`).
 3. Cada linha encontrada vai para `build/formal/warnings.txt` e para a saída de erro no formato `arquivo:linha:texto`. No fim da execução, um `warnings.txt` não vazio reprova o `formal/run.sh`.
-4. Há uma exceção exata, só para o motor `abc-bmc3`: as mensagens que o próprio ABC imprime ao ler o arquivo AIGER que o SymbiYosys lhe entrega, `The last N outputs are interpreted as constraints` (as suposições e o clock do passo `clk2ff`) e `The network has no constraints`. Elas descrevem o formato de arquivo da ferramenta, não o projeto, e estão na variável `abc_notes`. As mensagens `Treating undriven bit props.\clk like $anyseq` e `Treating a total of N undriven bits` não são aceitas: o script do motor achata o projeto e elimina os apelidos do clock antes de o arquivo AIGER ser escrito. Yices e bitwuzla não têm exceção, e qualquer outra mensagem, em qualquer motor, é erro.
+4. Há uma exceção exata, só para o motor `abc-bmc3`: as mensagens que o próprio ABC imprime ao ler o arquivo AIGER que o SymbiYosys lhe entrega, `The last N outputs are interpreted as constraints` (as suposições e o clock do passo `clk2ff`) e `The network has no constraints`. Elas descrevem o formato de arquivo da ferramenta, não o projeto, e estão na variável `abc_notes`. As mensagens `Treating undriven bit props.\clk like $anyseq` e `Treating a total of N undriven bits` não são aceitas: o script do motor achata o projeto e elimina os apelidos do clock antes de o arquivo AIGER ser escrito. Yices, bitwuzla e boolector não têm exceção, e qualquer outra mensagem, em qualquer motor, é erro.
 
 Os avisos que a netlist de cada prova tinha e a causa tratada:
 
