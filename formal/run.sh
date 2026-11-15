@@ -744,7 +744,7 @@ mutant uartTx "$up" uart '-DTXF -DCFGSET -DPEN=1' uart_tx_parity_inverted "s/xor
 mutant uartTx "$up" uart '-DTXF -DCFGSET -DPEN=1 -DPODD=1' uart_tx_parity_always_even "s/xor cfgParityOdd when/when/" 210 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartTx "$up" uart '-DTXF -DCFGSET -DS2=1' uart_tx_stop2_ignored "s/lastBit <= \"1010\";/lastBit <= \"1001\";/" 220 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartTx "$up" uart '-DTXF -DCFGSET -DPEN=1' uart_tx_parity_skipped "s/dataBuf <= parityBit \& txData \& '0';/dataBuf <= '1' \& txData \& '0';/" 210 "${uart_srcs[@]}" -- "${ugen[@]}"
-mutant uartRx "$up" uart '-DRXF -DCFGSET -DPEN=1 -DBADPAR=1' uart_rx_parity_never_flagged "s/parityErr <= (xor dataBuf) xor inSync(1) xor cfgParityOdd;/parityErr <= '0';/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
+mutant uartRx "$up" uart '-DRXF -DCFGSET -DPEN=1 -DBADPAR=1' uart_rx_parity_never_flagged ":a;N;\$!ba;s/parityErr <= dataBuf(0)[^;]*;/parityErr <= '0';/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF -DCFGSET -DPEN=1 -DPODD=1' uart_rx_parity_sense_inverted "s/xor inSync(1) xor cfgParityOdd/xor inSync(1)/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF -DBADSTOP=1' uart_rx_frame_never_flagged "s/frameErr <= '1';/frameErr <= '0';/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
 mutant uartRx "$up" uart '-DRXF' uart_rx_frame_flagged_on_good_stop "s/(inSync(1) = '0')) then/(inSync(1) = '1')) then/" 240 "${uart_srcs[@]}" -- "${ugen[@]}"
