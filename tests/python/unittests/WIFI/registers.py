@@ -1,0 +1,30 @@
+"""Endereços de palavra, blocos e bits da ponte do módulo Wi-Fi NINA."""
+
+CTRL = 0
+STATUS = 1
+RESET_PULSE = 2
+
+SPI_BASE = 0x08
+SPI_TX_DATA = SPI_BASE + 0
+SPI_RX_DATA = SPI_BASE + 1
+SPI_STATUS = SPI_BASE + 2
+SPI_CONTROL = SPI_BASE + 3
+SPI_DIVIDER = SPI_BASE + 4
+
+UART_BASE = 0x10
+UART_TX_DATA = UART_BASE + 0
+UART_RX_DATA = UART_BASE + 1
+UART_STATUS = UART_BASE + 2
+UART_CONTROL = UART_BASE + 3
+
+RUN = 1 << 0
+BOOT_LOW = 1 << 1
+RISE_IRQ = 1 << 2
+FALL_IRQ = 1 << 3
+
+ACK = 1 << 0
+RISE = 1 << 1
+FALL = 1 << 2
+PULSE = 1 << 3
+
+UNMAPPED = (0x03, 0x07, 0x0E, 0x0F, 0x14, 0x17, 0x18, 0x1F)

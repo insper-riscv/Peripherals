@@ -13,7 +13,7 @@ references:
   - {name: standalone C driver examples, paths: [src/CLINT/soc/driver/c/examples/main.c.in, src/GPIO/soc/driver/c/examples/main.c.in, src/PLIC/soc/driver/c/examples/main.c.in, src/TIMER/soc/driver/c/examples/main.c.in, src/UART/console/driver/c/examples/main.c.in, src/display/soc/driver/c/examples/main.c.in, src/flash-controller/soc/driver/c/examples/main.c.in]}
   - {name: C driver tests and style, paths: [tests/c/peripheral_drivers.c, .clang-format]}
   - {name: per-entity tests.json, file: tests/python/tests.json, yaml: "*.sources", base: .}
-  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/PS2/host, src/PS2/keyboard, src/PS2/mouse, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/video/soc, src/SD/spi, src/SD/native, src/SPI/master, src/ADC/sweep, src/ADC/adc128s022, src/ADC/ltc2308, src/ADXL345, src/IR/soc, src/LCD/soc, src/USB/soc, src/I2C/soc, src/audio/soc, tests/python/unittests/audio, tests/python/utils/i2s_codec.py, src/HDMI/soc, src/HDMI/adv7513, src/TV/soc, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/ps2_host_tb.vhd, tests/vhdl/ps2_keyboard_tb.vhd, tests/vhdl/ps2_mouse_top_tb.vhd, tests/vhdl/ps2_cable_tb.vhd, tests/vhdl/gpio_partition_pkg.vhd, tests/vhdl/gpio_cell_tb.vhd, tests/vhdl/seg_display_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd, src/ADC/soc, src/ADC/max10, src/ADC/max10/ip/generate.sh, src/ADC/max10/ip/max10_adc_core.tcl, tests/vhdl/max10_adc_tb.vhd, tests/vhdl/max10_adc_core_model.vhd, tests/quartus/check_max10_adc_synthesis.sh]}
+  - {name: entry points, paths: [tests/python/runner.py, src/GPIO/soc, src/TIMER/soc, src/CLINT/soc, src/PLIC/soc, src/PS2/host, src/PS2/keyboard, src/PS2/mouse, src/UART/serial, src/UART/jtag, src/UART/console, src/display/soc, src/video/soc, src/SD/spi, src/SD/native, src/SPI/master, src/ADC/sweep, src/ADC/adc128s022, src/ADC/ltc2308, src/ADXL345, src/IR/soc, src/LCD/soc, src/USB/soc, src/I2C/soc, src/audio/soc, tests/python/unittests/audio, tests/python/utils/i2s_codec.py, src/HDMI/soc, src/HDMI/adv7513, src/TV/soc, src/MIPI/soc, src/MIPI/ddr/sim, src/WIFI/nina, src/flash-controller/soc, tests/vhdl/gpio_tb.vhd, tests/vhdl/ps2_host_tb.vhd, tests/vhdl/ps2_keyboard_tb.vhd, tests/vhdl/ps2_mouse_top_tb.vhd, tests/vhdl/ps2_cable_tb.vhd, tests/vhdl/gpio_partition_pkg.vhd, tests/vhdl/gpio_cell_tb.vhd, tests/vhdl/seg_display_tb.vhd, tests/vhdl/seg_display_zero_tb.vhd, src/common/src/flip_flop.vhd, tests/vhdl/console_equiv.vhd, src/ADC/soc, src/ADC/max10, src/ADC/max10/ip/generate.sh, src/ADC/max10/ip/max10_adc_core.tcl, tests/vhdl/max10_adc_tb.vhd, tests/vhdl/max10_adc_core_model.vhd, tests/quartus/check_max10_adc_synthesis.sh]}
   - {name: formal proofs, paths: [formal/run.sh, formal/aggregate.sh, formal/alu_ge_unsigned_props.sv, formal/counter_overflow_props.sv, formal/clock_prescaler_props.sv, formal/timer_props.sv, formal/clint_props.sv, formal/plic.sh, formal/plic_props.sv, formal/plic_gateway_props.sv, formal/plic_arbiter_props.sv, formal/flash_controller_props.sv, formal/gpio_cell_props.sv, formal/gpio_props.sv, formal/seg_display_props.sv, formal/uart_props.sv, formal/uart_flow_props.sv, formal/jtag_uart_props.sv, formal/uart_fifo_props.sv, formal/sd_spi_props.sv, formal/spi_master_props.sv, formal/adc_sweep_props.sv, formal/adc_frame_props.sv, formal/adxl345_props.sv, formal/sd_crc_props.sv, formal/sd_cmd_props.sv, formal/ir_fifo_props.sv, formal/ir_regs_props.sv, formal/lcd_phy_props.sv, formal/lcd_regs_props.sv, formal/usb_bridge_props.sv, formal/i2c_core_props.sv, formal/i2c_master_props.sv, formal/i2c.sh, formal/audio_xck_gen_props.sv, formal/audio_frame_clocks_props.sv, formal/audio_props.sv, formal/eth_crc32_props.sv, formal/eth_async_fifo_props.sv, formal/eth_regs_props.sv, formal/eth_speed_props.sv, formal/eth.sh, formal/hdmi_timing_props.sv, formal/hdmi_regs_props.sv, formal/hdmi_init_seq_props.sv, formal/hdmi_i2c_writer_props.sv, formal/hdmi.sh, formal/hdmi_audio.sh, formal/hdmi_audio_props.sv, formal/tv_regs_props.sv, formal/tv_capture_props.sv, formal/adc.sh, formal/max10_adc_sequencer_props.sv, docs/pt-br/formal/formal.md, docs/en/formal/formal.md]}
   - {name: CLINT documents, paths: [docs/pt-br/CLINT/clint.md, docs/en/CLINT/clint.md]}
   - {name: PLIC documents, paths: [docs/pt-br/PLIC/plic.md, docs/en/PLIC/plic.md]}
@@ -29,6 +29,8 @@ references:
   - {name: I2C documents, paths: [docs/pt-br/I2C/i2c_master.md, docs/en/I2C/i2c_master.md]}
   - {name: HDMI documents, paths: [docs/pt-br/HDMI/hdmi_tx.md, docs/en/HDMI/hdmi_tx.md, docs/pt-br/HDMI/hdmi_audio.md, docs/en/HDMI/hdmi_audio.md]}
   - {name: TV documents, paths: [docs/pt-br/TV/tv.md, docs/en/TV/tv.md]}
+  - {name: MIPI documents, paths: [docs/pt-br/MIPI/mipi.md, docs/en/MIPI/mipi.md]}
+  - {name: WIFI documents, paths: [docs/pt-br/WIFI/wifi.md, docs/en/WIFI/wifi.md]}
   - {name: MAX 10 ADC documents, paths: [docs/pt-br/ADC/max10_adc.md, docs/en/ADC/max10_adc.md]}
   - {name: GPIO documents, paths: [docs/pt-br/GPIO/gpio.md, docs/en/GPIO/gpio.md]}
   - {name: PS2 documents, paths: [docs/pt-br/PS2/ps2_host.md, docs/en/PS2/ps2_host.md, docs/pt-br/PS2/ps2_keyboard.md, docs/en/PS2/ps2_keyboard.md]}
@@ -76,14 +78,15 @@ tree:
       max10_adc_ip: wraps the Quartus IP altera_modular_adc, covered by the synthesis check of tests/quartus
       max10_adc_shell: structural top of the board, covered by the synthesis check of tests/quartus
   # The peripherals are named after what they are, in capitals, like the extensions of the Core.
-  identifier_folders: [ADC, ADXL345, CLINT, ETH, GPIO, HDMI, I2C, IR, LCD, PLIC, PS2, SD, SPI, TIMER, TV, UART, USB]
+  identifier_folders: [ADC, ADXL345, CLINT, ETH, GPIO, HDMI, I2C, IR, LCD, MIPI, PLIC, PS2, SD, SPI, TIMER, TV, UART, USB, WIFI]
   vhdl_style:
     # The generated IP altera_modular_adc (max10_adc_core) and the Verilog PLL max10_adc_pll enter as component, and their
     # names are not yet in vendor_primitives.yaml of riscv-tools; the two files that declare them are left out like the
     # other generated IP. The two DDR registers of the RGMII board build wrap the megafunctions altddio_in and
     # altddio_out (library altera_mf), which also enter as component and are not in that list either.
     exclude: [src/ADC/max10/max10_adc_ip.vhd, src/ADC/max10/max10_adc_shell.vhd, src/ETH/rgmii/altera/eth_ddr_in.vhd,
-      src/ETH/rgmii/altera/eth_ddr_out.vhd]
+      src/ETH/rgmii/altera/eth_ddr_out.vhd,
+      src/MIPI/ddr/altera/mipi_ddr_in.vhd]
 
 provides:
   # Each component lists its sources in GHDL dependency order and the components it needs. A requires with the
@@ -282,6 +285,31 @@ provides:
       - src/TV/soc/tv_color.vhd
       - src/TV/soc/tv_regs.vhd
       - src/TV/soc/tv.vhd
+  MIPI:
+    requires: [video_dpram, Common-Components/utils, Common-Components/config, Common-Components/synchronizer]
+    sources:
+      - src/MIPI/soc/mipi_consts.vhd
+      - src/MIPI/soc/mipi_lane_rx.vhd
+      - src/MIPI/soc/mipi_packet_rx.vhd
+      - src/MIPI/soc/mipi_capture.vhd
+      - src/MIPI/soc/mipi_regs.vhd
+      - src/MIPI/soc/mipi.vhd
+  # The DDR input register of the camera lanes; a platform adds exactly one of MIPI_ddr_sim (simulation) and
+  # MIPI_ddr_altera (board), the two files of each name being the same entity.
+  MIPI_ddr_sim:
+    requires: []
+    sources:
+      - src/MIPI/ddr/sim/mipi_ddr_in.vhd
+  MIPI_ddr_altera:
+    requires: []
+    sources:
+      - src/MIPI/ddr/altera/mipi_ddr_in.vhd
+  WIFI:
+    requires: [UART, SPI, Common-Components/config, Common-Components/synchronizer, Common-Components/utils]
+    sources:
+      - src/WIFI/nina/wifi_consts.vhd
+      - src/WIFI/nina/wifi_regs.vhd
+      - src/WIFI/nina/wifi.vhd
   display:
     requires: [GPIO, Common-Components/config, Common-Components/synchronizer]
     sources:
