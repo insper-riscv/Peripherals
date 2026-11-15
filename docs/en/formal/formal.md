@@ -134,7 +134,21 @@ make formal FORMAL_ENGINE=yices      # another engine
 
 `yices` skips the bounded proofs it does not close within `FORMAL_TIMEOUT` (900 s by default) or that, added up, do not fit the time limit of the job of that engine: four of the console, of 200 cycles over the whole UART (the pins backend, the inverted pins backend and the mutants `console_rx_polarity` and `console_read_strobe`), the two of the `adc_sweep`, the frame of the `ltc2308` and that of the `adc128s022`, the two sequences of the `adxl345`, the nine bounded proofs of the `sd_cmd` with a response, a busy wait or a free strobe (124 to 216 cycles) and the seven of the `uart` with parity and two stop bits (210 to 260 cycles). `bitwuzla` and `abc-bmc3` answer all of them, and the aggregator `formal/aggregate.sh` still demands a verdict from at least one engine for each proof, so the `yices` skip hides none of them.
 
-## 5. Warnings are errors
+## 5. Where the formal runs
+
+The three `formal - <engine>` jobs of the CI (`yices`, `bitwuzla` and `abc-bmc3`) run by default on the self-hosted runners with the `formal` label, inside the container of the `ci-vhdl` image. The `formal` job, which joins the results, and the other jobs run on the hosted `ubuntu-26.04` runner.
+
+The repository variable `RUNNERS_FORMAL` chooses the runner of the engine jobs.
+
+| `RUNNERS_FORMAL` | Runner of the `formal - <engine>` jobs |
+| :--- | :--- |
+| unset or any value other than `hosted` | self-hosted with the `formal` label |
+| `hosted` | `ubuntu-26.04` |
+
+A pull request from a fork always runs on the hosted runner, whatever the variable. The limit of each job stays at 90 minutes.
+
+
+## 6. Warnings are errors
 
 A warning from GHDL, Yosys or SymbiYosys flags code that is out of the norm or at its limit, and the cause is fixed in the code or in the proof. No option hides a warning (`formal/run.sh` has no `-Wno-*`).
 
