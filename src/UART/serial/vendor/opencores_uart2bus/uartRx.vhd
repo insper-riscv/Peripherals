@@ -128,7 +128,8 @@ architecture Behavioral of uartRx is
         parityErr <= '0';
         if ((rxBusy = '1') and (ce1Mid = '1')) then
           if ((cfgParityEn = '1') and (unsigned(bitCount) = 8)) then
-            parityErr <= (xor dataBuf) xor inSync(1) xor cfgParityOdd;
+            parityErr <= dataBuf(0) xor dataBuf(1) xor dataBuf(2) xor dataBuf(3) xor dataBuf(4) xor dataBuf(5) xor dataBuf(6) xor dataBuf(7)
+                         xor inSync(1) xor cfgParityOdd;
           end if;
           if ((bitCount = lastBit) and (inSync(1) = '0')) then
             frameErr <= '1';

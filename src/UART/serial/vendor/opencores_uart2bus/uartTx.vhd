@@ -33,7 +33,8 @@ architecture Behavioral of uartTx is
   signal parityBit : std_logic;                   -- parity of the byte, or '1' (a stop level) without parity
 
   begin
-    parityBit <= (xor txData) xor cfgParityOdd when cfgParityEn = '1' else '1';
+    parityBit <= txData(0) xor txData(1) xor txData(2) xor txData(3) xor txData(4) xor txData(5) xor txData(6) xor txData(7)
+                 xor cfgParityOdd when cfgParityEn = '1' else '1';
     -- a counter to count 16 pulses of ce_16 to generate the ce_1 pulse
     process (clr, clk)
     begin
