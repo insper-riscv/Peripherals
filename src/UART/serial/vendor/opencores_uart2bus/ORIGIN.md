@@ -34,4 +34,8 @@ them through. The data shift register of `uartRx` takes only the eight data bits
 The configuration inputs default to `'0'`, and with them at `'0'` the frame, the
 byte and its timing are the 8N1 of the upstream modules, bit for bit. The authors
 and the license are unchanged.
+Local change in `uartTx.vhd` and `uartRx.vhd`: the parity of the eight data bits is
+written as a chain of `xor` of the eight bits instead of the VHDL-2008 unary reduction
+`(xor vector)`, because Quartus Prime Lite 25.1 rejects the unary reduction operators
+(error 10500). The value is the same.
 
