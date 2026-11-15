@@ -946,5 +946,8 @@ source "$root/formal/hdmi.sh"
 # HDMI audio output (own file): clock counts and the data timing of the I2S bus to the ADV7513.
 source "$root/formal/hdmi_audio.sh"
 
+# TMDS encoder of the direct HDMI output (own file).
+source "$root/formal/tmds.sh"
+
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }
