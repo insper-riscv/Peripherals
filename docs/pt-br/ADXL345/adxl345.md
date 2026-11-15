@@ -4,7 +4,7 @@
 
 ## 1. O que é
 
-Controlador de barramento do acelerômetro de três eixos ADXL345 pelo SPI. Ao ser habilitado, configura o chip (taxa, faixa, resolução e interrupção de dado pronto) e depois lê, em intervalos fixos ou a cada aviso de dado pronto em INT1, os seis bytes dos eixos X, Y e Z. Cada eixo vira um registrador de 32 bits com o valor de 16 bits em complemento de dois estendido em sinal (13 bits úteis na faixa de 16 g com resolução plena). O chip também fala I2C, e esse acesso é por software com o mestre I2C do repositório, sem passar por este controlador.
+Controlador de barramento do acelerômetro de três eixos ADXL345 pelo SPI. Ao ser habilitado, configura o chip (taxa, faixa, resolução e interrupção de dado pronto) e depois lê, em intervalos fixos ou a cada aviso de dado pronto em INT1, os seis bytes dos eixos X, Y e Z. Cada eixo vira um registrador de 32 bits com o valor de 16 bits em complemento de dois estendido em sinal (13 bits úteis na faixa de 16 g com resolução plena). O chip também fala I2C, e esse acesso tem o controlador próprio descrito em `adxl345_i2c.md`.
 
 | Bloco | Função |
 | :--- | :--- |

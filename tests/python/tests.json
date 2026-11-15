@@ -2660,6 +2660,149 @@
             "--std=08"
         ]
     },
+    "Adxl345I2c": {
+        "toplevel": "adxl345_i2c_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/I2C/soc/i2c_consts.vhd",
+            "src/I2C/soc/i2c_core.vhd",
+            "src/ADXL345/adxl345_consts.vhd",
+            "src/ADXL345/adxl345_i2c.vhd",
+            "tests/vhdl/adxl345_i2c_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADXL345.adxl345_i2c",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "Adxl345I2cSdoHigh": {
+        "toplevel": "adxl345_i2c_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/I2C/soc/i2c_consts.vhd",
+            "src/I2C/soc/i2c_core.vhd",
+            "src/ADXL345/adxl345_consts.vhd",
+            "src/ADXL345/adxl345_i2c.vhd",
+            "tests/vhdl/adxl345_i2c_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.ADXL345.adxl345_i2c",
+        "parameters": {
+            "ADDRESS_SELECT_HIGH": true
+        },
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GpioInput": {
+        "toplevel": "gpio_input",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd",
+            "src/GPIO/soc/gpio_input.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_input",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "GpioInputActiveLow": {
+        "toplevel": "gpio_input_low_tb",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/flip_flop.vhd",
+            "src/common/src/generic_register.vhd",
+            "src/common/src/clearable_register.vhd",
+            "src/common/src/mux_4x1.vhd",
+            "src/common/src/mux_8x1.vhd",
+            "src/common/src/tristate_buffer_1bit.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/GPIO/soc/gpio_pkg.vhd",
+            "src/GPIO/soc/gpio_operation_decoder.vhd",
+            "src/GPIO/soc/gpio_cell.vhd",
+            "src/GPIO/soc/gpio_group.vhd",
+            "src/GPIO/soc/gpio_input.vhd",
+            "tests/vhdl/gpio_input_low_tb.vhd"
+        ],
+        "test_module": "tests.python.unittests.GPIO.gpio_input_active_low",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "TmdsEncoder": {
+        "toplevel": "tmds_encoder",
+        "sources": [
+            "src/HDMI/tmds/tmds_consts.vhd",
+            "src/HDMI/tmds/tmds_encoder.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.tmds_encoder",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "TmdsSerializer": {
+        "toplevel": "tmds_serializer",
+        "sources": [
+            "src/common/src/synchronizer.vhd",
+            "src/HDMI/tmds/tmds_consts.vhd",
+            "src/HDMI/tmds/tmds_serializer.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.tmds_serializer",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
+    "TmdsTx": {
+        "toplevel": "tmds_tx",
+        "sources": [
+            "src/common/src/synchronizer.vhd",
+            "src/HDMI/tmds/tmds_consts.vhd",
+            "src/HDMI/tmds/tmds_encoder.vhd",
+            "src/HDMI/tmds/tmds_serializer.vhd",
+            "src/HDMI/tmds/sim/tmds_ddr_out.vhd",
+            "src/HDMI/tmds/tmds_tx.vhd"
+        ],
+        "test_module": "tests.python.unittests.HDMI.tmds_tx",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ]
+    },
     "I2cMaster": {
         "toplevel": "i2c_master_tb",
         "sources": [

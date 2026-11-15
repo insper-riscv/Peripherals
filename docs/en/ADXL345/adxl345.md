@@ -4,7 +4,7 @@
 
 ## 1. What it is
 
-Bus controller of the ADXL345 three-axis accelerometer over SPI. When enabled, it configures the chip (rate, range, resolution and data-ready interrupt) and then reads, at fixed intervals or on each data-ready signal on INT1, the six bytes of the X, Y and Z axes. Each axis becomes a 32-bit register holding the 16-bit two's complement value sign-extended (13 useful bits at the 16 g range with full resolution). The chip also speaks I2C, and that access is done by software with the I2C master of the repository, without going through this controller.
+Bus controller of the ADXL345 three-axis accelerometer over SPI. When enabled, it configures the chip (rate, range, resolution and data-ready interrupt) and then reads, at fixed intervals or on each data-ready signal on INT1, the six bytes of the X, Y and Z axes. Each axis becomes a 32-bit register holding the 16-bit two's complement value sign-extended (13 useful bits at the 16 g range with full resolution). The chip also speaks I2C, and that access has its own controller, described in `adxl345_i2c.md`.
 
 | Block | Role |
 | :--- | :--- |
