@@ -3,7 +3,7 @@
 # ghdl, yosys, sby and the engine chosen by FORMAL_ENGINE (all in the ci-vhdl image). Run from the root of the
 # repository:  FORMAL_ENGINE=bitwuzla bash formal/run.sh
 #
-# FORMAL_ENGINE is one of yices, bitwuzla (the default), boolector and abc-bmc3. The first three are SMT solvers
+# FORMAL_ENGINE is one of yices, bitwuzla (the default) and abc-bmc3. The first two are SMT solvers
 # of the smtbmc engine; abc-bmc3 is the bounded model checker of ABC, which has no induction and no cover, so it
 # skips those proofs. FORMAL_TIMEOUT (seconds, 900 by default) bounds each proof.
 #
@@ -18,8 +18,8 @@ rm -rf "$out"; mkdir -p "$out"; cd "$out"
 
 engine="${FORMAL_ENGINE:-bitwuzla}"
 case "$engine" in
-  yices|bitwuzla|boolector|abc-bmc3) ;;
-  *) echo "FORMAL_ENGINE must be yices, bitwuzla, boolector or abc-bmc3, not '$engine'" >&2; exit 2 ;;
+  yices|bitwuzla|abc-bmc3) ;;
+  *) echo "FORMAL_ENGINE must be yices, bitwuzla or abc-bmc3, not '$engine'" >&2; exit 2 ;;
 esac
 timeout_s="${FORMAL_TIMEOUT:-900}"
 results="$out/result-$engine.tsv"; : > "$results"
@@ -84,7 +84,7 @@ mut_from=""; mut_to=""
 # file that SymbiYosys hands it, to announce how many outputs it reads as constraints (the assumptions, and the
 # clock of the clk2ff step), or that there are none. They describe the tool's own file format, not the design or
 # the proofs; see abc_notes below. The warnings about the clock as an undriven bit are gone: the script of the
-# proof flattens the design and purges the aliases of the clock before the AIGER file is written. Yices, bitwuzla and boolector have no exception, and anything else, in any
+# proof flattens the design and purges the aliases of the clock before the AIGER file is written. Yices and bitwuzla have no exception, and anything else, in any
 # engine, still fails the run.
 abc_notes='(engine_0: Warning: (The last (output is|[0-9]+ outputs are) interpreted as (a )?constraints?\.|The network has no constraints\.))$'
 scan_warnings() {
@@ -174,7 +174,7 @@ expose() {
 # The verdict, the exit code and the milliseconds go to <tag>.res, and the tag to .last, for expect.
 # Four bounded proofs of the console (200 cycles over the whole UART), the two of the adc_sweep (40 cycles with free
 # frame timing), the frame of the ltc2308 (170 cycles) and the two sequences of the adxl345 (380 cycles) do not close
-# in FORMAL_TIMEOUT with yices, while bitwuzla, boolector and abc-bmc3 answer them: yices is structurally slow on a
+# in FORMAL_TIMEOUT with yices, while bitwuzla and abc-bmc3 answer them: yices is structurally slow on a
 # design this deep. Two proofs of the sd_cmd (the free strobe and the busy wait, up to 216 cycles) do not close either,
 # and the other bounded frames of the sd_cmd (124 to 208 cycles), of the uart with parity and two stop bits (210 to
 # 260 cycles) and of the adc128s022 (120 cycles) take yices from one to seven minutes each, which together do not fit
@@ -945,6 +945,9 @@ source "$root/formal/hdmi.sh"
 
 # HDMI audio output (own file): clock counts and the data timing of the I2S bus to the ADV7513.
 source "$root/formal/hdmi_audio.sh"
+
+# TMDS encoder of the direct HDMI output (own file).
+source "$root/formal/tmds.sh"
 
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }

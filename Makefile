@@ -26,7 +26,7 @@ paths:
 	riscv-tools --root . check-paths --manifest paths.yaml
 	riscv-tools --root . check-tree --kind peripherals
 
-# Formal proofs (SymbiYosys and one engine of the CI image: FORMAL_ENGINE is yices, bitwuzla, boolector or
+# Formal proofs (SymbiYosys and one engine of the CI image: FORMAL_ENGINE is yices, bitwuzla or
 # abc-bmc3): the proofs of the timer (with its prescaler, overflow detector and comparator), the GPIO cell and
 # the UART, with their mutants. The result of the run is build/formal/result-<engine>.tsv.
 FORMAL_ENGINE ?= bitwuzla

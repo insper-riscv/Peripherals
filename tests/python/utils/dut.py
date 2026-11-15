@@ -810,6 +810,56 @@ class Adxl345Dut(IrqDut, Protocol):
     i_adxl_int1: LogicObject
 
 
+class Adxl345I2cDut(I2cDut, Protocol):
+    """Signals of the ADXL345 controller on I2C, with its testbench."""
+
+    o_adxl_cs_n: LogicObject
+    o_adxl_sdo: LogicObject
+    i_adxl_int1: LogicObject
+    i_adxl_int2: LogicObject
+    address_select_high: LogicObject
+
+
+class GpioInputDut(IrqDut, Protocol):
+    """Signals of the input-only GPIO."""
+
+    i_pins: LogicArrayObject
+
+
+class TmdsEncoderDut(ResettableDut, Protocol):
+    """Signals of the TMDS encoder of one channel."""
+
+    i_de: LogicObject
+    i_c0: LogicObject
+    i_c1: LogicObject
+    i_d: LogicArrayObject
+    o_q: LogicArrayObject
+
+
+class TmdsTxDut(Protocol):
+    """Signals of the TMDS transmitter."""
+
+    i_clk_pixel: LogicObject
+    i_clk_x5: LogicObject
+    i_rst: LogicObject
+    i_rgb: LogicArrayObject
+    i_de: LogicObject
+    i_hsync: LogicObject
+    i_vsync: LogicObject
+    o_data: LogicArrayObject
+    o_clk: LogicObject
+
+
+class TmdsSerializerDut(Protocol):
+    """Signals of the TMDS serializer of one channel."""
+
+    i_clk_pixel: LogicObject
+    i_clk_x5: LogicObject
+    i_token: LogicArrayObject
+    o_h: LogicObject
+    o_l: LogicObject
+
+
 class MipiLaneDut(ResettableDut, Protocol):
     """Signals of one lane receiver of the MIPI camera."""
 
