@@ -808,3 +808,160 @@ class Adxl345Dut(IrqDut, Protocol):
     o_adxl_mosi_oe: LogicObject
     i_adxl_miso: LogicObject
     i_adxl_int1: LogicObject
+
+
+class Adxl345I2cDut(I2cDut, Protocol):
+    """Signals of the ADXL345 controller on I2C, with its testbench."""
+
+    o_adxl_cs_n: LogicObject
+    o_adxl_sdo: LogicObject
+    i_adxl_int1: LogicObject
+    i_adxl_int2: LogicObject
+    address_select_high: LogicObject
+
+
+class GpioInputDut(IrqDut, Protocol):
+    """Signals of the input-only GPIO."""
+
+    i_pins: LogicArrayObject
+
+
+class TmdsEncoderDut(ResettableDut, Protocol):
+    """Signals of the TMDS encoder of one channel."""
+
+    i_de: LogicObject
+    i_c0: LogicObject
+    i_c1: LogicObject
+    i_d: LogicArrayObject
+    o_q: LogicArrayObject
+
+
+class TmdsTxDut(Protocol):
+    """Signals of the TMDS transmitter."""
+
+    i_clk_pixel: LogicObject
+    i_clk_x5: LogicObject
+    i_rst: LogicObject
+    i_rgb: LogicArrayObject
+    i_de: LogicObject
+    i_hsync: LogicObject
+    i_vsync: LogicObject
+    o_data: LogicArrayObject
+    o_clk: LogicObject
+
+
+class TmdsSerializerDut(Protocol):
+    """Signals of the TMDS serializer of one channel."""
+
+    i_clk_pixel: LogicObject
+    i_clk_x5: LogicObject
+    i_token: LogicArrayObject
+    o_h: LogicObject
+    o_l: LogicObject
+
+
+class MipiLaneDut(ResettableDut, Protocol):
+    """Signals of one lane receiver of the MIPI camera."""
+
+    i_arm: LogicObject
+    i_bit_early: LogicObject
+    i_bit_late: LogicObject
+    o_locked: LogicObject
+    o_valid: LogicObject
+    o_byte: LogicArrayObject
+
+
+class MipiPacketDut(ResettableDut, Protocol):
+    """Signals of the CSI-2 packet layer of the MIPI camera."""
+
+    i_lane_locked: LogicArrayObject
+    i_lane_valid: LogicArrayObject
+    i_lane_data: LogicArrayObject
+    o_arm: LogicObject
+    o_hdr_valid: LogicObject
+    o_hdr_bad: LogicObject
+    o_hdr_long: LogicObject
+    o_hdr_dt: LogicArrayObject
+    o_hdr_wc: LogicArrayObject
+    o_pix_valid: LogicObject
+    o_pix_data: LogicArrayObject
+    o_pix_mask: LogicArrayObject
+    o_pkt_end: LogicObject
+    o_crc_ok: LogicObject
+
+
+class MipiCaptureDut(ResettableDut, Protocol):
+    """Signals of the frame capture control of the MIPI camera."""
+
+    i_start: LogicObject
+    i_dt: LogicArrayObject
+    i_y_step: LogicArrayObject
+    i_hdr_valid: LogicObject
+    i_hdr_long: LogicObject
+    i_hdr_dt: LogicArrayObject
+    i_hdr_wc: LogicArrayObject
+    i_pix_valid: LogicObject
+    i_pix_data: LogicArrayObject
+    i_pix_mask: LogicArrayObject
+    i_pkt_end: LogicObject
+    i_crc_ok: LogicObject
+    o_busy: LogicObject
+    o_done: LogicObject
+    o_ok: LogicObject
+    o_lines: LogicArrayObject
+    o_last_wc: LogicArrayObject
+    o_ev_crc: LogicObject
+    o_ev_drop: LogicObject
+    o_we: LogicArrayObject
+    o_waddr: LogicArrayObject
+    o_wdata: LogicArrayObject
+
+
+class MipiRegsDut(IrqDut, Protocol):
+    """Signals of the register block of the MIPI camera."""
+
+    i_seen: LogicObject
+    i_done_tog: LogicObject
+    i_cap_ok: LogicObject
+    i_cap_lines: LogicArrayObject
+    i_cap_wc: LogicArrayObject
+    i_ecc_tog: LogicObject
+    i_crc_tog: LogicObject
+    i_drop_tog: LogicObject
+    o_start_tog: LogicObject
+    o_dt: LogicArrayObject
+    o_y_step: LogicArrayObject
+    o_enable: LogicObject
+    o_rd_addr: LogicArrayObject
+    i_rd_data: LogicArrayObject
+
+
+class MipiDut(IrqDut, Protocol):
+    """Signals of the MIPI camera receiver peripheral."""
+
+    i_mipi_clk: LogicObject
+    i_mipi_early: LogicArrayObject
+    i_mipi_late: LogicArrayObject
+
+
+class WifiRegsDut(BusDut, Protocol):
+    """Signals of the control block of the Wi-Fi module bridge."""
+
+    o_irq: LogicObject
+    i_wm_ack: LogicObject
+    o_wm_reset_n: LogicObject
+    o_wm_gpio0: LogicObject
+    o_wm_gpio0_oe: LogicObject
+
+
+class WifiDut(WifiRegsDut, Protocol):
+    """Signals of the Wi-Fi module bridge peripheral."""
+
+    o_wm_sck: LogicObject
+    o_wm_copi: LogicObject
+    i_wm_cipo: LogicObject
+    o_wm_cs_n: LogicObject
+    i_wm_tx: LogicObject
+    o_wm_rx: LogicObject
+    i_wm_rts: LogicObject
+    o_wm_cts: LogicObject

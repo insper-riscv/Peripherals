@@ -7,8 +7,8 @@
 -- mestre genérico: ao ser habilitado, configura o chip e depois lê, em
 -- intervalos fixos ou a cada aviso de dado pronto em INT1, os seis bytes dos
 -- eixos X, Y e Z. Cada eixo vira um registrador de 32 bits com o valor de 16
--- bits em complemento de dois estendido em sinal. O acesso por I2C é por
--- software, com o mestre I2C do repositório, e não passa por aqui.
+-- bits em complemento de dois estendido em sinal. O acesso por I2C tem o
+-- controlador próprio adxl345_i2c.
 --
 -- Sequência de configuração, depois de ENABLE ou de uma escrita em CONTROL:
 --   1. lê DEVID (0x00), que fica no registrador DEVID;
