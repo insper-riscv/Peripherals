@@ -140,7 +140,9 @@ jobs:
     name: formal - ${{ matrix.engine }}
     needs: reuse
     if: ${{ needs.reuse.outputs.skip != 'true' && fromJSON(needs.reuse.outputs.gates)['formal'].skip != 'true' }}
-    runs-on: ubuntu-26.04
+    # Self-hosted runner `formal` by default; the repository variable RUNNERS_FORMAL=hosted moves it back to the
+    # hosted runner, and a pull request from a fork always runs hosted.
+    runs-on: ${{ (vars.RUNNERS_FORMAL == 'hosted' || github.event.pull_request.head.repo.fork) && 'ubuntu-26.04' || fromJSON('["self-hosted","formal"]') }}
     timeout-minutes: 90
     container:
       image: ${{ fromJSON(needs.reuse.outputs.images)['ci-vhdl'] }}
