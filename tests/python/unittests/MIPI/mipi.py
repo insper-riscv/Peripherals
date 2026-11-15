@@ -63,6 +63,32 @@ def line_data(frame: int, index: int, size: int = LINE_BYTES) -> bytes:
     )
 
 
+def packet_cycles(
+    packet: bytes, number: int, lanes: int
+) -> list[list[csi2.Pair]]:
+    """Serialize um pacote com a defasagem e a fase do seu número.
+
+    Parameters
+    ----------
+    packet : bytes
+        Bytes do pacote.
+    number : int
+        Posição do pacote no quadro, que escolhe a defasagem.
+    lanes : int
+        Quantidade de lanes.
+
+    Returns
+    -------
+    list[list[csi2.Pair]]
+        Os pares de cada lane por ciclo, seguidos da linha em zeros.
+    """
+    skew = tuple(
+        (lane * number * SKEW_STEP_BITS + lane) % 7 for lane in range(lanes)
+    )
+    cycles = csi2.burst(packet, lanes, 24 + number % 3, skew)
+    return cycles + [[(0, 0)] * lanes] * GAP_CYCLES
+
+
 async def stream(dut: MipiDut, packets: list[bytes]) -> None:
     """Envie os pacotes em rajadas, um par de bits por lane e por ciclo.
 
@@ -78,13 +104,7 @@ async def stream(dut: MipiDut, packets: list[bytes]) -> None:
     """
     lanes = len(dut.i_mipi_early)
     for number, packet in enumerate(packets):
-        skew = tuple(
-            (lane * number * SKEW_STEP_BITS + lane) % 7
-            for lane in range(lanes)
-        )
-        cycles = csi2.burst(packet, lanes, 24 + number % 3, skew)
-        cycles += [[(0, 0)] * lanes] * GAP_CYCLES
-        for pairs in cycles:
+        for pairs in packet_cycles(packet, number, lanes):
             await RisingEdge(dut.i_mipi_clk)
             await Timer(1, unit="ns")
             dut.i_mipi_early.value = sum(

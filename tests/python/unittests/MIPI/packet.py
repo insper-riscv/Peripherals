@@ -34,7 +34,6 @@ class Probe:
         dut : MipiPacketDut
             Projeto sob teste.
         """
-        lanes = len(dut.i_lane_valid)
         while True:
             await RisingEdge(dut.i_clk)
             await Timer(1, unit="ns")
@@ -49,16 +48,26 @@ class Probe:
                     )
                 )
             if int(dut.o_pix_valid.value):
-                mask = int(dut.o_pix_mask.value)
-                data = int(dut.o_pix_data.value)
-                self.groups.append(mask)
-                self.pixels += [
-                    data >> (8 * lane) & 0xFF
-                    for lane in range(lanes)
-                    if mask >> lane & 1
-                ]
+                self._take_group(dut)
             if int(dut.o_pkt_end.value):
                 self.ends.append(int(dut.o_crc_ok.value))
+
+    def _take_group(self, dut: MipiPacketDut) -> None:
+        """Anote um grupo de carga útil.
+
+        Parameters
+        ----------
+        dut : MipiPacketDut
+            Projeto sob teste.
+        """
+        mask = int(dut.o_pix_mask.value)
+        data = int(dut.o_pix_data.value)
+        self.groups.append(mask)
+        self.pixels += [
+            data >> (8 * lane) & 0xFF
+            for lane in range(len(dut.i_lane_valid))
+            if mask >> lane & 1
+        ]
 
 
 async def start(dut: MipiPacketDut) -> Probe:
@@ -82,6 +91,41 @@ async def start(dut: MipiPacketDut) -> Probe:
     return probe
 
 
+def lane_schedule(
+    packet: bytes, lanes: int, skew: tuple[int, ...]
+) -> list[tuple[int, int]]:
+    """Monte, por ciclo, os bytes válidos das lanes de um pacote.
+
+    Parameters
+    ----------
+    packet : bytes
+        Bytes do pacote.
+    lanes : int
+        Quantidade de lanes.
+    skew : tuple[int, ...]
+        Atraso em ciclos de cada lane, ou vazio para nenhum.
+
+    Returns
+    -------
+    list[tuple[int, int]]
+        Para cada ciclo, as lanes com byte e os bytes juntos.
+    """
+    delays = skew or (0,) * lanes
+    streams = csi2.distribute(packet, lanes)
+    length = max(len(s) for s in streams) * BYTE_PERIOD + max(delays) + 2
+    schedule: list[tuple[int, int]] = []
+    for cycle in range(length):
+        valid = 0
+        data = 0
+        for lane, stream in enumerate(streams):
+            index, phase = divmod(cycle - delays[lane], BYTE_PERIOD)
+            if phase == 0 and 0 <= index < len(stream):
+                valid |= 1 << lane
+                data |= stream[index] << (8 * lane)
+        schedule.append((valid, data))
+    return schedule
+
+
 async def send(
     dut: MipiPacketDut, packet: bytes, skew: tuple[int, ...] = ()
 ) -> None:
@@ -97,21 +141,9 @@ async def send(
         Atraso em ciclos de cada lane.
     """
     lanes = len(dut.i_lane_valid)
-    delays = skew or (0,) * lanes
-    streams = csi2.distribute(packet, lanes)
-    length = max(len(s) for s in streams) * BYTE_PERIOD + max(delays) + 2
     dut.i_lane_locked.value = (1 << lanes) - 1
     await bus.cycles(dut, 2)
-    for cycle in range(length):
-        valid = 0
-        data = 0
-        for lane, stream in enumerate(streams):
-            rel = cycle - delays[lane]
-            if rel >= 0 and rel % BYTE_PERIOD == 0:
-                index = rel // BYTE_PERIOD
-                if index < len(stream):
-                    valid |= 1 << lane
-                    data |= stream[index] << (8 * lane)
+    for valid, data in lane_schedule(packet, lanes, skew):
         dut.i_lane_valid.value = valid
         dut.i_lane_data.value = data
         await bus.cycles(dut, 1)
