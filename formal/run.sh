@@ -949,5 +949,8 @@ source "$root/formal/hdmi_audio.sh"
 # TMDS encoder of the direct HDMI output (own file).
 source "$root/formal/tmds.sh"
 
+# HDMI output with the TMDS transmitter wired straight to the FPGA (own file): the wiring of the wrapper.
+source "$root/formal/hdmi_tmds.sh"
+
 [ -s "$warnings" ] && { echo "formal: $(wc -l < "$warnings") warning(s) found; a warning is an error (see above)"; fail=1; }
 [ "$fail" -eq 0 ] && echo "formal: all expectations met" || { echo "formal: FAILED (logs in build/formal)"; exit 1; }
