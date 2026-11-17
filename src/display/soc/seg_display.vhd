@@ -60,9 +60,9 @@ entity seg_display is
         -- Total de índices de dígito listados em group_members, a soma de group_sizes.
         member_count  : positive range 1 to 8 := 6;
         -- Dígitos de cada grupo, um campo de 8 bits por grupo: o grupo g nos bits 8g+7 a 8g.
-        group_sizes   : std_logic_vector(8 * group_count - 1 downto 0)  := x"06";
+        group_sizes   : std_logic_vector                                := DEFAULT_SEG_SIZES;
         -- Índices de dígito de todos os grupos, em sequência e na ordem escrita, um campo de 8 bits por membro.
-        group_members : std_logic_vector(8 * member_count - 1 downto 0) := x"050403020100";
+        group_members : std_logic_vector                                := DEFAULT_SEG_MEMBERS;
         -- Dígitos de oito segmentos (com o ponto decimal) quando verdadeiro; falso, sete segmentos.
         has_dp        : boolean                                         := false
     );

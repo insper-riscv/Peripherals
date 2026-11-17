@@ -14,6 +14,7 @@ use ieee.std_logic_1164.all;
 
 library work;
 use work.config_pkg.all;
+use work.gpio_pkg.all;
 
 entity seg_display_shell is
     generic (
@@ -26,9 +27,9 @@ entity seg_display_shell is
         -- Total de índices de dígito listados em group_members.
         member_count  : positive range 1 to 8                          := 6;
         -- Dígitos de cada grupo, um campo de 8 bits por grupo.
-        group_sizes   : std_logic_vector(8 * group_count - 1 downto 0)  := x"06";
+        group_sizes   : std_logic_vector                                := DEFAULT_SEG_SIZES;
         -- Índices de dígito de todos os grupos, um campo de 8 bits por membro, na ordem escrita.
-        group_members : std_logic_vector(8 * member_count - 1 downto 0) := x"050403020100";
+        group_members : std_logic_vector                                := DEFAULT_SEG_MEMBERS;
         -- Dígitos com o ponto decimal (oito segmentos) quando verdadeiro.
         has_dp        : boolean                                         := false
     );

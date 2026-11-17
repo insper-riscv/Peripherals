@@ -21,9 +21,9 @@ entity gpio_group is
         -- Pinos do grupo, de 1 a 32.
         width      : positive range 1 to 32 := 32;
         -- Direção de cada pino, 2 bits por pino (0 livre, 1 só entrada, 2 só saída); o pino k ocupa os bits 2k+1 a 2k.
-        dir_modes  : std_logic_vector(2 * width - 1 downto 0) := (others => '0');
+        dir_modes  : std_logic_vector := NO_PIN_DIRS;
         -- Polaridade de cada pino: '1' é ativo em nível baixo e '0' é ativo em nível alto.
-        active_low : std_logic_vector(width - 1 downto 0) := (others => '0')
+        active_low : std_logic_vector := NO_PIN_LOWS
     );
     port (
         -- Clock do módulo.
@@ -62,6 +62,11 @@ entity gpio_group is
 end entity gpio_group;
 
 architecture rtl of gpio_group is
+
+    -- Direção de cada pino com a faixa normalizada em descendente a partir de zero, seja qual for a faixa do generic.
+    constant DIR_MODES_N : std_logic_vector(dir_modes'length - 1 downto 0) := dir_modes;
+    -- Polaridade de cada pino com a faixa normalizada em descendente a partir de zero.
+    constant ACTIVE_LOW_N : std_logic_vector(active_low'length - 1 downto 0) := active_low;
 
     -- Habilitações de escrita dos registradores.
     signal wr_en  : std_logic_vector(7 downto 0);
@@ -131,8 +136,8 @@ begin
 
         u_gpio_cell : entity work.gpio_cell
             generic map (
-                dir_mode   => to_mode(dir_modes(2 * i + 1 downto 2 * i)),
-                active_low => active_low(i) = '1'
+                dir_mode   => to_mode(DIR_MODES_N(2 * i + 1 downto 2 * i)),
+                active_low => ACTIVE_LOW_N(i) = '1'
             )
             port map (
                 i_clk        => i_clk,

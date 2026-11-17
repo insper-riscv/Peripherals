@@ -25,10 +25,10 @@ Um vetor de números tem um campo de 8 bits por elemento, com o elemento $k$ nos
 | `pin_count` | `positive` de 1 a 255 | 32 | Pinos do bloco, numerados de 0 a `pin_count - 1` |
 | `group_count` | `positive` de 1 a 255 | 1 | Número de grupos $G$ |
 | `member_count` | `positive` de 1 a 255 | 32 | Total de índices listados em `group_members`, igual à soma dos tamanhos |
-| `group_sizes` | `std_logic_vector(8 * group_count - 1 downto 0)` | `x"20"` | Campo $g$ é o número de pinos do grupo $g$, de 1 a 32 |
-| `group_members` | `std_logic_vector(8 * member_count - 1 downto 0)` | pinos 0 a 31 | Índices de pino de todos os grupos em sequência, na ordem escrita; o bit $k$ dos registradores do grupo é o $k$-ésimo pino da lista do grupo |
-| `pin_dirs` | `std_logic_vector(2 * pin_count - 1 downto 0)` | zeros | Código do pino $p$ nos bits $2p+1$ a $2p$ |
-| `pin_active_low` | `std_logic_vector(pin_count - 1 downto 0)` | zeros | Bit $p$ em 1 é pino ativo em nível baixo |
+| `group_sizes` | `std_logic_vector` de $8G$ bits | `x"20"` | Campo $g$ é o número de pinos do grupo $g$, de 1 a 32 |
+| `group_members` | `std_logic_vector` de `8 * member_count` bits | pinos 0 a 31 | Índices de pino de todos os grupos em sequência, na ordem escrita; o bit $k$ dos registradores do grupo é o $k$-ésimo pino da lista do grupo |
+| `pin_dirs` | `std_logic_vector` de `2 * pin_count` bits | zeros | Código do pino $p$ nos bits $2p+1$ a $2p$ |
+| `pin_active_low` | `std_logic_vector` de `pin_count` bits | zeros | Bit $p$ em 1 é pino ativo em nível baixo |
 
 | Código de `pin_dirs` | Direção do pino |
 | :--- | :--- |
@@ -37,7 +37,7 @@ Um vetor de números tem um campo de 8 bits por elemento, com o elemento $k$ nos
 | `10` | Fixa em saída |
 | `11` | Recusado na elaboração |
 
-Os tamanhos dos vetores dependem dos generics anteriores, então quem instancia o bloco passa todos os generics e escreve os vetores com a largura que os outros generics impõem. O exemplo abaixo é a partição `[[0,1,2,3],[5,6]]` de um papel com 7 pinos, todos livres e ativos em nível alto, com o pino 4 desligado.
+Os vetores não declaram faixa, porque o Quartus Prime Lite recusa um generic cuja faixa depende de outro generic da mesma lista. Cada vetor toma a faixa do valor passado, que tem a largura indicada na tabela, e o padrão cobre qualquer quantidade de pinos até o limite de 255. Quem passa um vetor escreve um valor com essa largura, e um agregado `(others => ...)` só vale quando a faixa vem do contexto, então para os valores livres e ativos em nível alto basta omitir o generic. O exemplo abaixo é a partição `[[0,1,2,3],[5,6]]` de um papel com 7 pinos, todos livres e ativos em nível alto, com o pino 4 desligado.
 
 ```vhdl
 u_leds : entity work.gpio
@@ -46,9 +46,7 @@ u_leds : entity work.gpio
         group_count    => 2,
         member_count   => 6,
         group_sizes    => x"02" & x"04",
-        group_members  => x"06" & x"05" & x"03" & x"02" & x"01" & x"00",
-        pin_dirs       => (others => '0'),
-        pin_active_low => (others => '0')
+        group_members  => x"06" & x"05" & x"03" & x"02" & x"01" & x"00"
     )
 ```
 

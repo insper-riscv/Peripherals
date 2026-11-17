@@ -21,6 +21,24 @@ package gpio_pkg is
     -- Bits do endereço de palavra dentro de um grupo.
     constant GROUP_WORD_BITS : natural := 4;
 
+    -- Valores padrão dos generics vetoriais. Cada um é uma constante de faixa descendente e fixa, porque o Quartus
+    -- Prime Lite recusa um generic cuja faixa depende de outro generic da mesma lista (erro 10556) e um generic sem
+    -- faixa recebe a do valor padrão: com estas constantes o elemento k continua nos bits 8k+7 a 8k, e o valor
+    -- padrão cobre qualquer quantidade de pinos, grupos ou dígitos do limite do generic.
+    -- Tamanhos de grupo do bloco gpio: um grupo de 32 pinos.
+    constant DEFAULT_GROUP_SIZES : std_logic_vector(7 downto 0) := x"20";
+    -- Índices de pino do bloco gpio: os 32 pinos do grupo único, na ordem de 0 a 31.
+    constant DEFAULT_GROUP_MEMBERS : std_logic_vector(255 downto 0) :=
+        x"1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100";
+    -- Tamanhos de grupo do display: um grupo de 6 dígitos.
+    constant DEFAULT_SEG_SIZES : std_logic_vector(7 downto 0) := x"06";
+    -- Índices de dígito do display: os 6 dígitos do grupo único, na ordem de 0 a 5.
+    constant DEFAULT_SEG_MEMBERS : std_logic_vector(47 downto 0) := x"050403020100";
+    -- Direções livres para até 255 pinos, 2 bits por pino.
+    constant NO_PIN_DIRS : std_logic_vector(509 downto 0) := (others => '0');
+    -- Polaridades em nível alto para até 255 pinos, 1 bit por pino.
+    constant NO_PIN_LOWS : std_logic_vector(254 downto 0) := (others => '0');
+
     -- Direção fixa de um pino: livre, só entrada ou só saída.
     -- Código de um pino de direção livre (o registrador DIR manda).
     constant DIR_FREE   : natural := 0;
