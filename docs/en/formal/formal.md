@@ -56,6 +56,7 @@ The formal proofs run in SymbiYosys on the Verilog netlist that GHDL synthesizes
 | `hdmi_i2c_writer` | `hdmi_i2c_writer_props.sv` | bounded, 250 cycles, quarter bit of 2 cycles | Open drain only (values always zero), free bus when stopped, SDA changes with SCL high only at start and stop, SDA released in the three acknowledge pulses, 27 data pulses plus the stop pulse and a one-cycle done |
 | `hdmi_audio` | `hdmi_audio_props.sv` | bounded, 520 cycles (ratio 128) and 1030 cycles (ratio 256), system clock at twice the MCLK | Between two LRCLK flips, measured on the outputs alone, the MCLK rises `ratio / 2` times, the SCLK rises 32 times and `ratio` cycles pass; between two SCLK rises the MCLK rises `ratio / 64` times; the serial data changes only in the cycle after an SCLK fall; the first LRCLK flip goes from the left channel to the right one and two flips happen in time |
 | `tmds_encoder` | `tmds_encoder_props.sv` | induction | After a reset the symbol is control symbol 00; without data enable the symbol is the control symbol of C1 C0 and the running disparity returns to zero; with data, the symbol decoded by the DVI inverse path is the input byte; the running disparity is even, the sum of the bits set minus the bits clear of the symbols sent since the last blanking, and its modulus never exceeds 8 |
+| `hdmi_tmds_tx` | `hdmi_tmds_tx_props.sv` | bounded, 12 cycles, three free clocks | Bit 0 of the HDMI status is the `i_hpd` pin through the two-stage synchronizer of the system clock, and the other bits of the status word read 0 without the ADV7513 sequencer; the output DDR register is replaced by a single-edge register, because the proof looks at the wiring of the wrapper and not at the timing of the pins |
 
 Each entity has a cover that shows the proved situation is reachable.
 
@@ -104,6 +105,7 @@ Each deliberate defect of the VHDL must make a proof fail. `formal/run.sh` appli
 | `hdmi_i2c_writer` | `hdmii2c_ack_driven`, `hdmii2c_two_bytes`, `hdmii2c_out_high`, `hdmii2c_busy_short` |
 | `hdmi_audio` | `hdmiaud_slot_short`, `hdmiaud_mclk_half`, `hdmiaud_clocks_swapped`, `hdmiaud_ratio_ignored` |
 | `tmds_encoder` | `tmdsenc_xor_flag_flipped`, `tmdsenc_no_inversion`, `tmdsenc_blank_keeps_disparity`, `tmdsenc_control_swapped`, `tmdsenc_count_wrong` |
+| `hdmi_tmds_tx` | `hdmitmds_pin_tied`, `hdmitmds_pin_inverted` |
 | `jtag_uart` | `jtagu_tx_empty_inverted`, `jtagu_error_mask_ignored`, `jtagu_control_bit_swapped`, `jtagu_lost_stays` |
 | `sd_spi` | `sdspi_cs_bit`, `sdspi_done_enable_bit`, `sdspi_divider_address`, `sdspi_done_not_cleared`, `sdspi_rx_valid_inverted`, `sdspi_busy_ignores_done`, `sdspi_phy_short_byte`, `sdspi_phy_mosi_low` |
 | `sd_crc7` and `sd_crc16` | `sdcrc7_poly`, `sdcrc7_poly_vec`, `sdcrc7_no_feedback_input`, `sdcrc7_clear_ignored`, `sdcrc7_enable_ignored`, `sdcrc7_shift_right`, `sdcrc16_poly`, `sdcrc16_poly_vec`, `sdcrc16_no_feedback_input`, `sdcrc16_clear_ignored`, `sdcrc16_enable_ignored`, `sdcrc16_shift_right` |
