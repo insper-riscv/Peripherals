@@ -401,7 +401,11 @@ begin
                     when S_DATA =>
 
                         spi_start <= '1';
-                        spi_tx    <= wdata when is_write = '1' else (others => '0');
+                        if is_write = '1' then
+                            spi_tx <= wdata;
+                        else
+                            spi_tx <= (others => '0');
+                        end if;
                         spi_drive <= is_write;
                         state     <= S_DATA_WAIT;
 
@@ -517,7 +521,10 @@ begin
 
             when "011" =>
 
-                value(0) := '1' when state /= S_IDLE else '0';
+                value(0) := '0';
+                if state /= S_IDLE then
+                    value(0) := '1';
+                end if;
                 value(1) := sample_flag;
                 value(2) := valid;
                 value(3) := configured;
