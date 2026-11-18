@@ -29,13 +29,14 @@ use ieee.std_logic_1164.all;
 
 library work;
 use work.config_pkg.all;
+use work.gpio_pkg.all;
 
 entity gpio_input is
     generic (
         -- Número de pinos do bloco, de 1 a 32.
         width      : positive range 1 to 32            := 32;
         -- Bit em '1' marca o pino ativo em nível baixo: o programa lê o nível invertido.
-        active_low : std_logic_vector(width - 1 downto 0) := (others => '0')
+        active_low : std_logic_vector := NO_PIN_LOWS
     );
     port (
         -- Clock do módulo.

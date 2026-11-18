@@ -163,7 +163,11 @@ begin
                                 sweep_done <= '1';
                                 valid      <= '1';
                                 frame      <= 0;
-                                state      <= S_ISSUE when enable = '1' else S_IDLE;
+                                if enable = '1' then
+                                    state <= S_ISSUE;
+                                else
+                                    state <= S_IDLE;
+                                end if;
                             else
                                 frame <= frame + 1;
                                 state <= S_ISSUE;
@@ -191,7 +195,10 @@ begin
             value(0) := enable;
             value(1) := irq_enable;
         elsif i_address = STATUS_ADDRESS then
-            value(0) := '1' when state /= S_IDLE else '0';
+            value(0) := '0';
+            if state /= S_IDLE then
+                value(0) := '1';
+            end if;
             value(1) := sweep_done;
             value(2) := valid;
         elsif i_address = DIVIDER_ADDRESS then

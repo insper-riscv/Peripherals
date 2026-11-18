@@ -32,14 +32,13 @@ entity gpio is
         -- Total de índices de pino listados em group_members, a soma de group_sizes.
         member_count   : positive range 1 to 255                                    := 32;
         -- Pinos de cada grupo, um campo de 8 bits por grupo: o grupo g nos bits 8g+7 a 8g.
-        group_sizes    : std_logic_vector(8 * group_count - 1 downto 0)             := x"20";
+        group_sizes    : std_logic_vector                                           := DEFAULT_GROUP_SIZES;
         -- Índices de pino de todos os grupos, em sequência e na ordem escrita, um campo de 8 bits por membro.
-        group_members  : std_logic_vector(8 * member_count - 1 downto 0)            :=
-            x"1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100";
+        group_members  : std_logic_vector                                           := DEFAULT_GROUP_MEMBERS;
         -- Direção fixa de cada pino, 2 bits por pino (0 livre, 1 só entrada, 2 só saída): o pino p nos bits 2p+1 a 2p.
-        pin_dirs       : std_logic_vector(2 * pin_count - 1 downto 0)               := (others => '0');
+        pin_dirs       : std_logic_vector                                           := NO_PIN_DIRS;
         -- Polaridade de cada pino: '1' é ativo em nível baixo e '0' é ativo em nível alto; o pino p no bit p.
-        pin_active_low : std_logic_vector(pin_count - 1 downto 0)                   := (others => '0')
+        pin_active_low : std_logic_vector                                           := NO_PIN_LOWS
     );
     port (
         -- Clock do módulo.
@@ -72,6 +71,11 @@ entity gpio is
 end entity gpio;
 
 architecture rtl of gpio is
+
+    -- Direção de cada pino com a faixa normalizada em descendente a partir de zero, seja qual for a faixa do generic.
+    constant PIN_DIRS_N : std_logic_vector(pin_dirs'length - 1 downto 0) := pin_dirs;
+    -- Polaridade de cada pino com a faixa normalizada em descendente a partir de zero.
+    constant PIN_LOWS_N : std_logic_vector(pin_active_low'length - 1 downto 0) := pin_active_low;
 
     -- Matriz das palavras de leitura, uma por grupo.
     type rdata_array_t is array (0 to group_count - 1) of word_t;
@@ -202,11 +206,11 @@ begin
 
         gen_off_pin : if not is_member(group_members, member_count, p) generate
 
-            gen_hold : if to_mode(pin_dirs(2 * p + 1 downto 2 * p)) = DIR_OUTPUT generate
-                io_gpio_pins(p) <= pin_active_low(p);
+            gen_hold : if to_mode(PIN_DIRS_N(2 * p + 1 downto 2 * p)) = DIR_OUTPUT generate
+                io_gpio_pins(p) <= PIN_LOWS_N(p);
             end generate gen_hold;
 
-            gen_float : if to_mode(pin_dirs(2 * p + 1 downto 2 * p)) /= DIR_OUTPUT generate
+            gen_float : if to_mode(PIN_DIRS_N(2 * p + 1 downto 2 * p)) /= DIR_OUTPUT generate
                 io_gpio_pins(p) <= 'Z';
             end generate gen_float;
 
