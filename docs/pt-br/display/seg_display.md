@@ -14,8 +14,8 @@ Registrador que guarda 4 bits por dígito e os mostra em hexadecimal nos display
 | `active_low` | verdadeiro | Segmentos acesos em nível baixo, como nas placas DE. Falso acende em nível alto |
 | `group_count` | 1 | Número de grupos de dígitos, de 1 a 8 |
 | `member_count` | 6 | Total de índices de dígito listados em `group_members`, igual à soma dos tamanhos |
-| `group_sizes` | `x"06"` | `std_logic_vector(8 * group_count - 1 downto 0)`; o campo $g$ é o número de dígitos do grupo $g$ |
-| `group_members` | dígitos 0 a 5 | `std_logic_vector(8 * member_count - 1 downto 0)`; índices de dígito de todos os grupos em sequência, na ordem escrita |
+| `group_sizes` | `x"06"` | `std_logic_vector` de `8 * group_count` bits; o campo $g$ é o número de dígitos do grupo $g$ |
+| `group_members` | dígitos 0 a 5 | `std_logic_vector` de `8 * member_count` bits; índices de dígito de todos os grupos em sequência, na ordem escrita |
 | `has_dp` | falso | Dígitos de oito segmentos, com o ponto decimal. Verdadeiro leva `o_hex` a `8 * digits` bits e habilita a palavra 1 de cada grupo (seção 6); falso mantém `7 * digits` bits e o comportamento sem ponto |
 
 Os campos das listas têm 8 bits, com o elemento $k$ nos bits $8k+7$ a $8k$, como no generic de partição do GPIO (`docs/pt-br/GPIO/gpio.md`). Um dígito que não está na lista de nenhum grupo fica apagado, com todos os segmentos no nível inativo da placa, e o `o_value` continua com os 4 bits dele para o hospedeiro.
