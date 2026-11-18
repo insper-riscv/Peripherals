@@ -663,12 +663,12 @@ mut_expose=(); mut_pins=1
 gb="$f/gpio_props.sv"
 mutant gpio "$gb" gpio '-DPART_A' gpio_block_all_groups_hit "s/hit <= '1' when group_sel = g else '0';/hit <= '1';/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
 mutant gpio "$gb" gpio '-DPART_B' gpio_block_pin_reversed "s/constant PIN : natural := field_value(group_members, FIRST + k);/constant PIN : natural := field_value(group_members, FIRST + SIZE - 1 - k);/" 8 "${gpio_block_srcs[@]}" -- "${gpio_b[@]}"
-mutant gpio "$gb" gpio '-DPART_A' gpio_block_hold_active_high "s/io_gpio_pins(p) <= pin_active_low(p);/io_gpio_pins(p) <= '0';/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+mutant gpio "$gb" gpio '-DPART_A' gpio_block_hold_active_high "s/io_gpio_pins(p) <= PIN_LOWS_N(p);/io_gpio_pins(p) <= '0';/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
 mutant gpio "$gb" gpio '-DPART_A' gpio_block_float_off_output "s/io_gpio_pins(p) <= 'Z';/io_gpio_pins(p) <= '1';/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
 mutant gpio "$gb" gpio '-DPART_A' gpio_block_read_last_wins "s/acc := acc or group_rdata(g);/acc := group_rdata(g);/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
 mutant gpio_pkg "$gb" gpio '-DPART_A' gpio_pkg_polarity_by_bit "s/result(k) := l(field_value(members, first + k));/result(k) := l(k);/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
 mutant gpio_pkg "$gb" gpio '-DPART_A' gpio_pkg_dir_by_bit "s/result(2 \* k + 1 downto 2 \* k) := d(2 \* p + 1 downto 2 \* p);/result(2 * k + 1 downto 2 * k) := d(2 * k + 1 downto 2 * k);/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
-mutant gpio_group "$gb" gpio '-DPART_A' gpio_group_fixed_ignored "s/dir_mode => to_mode(dir_modes(2 \* i + 1 downto 2 \* i)),/dir_mode => 0,/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
+mutant gpio_group "$gb" gpio '-DPART_A' gpio_group_fixed_ignored "s/dir_mode   => to_mode(DIR_MODES_N(2 \* i + 1 downto 2 \* i)),/dir_mode   => 0,/" 8 "${gpio_block_srcs[@]}" -- "${gpio_a[@]}"
 mut_pins=0
 
 mut_expose=()
