@@ -819,7 +819,7 @@ mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_wrong_channel "s/channels(frame
 mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_short "s/if frame = LAST_FRAME then/if frame = 7 then/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
 mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_w1c_ignored "s/sweep_done <= sweep_done and not i_data_in(1);/sweep_done <= sweep_done;/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
 mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_irq_mask "s/o_irq <= irq_enable and sweep_done;/o_irq <= sweep_done;/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
-mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_never_stops "s/state <= S_ISSUE when enable = '1' else S_IDLE;/state <= S_ISSUE;/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
+mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_never_stops "s/state <= S_IDLE;/state <= S_ISSUE;/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
 mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_start_bit "s/i_data_in(2) = '1'/i_data_in(3) = '1'/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
 mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_channel_wrap "s/to_unsigned(frame mod 8, 3)/to_unsigned(frame mod 4, 3)/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
 mutant adc_sweep "$wp" adc_sweep '-DLAT=1' sweep_valid_missing "s/valid <= '1';/valid <= '0';/" 40 "${sweep_srcs[@]}" -- -gchannel_latency=1 "${swgen[@]}"
