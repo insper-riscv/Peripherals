@@ -1,0 +1,3 @@
+[workspace]
+members = ["insper-riscv-wifi", "insper-riscv-wifi-sys"]
+resolver = "2"

@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_i2c::{I2c, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = I2c::new()?;
+    let _busy = device.busy();
+
+    println!("I2C Rust example: PASS");
+
+    Ok(())
+}

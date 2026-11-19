@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_eth::{Ethernet, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Ethernet::new()?;
+    let _ready = device.rx_ready();
+
+    println!("ETH Rust example: PASS");
+
+    Ok(())
+}

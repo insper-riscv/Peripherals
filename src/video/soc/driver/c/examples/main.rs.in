@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_video::{Video, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Video::new()?;
+    let _frames = device.frame_count();
+
+    println!("VIDEO Rust example: PASS");
+
+    Ok(())
+}

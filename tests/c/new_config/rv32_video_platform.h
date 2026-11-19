@@ -1,0 +1,5 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#define RV32_VIDEO_INSTANCE_COUNT 1
+#define RV32_VIDEO_BASES {(uintptr_t)0x10E00000u}
+#define RV32_VIDEO_FRAMEBUFFER_OFFSET {2048}
+#define RV32_VIDEO_WINDOW_BYTES {4096}

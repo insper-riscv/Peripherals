@@ -247,3 +247,21 @@ rv32_gpio_t rv32_gpio_platform_new(rv32_gpio_instance_t instance)
         return rv32_gpio_new(0, 0);
     }
 }
+
+size_t rv32_gpio_group_count(void)
+{
+    return RV32_GPIO_GROUP_COUNT;
+}
+
+rv32_gpio_t rv32_gpio_platform_group_new(size_t group)
+{
+    static const uintptr_t bases[] = RV32_GPIO_GROUP_BASES;
+    static const size_t widths[] = RV32_GPIO_GROUP_WIDTHS;
+    const size_t count = RV32_GPIO_GROUP_COUNT;
+
+    if (group >= count) {
+        return rv32_gpio_new(0, 0);
+    }
+
+    return rv32_gpio_new(bases[group], widths[group]);
+}

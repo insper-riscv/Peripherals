@@ -1,0 +1,19 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_keyboard.h"
+
+int main(void)
+{
+    rv32_keyboard_t device = rv32_keyboard_new(0);
+
+    if (!rv32_keyboard_valid(device)) {
+        return 1;
+    }
+
+    uint8_t code = 0;
+
+    (void)rv32_keyboard_try_read(device, &code);
+    puts("KEYBOARD example: PASS");
+
+    return 0;
+}

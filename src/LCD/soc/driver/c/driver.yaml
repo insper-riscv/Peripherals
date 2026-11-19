@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "name": "LCD",
+  "instances": [
+    "LCD"
+  ],
+  "kinds": [
+    "lcd"
+  ],
+  "register_bytes": 24,
+  "headers": [
+    "rv32_lcd.h",
+    "rv32_lcd_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_lcd.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true
+}

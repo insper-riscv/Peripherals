@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "name": "SD_SPI",
+  "instances": [
+    "SD_SPI",
+    "SD"
+  ],
+  "kinds": [
+    "sd_spi"
+  ],
+  "register_bytes": 20,
+  "headers": [
+    "rv32_sd_spi.h",
+    "rv32_sd_spi_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_sd_spi.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true
+}

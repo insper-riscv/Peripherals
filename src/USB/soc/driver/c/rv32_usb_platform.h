@@ -6,4 +6,8 @@
 /* Limite de leituras do STATUS por espera (nao e tempo). */
 #define RV32_USB_DEFAULT_POLL_BUDGET 0
 
+#define RV32_USB_INSTANCE_COUNT 0
+#define RV32_USB_BASES {0}
+#define RV32_USB_POLL_BUDGET {0}
+
 #endif

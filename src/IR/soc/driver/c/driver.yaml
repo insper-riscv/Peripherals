@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "name": "IR",
+  "instances": [
+    "IR"
+  ],
+  "kinds": [
+    "ir"
+  ],
+  "register_bytes": 20,
+  "headers": [
+    "rv32_ir.h",
+    "rv32_ir_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_ir.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true
+}
