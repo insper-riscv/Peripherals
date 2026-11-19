@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_tv.h"
+
+int main(void)
+{
+    rv32_tv_t device = rv32_tv_new(0);
+
+    if (!rv32_tv_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_tv_frame_count(device);
+    puts("TV example: PASS");
+
+    return 0;
+}

@@ -1,0 +1,15 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_usb::{Error, Usb};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut usb = Usb::new()?;
+    let _busy = usb.busy();
+    println!("USB Rust example: PASS");
+
+    Ok(())
+}

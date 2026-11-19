@@ -1,0 +1,3 @@
+[workspace]
+members = ["insper-riscv-audio", "insper-riscv-audio-sys"]
+resolver = "2"

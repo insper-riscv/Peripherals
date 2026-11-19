@@ -57,6 +57,9 @@ typedef struct {
  */
 rv32_usb_t rv32_usb_new(uintptr_t base, size_t poll_budget);
 bool rv32_usb_valid(rv32_usb_t usb);
+/* Platform instance selection: no application MMIO address is needed. */
+rv32_usb_t rv32_usb_instance_new(size_t instance);
+size_t rv32_usb_instance_count(void);
 
 /* ---- Camada 1: ponte [C0] ---------------------------------------------- */
 
@@ -113,6 +116,9 @@ typedef struct {
     uint16_t cmd_read_ctrl_reg;
     uint16_t cmd_write_ctrl_reg;
 } rv32_usb_profile_t;
+
+/* Start an explicitly configured BIOS profile; no unverified defaults. */
+rv32_usb_profile_t rv32_usb_profile_new(void);
 
 /* Valores lembrados de memoria, NAO CONFIRMADOS (ver rv32_usb_unverified.c). */
 rv32_usb_profile_t rv32_usb_profile_unverified(void);

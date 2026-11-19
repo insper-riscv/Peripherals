@@ -1,0 +1,5 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#define RV32_HDMI_INSTANCE_COUNT 1
+#define RV32_HDMI_BASES {(uintptr_t)0x10F00000u}
+#define RV32_HDMI_FRAMEBUFFER_OFFSET {2048}
+#define RV32_HDMI_WINDOW_BYTES {4096}

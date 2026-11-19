@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_mipi.h"
+
+int main(void)
+{
+    rv32_mipi_t device = rv32_mipi_new(0);
+
+    if (!rv32_mipi_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_mipi_frame_count(device);
+    puts("MIPI example: PASS");
+
+    return 0;
+}

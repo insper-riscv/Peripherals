@@ -3,6 +3,23 @@
 # (needs Core cloned next to this repository: ../Core).
 repository: Peripherals
 references:
+  - {name: SPI C and Rust drivers, paths: [src/SPI/master/driver/c/driver.yaml, src/SPI/master/driver/c/rv32_spi.c, src/SPI/master/driver/rust/Cargo.toml, src/SPI/master/driver/README.md]}
+  - {name: SD_SPI C and Rust drivers, paths: [src/SD/spi/driver/c/driver.yaml, src/SD/spi/driver/c/rv32_sd_spi.c, src/SD/spi/driver/rust/Cargo.toml, src/SD/spi/driver/README.md]}
+  - {name: I2C C and Rust drivers, paths: [src/I2C/soc/driver/c/driver.yaml, src/I2C/soc/driver/c/rv32_i2c.c, src/I2C/soc/driver/rust/Cargo.toml, src/I2C/soc/driver/README.md]}
+  - {name: IR C and Rust drivers, paths: [src/IR/soc/driver/c/driver.yaml, src/IR/soc/driver/c/rv32_ir.c, src/IR/soc/driver/rust/Cargo.toml, src/IR/soc/driver/README.md]}
+  - {name: LCD C and Rust drivers, paths: [src/LCD/soc/driver/c/driver.yaml, src/LCD/soc/driver/c/rv32_lcd.c, src/LCD/soc/driver/rust/Cargo.toml, src/LCD/soc/driver/README.md]}
+  - {name: KEYBOARD C and Rust drivers, paths: [src/PS2/keyboard/driver/c/driver.yaml, src/PS2/keyboard/driver/c/rv32_keyboard.c, src/PS2/keyboard/driver/rust/Cargo.toml, src/PS2/keyboard/driver/README.md]}
+  - {name: MOUSE C and Rust drivers, paths: [src/PS2/mouse/driver/c/driver.yaml, src/PS2/mouse/driver/c/rv32_mouse.c, src/PS2/mouse/driver/rust/Cargo.toml, src/PS2/mouse/driver/README.md]}
+  - {name: AUDIO C and Rust drivers, paths: [src/audio/soc/driver/c/driver.yaml, src/audio/soc/driver/c/rv32_audio.c, src/audio/soc/driver/rust/Cargo.toml, src/audio/soc/driver/README.md]}
+  - {name: ADXL345 C and Rust drivers, paths: [src/ADXL345/driver/c/driver.yaml, src/ADXL345/driver/c/rv32_adxl345.c, src/ADXL345/driver/rust/Cargo.toml, src/ADXL345/driver/README.md]}
+  - {name: ADC C and Rust drivers, paths: [src/ADC/soc/driver/c/driver.yaml, src/ADC/soc/driver/c/rv32_adc.c, src/ADC/soc/driver/rust/Cargo.toml, src/ADC/soc/driver/README.md]}
+  - {name: ETH C and Rust drivers, paths: [src/ETH/mac/driver/c/driver.yaml, src/ETH/mac/driver/c/rv32_eth.c, src/ETH/mac/driver/rust/Cargo.toml, src/ETH/mac/driver/README.md]}
+  - {name: TV C and Rust drivers, paths: [src/TV/soc/driver/c/driver.yaml, src/TV/soc/driver/c/rv32_tv.c, src/TV/soc/driver/rust/Cargo.toml, src/TV/soc/driver/README.md]}
+  - {name: MIPI C and Rust drivers, paths: [src/MIPI/soc/driver/c/driver.yaml, src/MIPI/soc/driver/c/rv32_mipi.c, src/MIPI/soc/driver/rust/Cargo.toml, src/MIPI/soc/driver/README.md]}
+  - {name: SD C and Rust drivers, paths: [src/SD/native/driver/c/driver.yaml, src/SD/native/driver/c/rv32_sd.c, src/SD/native/driver/rust/Cargo.toml, src/SD/native/driver/README.md]}
+  - {name: VIDEO C and Rust drivers, paths: [src/video/soc/driver/c/driver.yaml, src/video/soc/driver/c/rv32_video.c, src/video/soc/driver/rust/Cargo.toml, src/video/soc/driver/README.md]}
+  - {name: HDMI C and Rust drivers, paths: [src/HDMI/soc/driver/c/driver.yaml, src/HDMI/soc/driver/c/rv32_hdmi.c, src/HDMI/soc/driver/rust/Cargo.toml, src/HDMI/soc/driver/README.md]}
+  - {name: WIFI C and Rust drivers, paths: [src/WIFI/nina/driver/c/driver.yaml, src/WIFI/nina/driver/c/rv32_wifi.c, src/WIFI/nina/driver/rust/Cargo.toml, src/WIFI/nina/driver/README.md]}
   - {name: GPIO C driver, paths: [src/GPIO/soc/driver/c/driver.yaml, src/GPIO/soc/driver/c/rv32_gpio.h, src/GPIO/soc/driver/c/rv32_gpio.c, tests/c/gpio_driver.c]}
   - {name: CLINT C driver, paths: [src/CLINT/soc/driver/c/driver.yaml, src/CLINT/soc/driver/c/rv32_clint.c, src/CLINT/soc/driver/c/rv32_clint.h]}
   - {name: PLIC C driver, paths: [src/PLIC/soc/driver/c/driver.yaml, src/PLIC/soc/driver/c/rv32_plic.c, src/PLIC/soc/driver/c/rv32_plic.h]}

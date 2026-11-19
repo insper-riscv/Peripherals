@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_mouse::{Mouse, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Mouse::new()?;
+    let _buttons = device.buttons();
+
+    println!("MOUSE Rust example: PASS");
+
+    Ok(())
+}

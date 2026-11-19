@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "name": "MIPI",
+  "instances": [
+    "MIPI"
+  ],
+  "kinds": [
+    "mipi"
+  ],
+  "register_bytes": 40,
+  "headers": [
+    "rv32_mipi.h",
+    "rv32_mipi_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_mipi.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true
+}

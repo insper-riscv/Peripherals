@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_wifi::{Wifi, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Wifi::new()?;
+    let _ack = device.acknowledge();
+
+    println!("WIFI Rust example: PASS");
+
+    Ok(())
+}

@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_i2c.h"
+
+int main(void)
+{
+    rv32_i2c_t device = rv32_i2c_new(0);
+
+    if (!rv32_i2c_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_i2c_busy(device);
+    puts("I2C example: PASS");
+
+    return 0;
+}

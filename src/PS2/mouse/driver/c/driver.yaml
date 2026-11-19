@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "name": "MOUSE",
+  "instances": [
+    "MOUSE",
+    "PS2_MOUSE"
+  ],
+  "kinds": [
+    "ps2"
+  ],
+  "register_bytes": 20,
+  "headers": [
+    "rv32_mouse.h",
+    "rv32_mouse_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_mouse.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true,
+  "devices": [
+    "mouse"
+  ]
+}

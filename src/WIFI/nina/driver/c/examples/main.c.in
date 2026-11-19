@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_wifi.h"
+
+int main(void)
+{
+    rv32_wifi_t device = rv32_wifi_new(0);
+
+    if (!rv32_wifi_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_wifi_acknowledge(device);
+    puts("WIFI example: PASS");
+
+    return 0;
+}

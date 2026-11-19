@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_video.h"
+
+int main(void)
+{
+    rv32_video_t device = rv32_video_new(0);
+
+    if (!rv32_video_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_video_frame_count(device);
+    puts("VIDEO example: PASS");
+
+    return 0;
+}

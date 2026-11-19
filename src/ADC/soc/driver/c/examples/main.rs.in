@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_adc::{Adc, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Adc::new()?;
+    let _busy = device.busy();
+
+    println!("ADC Rust example: PASS");
+
+    Ok(())
+}
