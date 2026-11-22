@@ -14,8 +14,8 @@ A register that holds 4 bits per digit and shows them in hexadecimal on the seve
 | `active_low` | true | Segments lit at the low level, as on the DE boards. False lights them at the high level |
 | `group_count` | 1 | Number of digit groups, from 1 to 8 |
 | `member_count` | 6 | Total of digit indices listed in `group_members`, equal to the sum of the sizes |
-| `group_sizes` | `x"06"` | `std_logic_vector` of `8 * group_count` bits, with no declared range; field $g$ is the number of digits of group $g$ |
-| `group_members` | digits 0 to 5 | `std_logic_vector` of `8 * member_count` bits, with no declared range; digit indices of all groups in sequence, in the written order |
+| `group_sizes` | `x"06"` | `std_logic_vector` of `8 * group_count` bits; field $g$ is the number of digits of group $g$ |
+| `group_members` | digits 0 to 5 | `std_logic_vector` of `8 * member_count` bits; digit indices of all groups in sequence, in the written order |
 | `has_dp` | false | Eight-segment digits, with the decimal point. True makes `o_hex` `8 * digits` bits wide and enables word 1 of each group (section 6); false keeps `7 * digits` bits and the behavior without a point |
 
 The fields of the lists have 8 bits, with element $k$ in bits $8k+7$ to $8k$, like the partition generic of the GPIO (`docs/en/GPIO/gpio.md`). A digit that is in the list of no group is blank, with every segment at the inactive level of the board, and `o_value` keeps its 4 bits for the host.
