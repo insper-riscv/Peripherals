@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_keyboard::{Keyboard, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Keyboard::new()?;
+    let _code = device.try_read();
+
+    println!("KEYBOARD Rust example: PASS");
+
+    Ok(())
+}

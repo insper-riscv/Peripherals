@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_sd::{Sd, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Sd::new()?;
+    let _busy = device.command_busy();
+
+    println!("SD Rust example: PASS");
+
+    Ok(())
+}

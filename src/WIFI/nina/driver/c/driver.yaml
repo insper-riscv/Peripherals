@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "name": "WIFI",
+  "instances": [
+    "WIFI",
+    "NINA"
+  ],
+  "kinds": [
+    "wifi"
+  ],
+  "register_bytes": 80,
+  "headers": [
+    "rv32_wifi.h",
+    "rv32_wifi_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_wifi.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true
+}

@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_audio::{Audio, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Audio::new()?;
+    let _depth = device.playback_depth();
+
+    println!("AUDIO Rust example: PASS");
+
+    Ok(())
+}

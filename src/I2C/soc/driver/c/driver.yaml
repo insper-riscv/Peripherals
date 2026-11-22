@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "name": "I2C",
+  "instances": [
+    "I2C",
+    "I2C0",
+    "I2C1"
+  ],
+  "kinds": [
+    "i2c"
+  ],
+  "register_bytes": 24,
+  "headers": [
+    "rv32_i2c.h",
+    "rv32_i2c_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_i2c.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true
+}

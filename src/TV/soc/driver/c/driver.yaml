@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "name": "TV",
+  "instances": [
+    "TV"
+  ],
+  "kinds": [
+    "tv"
+  ],
+  "register_bytes": 36,
+  "headers": [
+    "rv32_tv.h",
+    "rv32_tv_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_tv.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true
+}

@@ -1,6 +1,9 @@
 schema: 1
 name: USB
 instances: [USB]
+kinds: [usb]
+instance_api: true
+platform_fields: {POLL_BUDGET: 4096}
 register_bytes: 36
 headers: [rv32_usb.h, rv32_usb_platform.h]
 sources: [rv32_usb.c, rv32_usb_unverified.c]

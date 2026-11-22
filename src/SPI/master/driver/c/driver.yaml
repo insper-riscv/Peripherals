@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "name": "SPI",
+  "instances": [
+    "SPI",
+    "SPI0",
+    "SPI1"
+  ],
+  "kinds": [
+    "spi"
+  ],
+  "register_bytes": 24,
+  "headers": [
+    "rv32_spi.h",
+    "rv32_spi_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_spi.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {
+    "SELECT_COUNT": 1,
+    "WORD_BITS": 32
+  },
+  "instance_api": true
+}

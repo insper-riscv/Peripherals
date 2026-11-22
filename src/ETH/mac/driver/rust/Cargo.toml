@@ -1,0 +1,3 @@
+[workspace]
+members = ["insper-riscv-eth", "insper-riscv-eth-sys"]
+resolver = "2"

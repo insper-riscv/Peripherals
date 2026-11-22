@@ -698,7 +698,10 @@ begin
 
             when "011" =>
 
-                value(0) := '1' when state /= S_IDLE else '0';
+                value(0) := '0';
+                if state /= S_IDLE then
+                    value(0) := '1';
+                end if;
                 value(1) := sample_flag;
                 value(2) := valid;
                 value(3) := configured;

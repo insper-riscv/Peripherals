@@ -22,6 +22,41 @@ pub struct GPIO {
 }
 
 impl GPIO {
+    /// Select a logical GPIO group from the generated platform map.
+    /// Pins within the group are always numbered from zero.
+    ///
+    /// ```no_run
+    /// use insper_riscv_gpio::{GPIO, GPIOError};
+    /// # fn example() -> Result<(), GPIOError> {
+    /// let gpio = GPIO::group(0)?;
+    /// let pin = gpio.get(0)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn group(index: usize) -> Result<Self, GPIOError> {
+        let inner = unsafe { sys::rv32_gpio_platform_group_new(index) };
+
+        if !unsafe { sys::rv32_gpio_valid(inner) } {
+            return Err(GPIOError::InvalidBuilder);
+        }
+
+        Ok(Self {
+            pin_count: inner.pin_count,
+            inner,
+            _single_thread: PhantomData,
+        })
+    }
+
+    /// Count the groups described by the platform.
+    ///
+    /// ```
+    /// use insper_riscv_gpio::GPIO;
+    /// let count = GPIO::group_count();
+    /// ```
+    pub fn group_count() -> usize {
+        unsafe { sys::rv32_gpio_group_count() }
+    }
+
     /// Select the default platform GPIO and expose its first `pin_count` pins.
     /// The platform-generated width is an upper bound, not an MMIO window size.
     /// ```no_run

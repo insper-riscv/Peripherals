@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_sd.h"
+
+int main(void)
+{
+    rv32_sd_t device = rv32_sd_new(0);
+
+    if (!rv32_sd_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_sd_command_busy(device);
+    puts("SD example: PASS");
+
+    return 0;
+}

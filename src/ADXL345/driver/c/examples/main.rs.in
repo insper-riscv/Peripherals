@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_adxl345::{Adxl345, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Adxl345::new()?;
+    let _id = device.device_id();
+
+    println!("ADXL345 Rust example: PASS");
+
+    Ok(())
+}
