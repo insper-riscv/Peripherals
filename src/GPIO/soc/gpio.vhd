@@ -31,14 +31,18 @@ entity gpio is
         group_count    : positive range 1 to 255                                    := 1;
         -- Total de índices de pino listados em group_members, a soma de group_sizes.
         member_count   : positive range 1 to 255                                    := 32;
-        -- Pinos de cada grupo, um campo de 8 bits por grupo: o grupo g nos bits 8g+7 a 8g.
-        group_sizes    : std_logic_vector                                           := DEFAULT_GROUP_SIZES;
+        -- Pinos de cada grupo, um campo de 8 bits por grupo: o grupo g nos bits 8g+7 a 8g. Os quatro vetores
+        -- seguintes não têm faixa declarada, porque o Quartus Lite recusa um generic cuja faixa depende de outro
+        -- generic da lista (erros 10552 e 10556); a largura de cada um, 8 * group_count, 8 * member_count,
+        -- 2 * pin_count e pin_count, é conferida na elaboração.
+        group_sizes    : std_logic_vector                                           := x"20";
         -- Índices de pino de todos os grupos, em sequência e na ordem escrita, um campo de 8 bits por membro.
-        group_members  : std_logic_vector                                           := DEFAULT_GROUP_MEMBERS;
+        group_members  : std_logic_vector                                           :=
+            x"1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100";
         -- Direção fixa de cada pino, 2 bits por pino (0 livre, 1 só entrada, 2 só saída): o pino p nos bits 2p+1 a 2p.
-        pin_dirs       : std_logic_vector                                           := NO_PIN_DIRS;
+        pin_dirs       : std_logic_vector                                           := (63 downto 0 => '0');
         -- Polaridade de cada pino: '1' é ativo em nível baixo e '0' é ativo em nível alto; o pino p no bit p.
-        pin_active_low : std_logic_vector                                           := NO_PIN_LOWS
+        pin_active_low : std_logic_vector                                           := (31 downto 0 => '0')
     );
     port (
         -- Clock do módulo.
@@ -72,10 +76,10 @@ end entity gpio;
 
 architecture rtl of gpio is
 
-    -- Direção de cada pino com a faixa normalizada em descendente a partir de zero, seja qual for a faixa do generic.
-    constant PIN_DIRS_N : std_logic_vector(pin_dirs'length - 1 downto 0) := pin_dirs;
-    -- Polaridade de cada pino com a faixa normalizada em descendente a partir de zero.
-    constant PIN_LOWS_N : std_logic_vector(pin_active_low'length - 1 downto 0) := pin_active_low;
+    -- Direção de cada pino, com a faixa normalizada em 2 * pin_count - 1 downto 0 qualquer que seja a faixa do generic.
+    constant DIRS : std_logic_vector(pin_dirs'length - 1 downto 0)       := pin_dirs;
+    -- Polaridade de cada pino, com a faixa normalizada em pin_count - 1 downto 0 qualquer que seja a faixa do generic.
+    constant LOWS : std_logic_vector(pin_active_low'length - 1 downto 0) := pin_active_low;
 
     -- Matriz das palavras de leitura, uma por grupo.
     type rdata_array_t is array (0 to group_count - 1) of word_t;
@@ -88,6 +92,26 @@ architecture rtl of gpio is
     signal group_sel   : natural range 0 to 2 ** group_index_bits(group_count) - 1;
 
 begin
+
+    assert group_sizes'length = 8 * group_count
+        report "gpio: group_sizes tem " & integer'image(group_sizes'length) & " bits, e group_count pede " &
+               integer'image(8 * group_count)
+        severity failure;
+
+    assert group_members'length = 8 * member_count
+        report "gpio: group_members tem " & integer'image(group_members'length) & " bits, e member_count pede " &
+               integer'image(8 * member_count)
+        severity failure;
+
+    assert pin_dirs'length = 2 * pin_count
+        report "gpio: pin_dirs tem " & integer'image(pin_dirs'length) & " bits, e pin_count pede " &
+               integer'image(2 * pin_count)
+        severity failure;
+
+    assert pin_active_low'length = pin_count
+        report "gpio: pin_active_low tem " & integer'image(pin_active_low'length) & " bits, e pin_count pede " &
+               integer'image(pin_count)
+        severity failure;
 
     -- O índice do grupo são os bits do endereço acima dos 4 da palavra; com um grupo só, é zero.
     gen_sel_one : if group_count = 1 generate
@@ -206,11 +230,11 @@ begin
 
         gen_off_pin : if not is_member(group_members, member_count, p) generate
 
-            gen_hold : if to_mode(PIN_DIRS_N(2 * p + 1 downto 2 * p)) = DIR_OUTPUT generate
-                io_gpio_pins(p) <= PIN_LOWS_N(p);
+            gen_hold : if to_mode(DIRS(2 * p + 1 downto 2 * p)) = DIR_OUTPUT generate
+                io_gpio_pins(p) <= LOWS(p);
             end generate gen_hold;
 
-            gen_float : if to_mode(PIN_DIRS_N(2 * p + 1 downto 2 * p)) /= DIR_OUTPUT generate
+            gen_float : if to_mode(DIRS(2 * p + 1 downto 2 * p)) /= DIR_OUTPUT generate
                 io_gpio_pins(p) <= 'Z';
             end generate gen_float;
 

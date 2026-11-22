@@ -25,7 +25,7 @@ A vector of numbers has one 8-bit field per element, with element $k$ in bits $8
 | `pin_count` | `positive` from 1 to 255 | 32 | Pins of the block, numbered 0 to `pin_count - 1` |
 | `group_count` | `positive` from 1 to 255 | 1 | Number of groups $G$ |
 | `member_count` | `positive` from 1 to 255 | 32 | Total of indices listed in `group_members`, equal to the sum of the sizes |
-| `group_sizes` | `std_logic_vector` of $8G$ bits | `x"20"` | Field $g$ is the number of pins of group $g$, from 1 to 32 |
+| `group_sizes` | `std_logic_vector` of `8 * group_count` bits | `x"20"` | Field $g$ is the number of pins of group $g$, from 1 to 32 |
 | `group_members` | `std_logic_vector` of `8 * member_count` bits | pins 0 to 31 | Pin indices of all groups in sequence, in the written order; bit $k$ of the registers of a group is the $k$-th pin of the list of that group |
 | `pin_dirs` | `std_logic_vector` of `2 * pin_count` bits | zeros | Code of pin $p$ in bits $2p+1$ to $2p$ |
 | `pin_active_low` | `std_logic_vector` of `pin_count` bits | zeros | Bit $p$ at 1 is an active-low pin |
@@ -37,7 +37,7 @@ A vector of numbers has one 8-bit field per element, with element $k$ in bits $8
 | `10` | Fixed as output |
 | `11` | Refused at elaboration |
 
-The vectors declare no range, because Quartus Prime Lite refuses a generic whose range depends on another generic of the same list. Each vector takes the range of the value passed, which has the width in the table, and the default covers any number of pins up to the limit of 255. Whoever passes a vector writes a value of that width, and an aggregate `(others => ...)` is valid only when the context gives the range, so for the free, active-high values it is enough to leave the generic out. The example below is the partition `[[0,1,2,3],[5,6]]` of a role with 7 pins, all free and active high, with pin 4 off.
+The four vectors have no declared range (Quartus Lite refuses a generic whose range depends on another generic of the list), and the width of each one is checked at elaboration; whoever instantiates the block writes the vectors with the width the other generics impose, and an `others` aggregate does not work, because the generic does not fix the range. The example below is the partition `[[0,1,2,3],[5,6]]` of a role with 7 pins, all free and active high, with pin 4 off.
 
 ```vhdl
 u_leds : entity work.gpio
@@ -46,7 +46,9 @@ u_leds : entity work.gpio
         group_count    => 2,
         member_count   => 6,
         group_sizes    => x"02" & x"04",
-        group_members  => x"06" & x"05" & x"03" & x"02" & x"01" & x"00"
+        group_members  => x"06" & x"05" & x"03" & x"02" & x"01" & x"00",
+        pin_dirs       => (13 downto 0 => '0'),
+        pin_active_low => (6 downto 0 => '0')
     )
 ```
 
