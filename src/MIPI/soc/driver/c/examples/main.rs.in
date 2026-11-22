@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_mipi::{Mipi, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Mipi::new()?;
+    let _frames = device.frame_count();
+
+    println!("MIPI Rust example: PASS");
+
+    Ok(())
+}

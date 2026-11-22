@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "name": "SD",
+  "instances": [
+    "SD",
+    "SD_NATIVE"
+  ],
+  "kinds": [
+    "sd_native"
+  ],
+  "register_bytes": 52,
+  "headers": [
+    "rv32_sd.h",
+    "rv32_sd_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_sd.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true
+}

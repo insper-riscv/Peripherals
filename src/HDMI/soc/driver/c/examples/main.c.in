@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_hdmi.h"
+
+int main(void)
+{
+    rv32_hdmi_t device = rv32_hdmi_new(0);
+
+    if (!rv32_hdmi_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_hdmi_frame_count(device);
+    puts("HDMI example: PASS");
+
+    return 0;
+}

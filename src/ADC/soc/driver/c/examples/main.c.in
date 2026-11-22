@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_adc.h"
+
+int main(void)
+{
+    rv32_adc_t device = rv32_adc_new(0);
+
+    if (!rv32_adc_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_adc_busy(device);
+    puts("ADC example: PASS");
+
+    return 0;
+}

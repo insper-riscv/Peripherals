@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_adxl345.h"
+
+int main(void)
+{
+    rv32_adxl345_t device = rv32_adxl345_new(0);
+
+    if (!rv32_adxl345_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_adxl345_device_id(device);
+    puts("ADXL345 example: PASS");
+
+    return 0;
+}

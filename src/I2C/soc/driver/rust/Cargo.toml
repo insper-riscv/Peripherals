@@ -1,0 +1,3 @@
+[workspace]
+members = ["insper-riscv-i2c", "insper-riscv-i2c-sys"]
+resolver = "2"

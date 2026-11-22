@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "name": "ADXL345",
+  "instances": [
+    "ACCEL",
+    "ADXL345"
+  ],
+  "kinds": [
+    "adxl345"
+  ],
+  "register_bytes": 32,
+  "headers": [
+    "rv32_adxl345.h",
+    "rv32_adxl345_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_adxl345.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {},
+  "instance_api": true
+}

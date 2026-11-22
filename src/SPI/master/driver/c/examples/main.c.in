@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_spi.h"
+
+int main(void)
+{
+    rv32_spi_t device = rv32_spi_new(0);
+
+    if (!rv32_spi_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_spi_busy(device);
+    puts("SPI example: PASS");
+
+    return 0;
+}

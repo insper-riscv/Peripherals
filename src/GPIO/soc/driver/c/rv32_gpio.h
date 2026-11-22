@@ -40,6 +40,10 @@ typedef enum {
  * instance returns an invalid handle without touching hardware.
  */
 rv32_gpio_t rv32_gpio_platform_new(rv32_gpio_instance_t instance);
+
+/* Logical groups are flattened in platform declaration order. */
+rv32_gpio_t rv32_gpio_platform_group_new(size_t group);
+size_t rv32_gpio_group_count(void);
 bool rv32_gpio_valid(rv32_gpio_t gpio);
 
 typedef enum {

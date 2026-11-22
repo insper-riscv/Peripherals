@@ -1,5 +1,6 @@
 schema: 1
 name: GPIO
+kinds: [gpio]
 instances: [GPIO, SWITCHES, KEYS]
 register_bytes: 44
 headers: [rv32_gpio.h, rv32_gpio_platform.h]

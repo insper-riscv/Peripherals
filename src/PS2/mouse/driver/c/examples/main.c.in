@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_mouse.h"
+
+int main(void)
+{
+    rv32_mouse_t device = rv32_mouse_new(0);
+
+    if (!rv32_mouse_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_mouse_buttons(device);
+    puts("MOUSE example: PASS");
+
+    return 0;
+}

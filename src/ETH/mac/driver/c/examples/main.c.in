@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+#include <stdio.h>
+#include "rv32_eth.h"
+
+int main(void)
+{
+    rv32_eth_t device = rv32_eth_new(0);
+
+    if (!rv32_eth_valid(device)) {
+        return 1;
+    }
+
+    (void)rv32_eth_rx_ready(device);
+    puts("ETH example: PASS");
+
+    return 0;
+}

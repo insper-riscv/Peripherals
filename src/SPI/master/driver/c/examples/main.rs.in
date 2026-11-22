@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_spi::{Spi, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Spi::new()?;
+    let _busy = device.busy();
+
+    println!("SPI Rust example: PASS");
+
+    Ok(())
+}

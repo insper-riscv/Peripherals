@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "name": "VIDEO",
+  "instances": [
+    "VIDEO",
+    "VGA"
+  ],
+  "kinds": [
+    "video"
+  ],
+  "register_bytes": 20,
+  "headers": [
+    "rv32_video.h",
+    "rv32_video_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_video.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {
+    "FRAMEBUFFER_OFFSET": 131072,
+    "WINDOW_BYTES": 262144
+  },
+  "instance_api": true
+}

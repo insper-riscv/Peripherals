@@ -45,7 +45,32 @@ rv32_usb_t rv32_usb_new(uintptr_t base, size_t poll_budget)
 
 bool rv32_usb_valid(rv32_usb_t usb)
 {
-    return usb.base != 0 && usb.poll_budget > 0;
+    return usb.base != 0 && usb.base % 4 == 0 && usb.poll_budget > 0 &&
+           usb.base <= UINTPTR_MAX - 4u * WORD_COUNT;
+}
+
+size_t rv32_usb_instance_count(void)
+{
+    return RV32_USB_INSTANCE_COUNT;
+}
+
+rv32_usb_t rv32_usb_instance_new(size_t instance)
+{
+    static const uintptr_t bases[] = RV32_USB_BASES;
+    static const size_t budgets[] = RV32_USB_POLL_BUDGET;
+
+    if (instance >= rv32_usb_instance_count()) {
+        return rv32_usb_new(0, 0);
+    }
+
+    return rv32_usb_new(bases[instance], budgets[instance]);
+}
+
+rv32_usb_profile_t rv32_usb_profile_new(void)
+{
+    rv32_usb_profile_t profile = {0};
+
+    return profile;
 }
 
 uint32_t rv32_usb_bridge_status(rv32_usb_t usb)
@@ -197,13 +222,18 @@ rv32_usb_err_t rv32_usb_chip_reset(rv32_usb_t usb, rv32_usb_delay_fn delay,
 
 rv32_usb_err_t rv32_usb_hpi_set_address(rv32_usb_t usb, uint16_t address)
 {
+    if ((address & 1u) != 0) {
+        return RV32_USB_E_INVALID;
+    }
+
     return rv32_usb_port_write(usb, RV32_USB_PORT_ADDRESS, address);
 }
 
 rv32_usb_err_t rv32_usb_hpi_read_words(rv32_usb_t usb, uint16_t address, uint16_t *dst,
                                        size_t count)
 {
-    if (dst == NULL || count == 0 || (address & 1u) != 0) {
+    if (dst == NULL || count == 0 || (address & 1u) != 0 ||
+        count > ((size_t)UINT16_MAX - address + 1u) / 2u) {
         return RV32_USB_E_INVALID;
     }
 
@@ -219,7 +249,8 @@ rv32_usb_err_t rv32_usb_hpi_read_words(rv32_usb_t usb, uint16_t address, uint16_
 rv32_usb_err_t rv32_usb_hpi_write_words(rv32_usb_t usb, uint16_t address,
                                         const uint16_t *src, size_t count)
 {
-    if (src == NULL || count == 0 || (address & 1u) != 0) {
+    if (src == NULL || count == 0 || (address & 1u) != 0 ||
+        count > ((size_t)UINT16_MAX - address + 1u) / 2u) {
         return RV32_USB_E_INVALID;
     }
 

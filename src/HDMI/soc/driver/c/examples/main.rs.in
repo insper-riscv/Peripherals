@@ -1,0 +1,16 @@
+#![no_std]
+#![no_main]
+
+use insper_riscv_hdmi::{Hdmi, Error};
+use rv32_runtime::{entry, println};
+
+entry!(main);
+
+fn main() -> Result<(), Error> {
+    let mut device = Hdmi::new()?;
+    let _frames = device.frame_count();
+
+    println!("HDMI Rust example: PASS");
+
+    Ok(())
+}

@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "name": "ETH",
+  "instances": [
+    "ETH",
+    "ETH0",
+    "ETH1"
+  ],
+  "kinds": [
+    "eth"
+  ],
+  "register_bytes": 88,
+  "headers": [
+    "rv32_eth.h",
+    "rv32_eth_platform.h",
+    "rv32_mmio.h"
+  ],
+  "sources": [
+    "rv32_eth.c"
+  ],
+  "example": "examples/main.c.in",
+  "platform_fields": {
+    "TX_WORDS": 512,
+    "RX_WORDS": 512
+  },
+  "instance_api": true
+}
