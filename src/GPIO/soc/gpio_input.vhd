@@ -76,13 +76,16 @@ architecture rtl of gpio_input is
 
     end function all_inputs;
 
+    -- Polaridade com a faixa normalizada em active_low'length - 1 downto 0, de onde saem os width primeiros bits.
+    constant LOWS : std_logic_vector(active_low'length - 1 downto 0) := active_low;
+
 begin
 
     u_group : entity work.gpio_group
         generic map (
             width      => width,
             dir_modes  => all_inputs,
-            active_low => active_low
+            active_low => LOWS(width - 1 downto 0)
         )
         port map (
             i_clk      => i_clk,
