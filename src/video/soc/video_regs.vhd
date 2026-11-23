@@ -108,8 +108,9 @@ architecture rtl of video_regs is
     constant PAL_BYTES    : positive := (3 * channel_bits + 7) / 8;
     -- Posição do bit do registrador de formato que vale '1' no formato indexado.
     constant INDEXED_FLAG : natural  := 24;
-    -- Numerador (4 bits) e denominador (3 bits) da ampliação vertical racional, nos bits 28:25 e 31:29 do formato.
+    -- Largura do numerador da ampliação vertical racional, nos bits 28:25 do formato.
     constant V_NUM_BITS   : natural  := 4;
+    -- Largura do denominador da ampliação vertical racional, nos bits 31:29 do formato.
     constant V_DEN_BITS   : natural  := 3;
 
     -- Exibição habilitada.
