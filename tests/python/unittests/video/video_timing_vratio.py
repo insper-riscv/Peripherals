@@ -142,6 +142,62 @@ async def test_source_row_per_line(dut: RatioDut) -> None:
         check(fb_y < int(dut.fb_height.value), f"fb_y no limite, linha {line}")
 
 
+def check_counts(
+    counts: list[int], num: int, den: int, fb_height: int, scale: int
+) -> None:
+    """Confere o padrão de repetição das linhas de origem.
+
+    Parameters
+    ----------
+    counts : list[int]
+        Quantas vezes cada linha de origem aparece.
+    num : int
+        Numerador da ampliação vertical.
+    den : int
+        Denominador da ampliação vertical.
+    fb_height : int
+        Altura do framebuffer.
+    scale : int
+        Fator de ampliação inteira do periférico.
+    """
+    check(
+        all(c in (num // den, -(-num // den)) for c in counts),
+        f"repetições {counts} só de piso e teto de {num}/{den}",
+    )
+    if (num, den) == (12, 5):
+        want = (PATTERN_12_5 * fb_height)[:fb_height]
+        check(counts == want, f"padrão 3,2,3,2,2: {counts} != {want}")
+    if (num, den) == (scale, 1):
+        check(set(counts) == {num}, "ampliação inteira: todas iguais")
+
+
+def check_shown(
+    shown: list[int], num: int, den: int, fb_height: int, scale: int
+) -> None:
+    """Confere as linhas de origem exibidas em um quadro.
+
+    Parameters
+    ----------
+    shown : list[int]
+        Linha de origem de cada linha exibida do quadro.
+    num : int
+        Numerador da ampliação vertical.
+    den : int
+        Denominador da ampliação vertical.
+    fb_height : int
+        Altura do framebuffer.
+    scale : int
+        Fator de ampliação inteira do periférico.
+    """
+    height = -(-fb_height * num // den)
+    check(len(shown) == height, f"linhas exibidas: {len(shown)} != {height}")
+    check(shown[0] == 0, "começa na linha de origem 0")
+    check(shown[-1] == fb_height - 1, "termina na última linha de origem")
+    counts = runs(shown)
+    check(sum(counts) == height, "soma das repetições")
+    check_counts(counts, num, den, fb_height, scale)
+
+
 @cocotb.test()
 async def test_image_lines_and_repeat_pattern(dut: RatioDut) -> None:
     """Linhas exibidas por quadro e padrão de repetição das linhas."""
@@ -150,29 +206,14 @@ async def test_image_lines_and_repeat_pattern(dut: RatioDut) -> None:
     rows = await sample_rows(dut, mode, FRAMES)
     num, den = ratio(dut)
     fb_height = int(dut.fb_height.value)
-    height = -(-fb_height * num // den)
+    scale = int(dut.scale.value)
+    frames: list[list[int]] = []
     for frame in range(FRAMES):
         first = frame * mode.v_total
         last = first + mode.v_total
         lines = rows[first:last]
         shown = [fb_y for _, image, fb_y in lines if image]
-        check(
-            len(shown) == height, f"linhas exibidas: {len(shown)} != {height}"
-        )
-        check(shown[0] == 0, "começa na linha de origem 0")
-        check(shown[-1] == fb_height - 1, "termina na última linha de origem")
-        counts = runs(shown)
-        check(sum(counts) == height, "soma das repetições")
-        check(
-            all(c in (num // den, -(-num // den)) for c in counts),
-            f"repetições {counts} só de piso e teto de {num}/{den}",
-        )
-        if (num, den) == (12, 5):
-            want = (PATTERN_12_5 * fb_height)[:fb_height]
-            check(counts == want, f"padrão 3,2,3,2,2: {counts} != {want}")
-        if (num, den) == (int(dut.scale.value), 1):
-            check(set(counts) == {num}, "ampliação inteira: todas iguais")
-        # O quadro seguinte repete o desenho (o acumulador reinicia).
-        if frame:
-            first = [fb_y for _, image, fb_y in rows[: mode.v_total] if image]
-            check(shown == first, "quadros idênticos")
+        check_shown(shown, num, den, fb_height, scale)
+        frames.append(shown)
+    # O quadro seguinte repete o desenho (o acumulador reinicia).
+    check(all(f == frames[0] for f in frames), "quadros idênticos")
