@@ -216,12 +216,15 @@ architecture rtl of sd_native is
 
     -- Barramento registrado: escrita, endereço e dado do ciclo anterior.
     signal wr_q              : std_logic;
+    -- Endereço do ciclo anterior.
     signal addr_q            : std_logic_vector(3 downto 0);
+    -- Dado de escrita do ciclo anterior.
     signal data_q            : word_t;
     -- Valor do ponteiro no ciclo da escrita em DATA, que escreve no buffer um ciclo depois.
     signal ptr_q             : unsigned(6 downto 0);
-    -- Escrita pendente em STATUS e em ERROR (limpeza W1C).
+    -- Escrita pendente em STATUS (limpeza W1C).
     signal write_status      : std_logic;
+    -- Escrita pendente em ERROR (limpeza W1C).
     signal write_error       : std_logic;
     -- A leitura do buffer pede o endereço que a escrita registrada grava neste ciclo.
     signal bypass_q          : std_logic;
@@ -229,12 +232,19 @@ architecture rtl of sd_native is
     signal bypass_data       : std_logic_vector(31 downto 0);
     -- Estado visto pelo software, com o efeito da escrita pendente em CMD, ABORT, STATUS e ERROR.
     signal cmd_busy_v        : std_logic;
+    -- Dados ocupados, visto pelo software.
     signal data_busy_v       : std_logic;
+    -- Fim de comando, visto pelo software.
     signal cmd_done_flag_v   : std_logic;
+    -- Fim de dados, visto pelo software.
     signal data_done_flag_v  : std_logic;
+    -- Erros vistos pelo software, com a limpeza W1C e a recusa pendentes.
     signal errors_v          : std_logic_vector(9 downto 0);
+    -- Bits de ERROR que a escrita pendente limpa.
     signal error_clear       : std_logic_vector(9 downto 0);
+    -- Erro de comando recusado que a escrita pendente em CMD gera.
     signal error_refused     : std_logic_vector(9 downto 0);
+    -- Palavra de CMD vista pelo software, com a escrita pendente.
     signal cmd_word_v        : std_logic_vector(10 downto 0);
     -- Pedido do software de escrever em CMD.
     signal write_cmd         : std_logic;
