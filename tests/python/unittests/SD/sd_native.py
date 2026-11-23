@@ -84,6 +84,8 @@ SECTOR_PATTERN = bytes((index * 7 + 3) & 0xFF for index in range(SECTOR_BYTES))
 WRITTEN_PATTERN = bytes((index ^ 0x5A) & 0xFF for index in range(SECTOR_BYTES))
 SHORT_TIMEOUT = 300
 WORD_MASK = 0xFFFFFFFF
+OVERWRITE_WORD = 0xA5A5A5A5
+LAST_WORD = 0xCAFEF00D
 CID_WORDS = 4
 BLOCK_WORDS = SECTOR_BYTES // 4
 
@@ -578,8 +580,9 @@ async def test_interrupts_dropped_and_abort(dut: SdNativeDut) -> None:
 async def test_status_seen_in_the_next_cycle(dut: SdNativeDut) -> None:
     """Uma escrita seguida da leitura no ciclo seguinte já vê o efeito.
 
-    O barramento é registrado dentro do periférico, e o estado lido inclui
-    o efeito pendente da escrita (comando, aborto, W1C de STATUS e de ERROR).
+    O barramento é registrado dentro do periférico, e o estado lido
+    inclui o efeito pendente da escrita (comando, aborto, W1C de STATUS
+    e de ERROR).
     """
     card = await setup(dut)
     card.faults.silent = True
@@ -628,8 +631,9 @@ async def test_status_seen_in_the_next_cycle(dut: SdNativeDut) -> None:
 async def test_buffer_window_back_to_back(dut: SdNativeDut) -> None:
     """Escrita e leitura da janela DATA em ciclos seguidos, com PTR.
 
-    A escrita no buffer chega à memória um ciclo depois do acesso, e a leitura
-    do mesmo endereço no ciclo seguinte é atendida por um desvio.
+    A escrita no buffer chega à memória um ciclo depois do acesso, e
+    a leitura do mesmo endereço no ciclo seguinte é atendida por um
+    desvio.
     """
     await setup(dut)
     words = [0x11111111 * (index + 1) & WORD_MASK for index in range(6)]
@@ -642,15 +646,16 @@ async def test_buffer_window_back_to_back(dut: SdNativeDut) -> None:
     check(got == words, f"leitura em ciclos seguidos {got}")
     check(await bus.read(dut, PTR) == len(words), "leitura avança PTR")
     await bus.write(dut, PTR, 2)
-    await bus.write(dut, DATA, 0xA5A5A5A5)
+    await bus.write(dut, DATA, OVERWRITE_WORD)
     await bus.write(dut, PTR, 2)
-    check(await bus.read(dut, DATA) == 0xA5A5A5A5, "PTR logo após a escrita")
+    got = await bus.read(dut, DATA)
+    check(got == OVERWRITE_WORD, "PTR logo após a escrita")
     check(await bus.read(dut, DATA) == words[3], "palavra seguinte intacta")
     await bus.write(dut, PTR, BLOCK_WORDS - 1)
-    await bus.write(dut, DATA, 0xCAFEF00D)
+    await bus.write(dut, DATA, LAST_WORD)
     check(await bus.read(dut, PTR) == 0, "PTR dá a volta")
     await bus.write(dut, PTR, BLOCK_WORDS - 1)
-    check(await bus.read(dut, DATA) == 0xCAFEF00D, "última palavra")
+    check(await bus.read(dut, DATA) == LAST_WORD, "última palavra")
     await bus.write(dut, PTR, 0x1)
     await bus.write(dut, PTR, 0x3)
     check(await bus.read(dut, DATA) == words[3], "PTR escrito duas vezes")

@@ -22,7 +22,7 @@ BITS_PER_BYTE = 8
 
 
 @dataclass(frozen=True)
-class Geometry:
+class Geometry:  # pylint: disable=too-many-instance-attributes
     """Dimensões e formato do framebuffer lidos do periférico.
 
     Attributes

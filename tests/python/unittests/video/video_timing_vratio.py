@@ -152,7 +152,9 @@ async def test_image_lines_and_repeat_pattern(dut: RatioDut) -> None:
     fb_height = int(dut.fb_height.value)
     height = -(-fb_height * num // den)
     for frame in range(FRAMES):
-        lines = rows[frame * mode.v_total : (frame + 1) * mode.v_total]
+        first = frame * mode.v_total
+        last = first + mode.v_total
+        lines = rows[first:last]
         shown = [fb_y for _, image, fb_y in lines if image]
         check(
             len(shown) == height, f"linhas exibidas: {len(shown)} != {height}"
