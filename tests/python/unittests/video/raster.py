@@ -43,6 +43,11 @@ class Geometry:
         Largura do endereço de palavra da janela.
     mode : Mode
         Temporização do modo de vídeo.
+    v_num : int
+        Numerador da ampliação vertical racional; 0 quando ela é igual a
+        scale (ampliação inteira).
+    v_den : int
+        Denominador da ampliação vertical racional.
     """
 
     fb_width: int
@@ -53,6 +58,26 @@ class Geometry:
     indexed: bool
     addr_width: int
     mode: Mode
+    v_num: int = 0
+    v_den: int = 1
+
+    @property
+    def v_ratio(self) -> tuple[int, int]:
+        """Ampliação vertical efetiva como (numerador, denominador)."""
+        if self.v_num == 0:
+            return self.scale, 1
+        return self.v_num, self.v_den
+
+    @property
+    def image_height(self) -> int:
+        """Altura da imagem ampliada: ceil(fb_height * num / den)."""
+        num, den = self.v_ratio
+        return -(-self.fb_height * num // den)
+
+    def source_row(self, line: int) -> int:
+        """Linha do framebuffer que cobre a linha da imagem ampliada."""
+        num, den = self.v_ratio
+        return line * den // num
 
     @property
     def pixels_per_word(self) -> int:
@@ -72,7 +97,7 @@ class Geometry:
     @property
     def y_off(self) -> int:
         """Primeira linha da imagem na tela."""
-        return (self.mode.v_visible - self.fb_height * self.scale) // 2
+        return (self.mode.v_visible - self.image_height) // 2
 
     @property
     def window(self) -> int:
@@ -122,6 +147,8 @@ async def read_geometry(dut: VideoDut) -> Geometry:
         indexed=bool(fmt & INDEXED_FLAG),
         addr_width=len(dut.i_address),
         mode=read_mode(dut),
+        v_num=(fmt >> 25) & 0xF,
+        v_den=max((fmt >> 29) & 0x7, 1),
     )
 
 
@@ -230,9 +257,9 @@ class Model:
         """
         geo = self.geo
         fx, fy = x - geo.x_off, y - geo.y_off
-        width, height = geo.fb_width * geo.scale, geo.fb_height * geo.scale
+        width, height = geo.fb_width * geo.scale, geo.image_height
         if 0 <= fx < width and 0 <= fy < height:
-            return self.pixel_color(fx // geo.scale, fy // geo.scale)
+            return self.pixel_color(fx // geo.scale, geo.source_row(fy))
         return BLACK
 
 

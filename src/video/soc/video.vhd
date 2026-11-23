@@ -10,7 +10,11 @@
 -- portas: o processador escreve, 32 bits por acesso e com máscara de bytes, no
 -- clock do sistema, e a varredura lê no clock de pixel. Cada pixel do
 -- framebuffer é ampliado scale vezes em x e em y e a imagem fica centrada na
--- área visível, com faixas pretas nas bordas que sobram.
+-- área visível, com faixas pretas nas bordas que sobram. Com v_scale_num
+-- diferente de 0 a ampliação vertical é a razão não inteira
+-- v_scale_num / v_scale_den (por exemplo 12 / 5 = 2,4, que leva 320x200 a
+-- 640x480 sem bandas), obtida repetindo cada linha de origem 2 ou 3 vezes; ver
+-- video_timing.
 --
 -- O formato do pixel é o generic pixel_format:
 --   - "indexed": 8 bits por pixel, o índice de uma paleta de 256 entradas de
@@ -74,7 +78,11 @@ entity video is
         -- Linhas do pórtico traseiro vertical.
         v_back_porch    : natural  := 33;
         -- Polaridade do sincronismo vertical: verdadeiro = nível alto durante o pulso.
-        v_sync_positive : boolean  := false
+        v_sync_positive : boolean  := false;
+        -- Numerador da ampliação vertical racional (0 = igual a scale, inteira); no máximo 15.
+        v_scale_num     : natural  := 0;
+        -- Denominador da ampliação vertical racional (no máximo 7 e no máximo v_scale_num).
+        v_scale_den     : positive := 1
     );
     port (
         -- Clock do sistema.
@@ -232,6 +240,8 @@ begin
             channel_bits => channel_bits,
             pixel_format => pixel_format,
             scale        => scale,
+            v_scale_num  => v_scale_num,
+            v_scale_den  => v_scale_den,
             addr_width   => addr_width
         )
         port map (
@@ -311,7 +321,9 @@ begin
             v_front_porch   => v_front_porch,
             v_sync          => v_sync,
             v_back_porch    => v_back_porch,
-            v_sync_positive => v_sync_positive
+            v_sync_positive => v_sync_positive,
+            v_scale_num     => v_scale_num,
+            v_scale_den     => v_scale_den
         )
         port map (
             i_clk     => i_pixel_clk,

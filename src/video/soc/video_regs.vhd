@@ -12,7 +12,10 @@
 -- (bit 0 sincronismo vertical, bit 1 apagamento vertical, L), 2 contador de
 -- quadros (L), 3 geometria (largura nos bits 15:0, altura nos 31:16, L),
 -- 4 formato (bits por pixel nos bits 7:0, ampliação nos 15:8, bits por canal
--- nos 23:16 e bit 24 em '1' no formato indexado, L).
+-- nos 23:16 e bit 24 em '1' no formato indexado, L). Com a ampliação vertical
+-- racional (v_scale_num diferente de 0) o registrador 4 traz ainda o numerador
+-- nos bits 28:25 e o denominador nos bits 31:29; com v_scale_num = 0 (padrão)
+-- esses bits valem zero e a ampliação vertical é a dos bits 15:8.
 --
 -- A leitura é combinacional no endereço e não tem efeito colateral. A escrita
 -- no framebuffer e na paleta sai registrada, um ciclo depois do pulso de
@@ -46,6 +49,10 @@ entity video_regs is
         pixel_format : string   := "indexed";
         -- Fator de ampliação do pixel do framebuffer.
         scale        : positive := 2;
+        -- Numerador da ampliação vertical racional (0 = igual a scale); no máximo 15.
+        v_scale_num  : natural  := 0;
+        -- Denominador da ampliação vertical racional; no máximo 7.
+        v_scale_den  : positive := 1;
         -- Largura do endereço de palavra da janela do periférico.
         addr_width   : positive := 16
     );
@@ -101,6 +108,9 @@ architecture rtl of video_regs is
     constant PAL_BYTES    : positive := (3 * channel_bits + 7) / 8;
     -- Posição do bit do registrador de formato que vale '1' no formato indexado.
     constant INDEXED_FLAG : natural  := 24;
+    -- Numerador (4 bits) e denominador (3 bits) da ampliação vertical racional, nos bits 28:25 e 31:29 do formato.
+    constant V_NUM_BITS   : natural  := 4;
+    constant V_DEN_BITS   : natural  := 3;
 
     -- Exibição habilitada.
     signal enable_reg  : std_logic                     := '0';
@@ -135,6 +145,10 @@ architecture rtl of video_regs is
     signal fb_hit      : std_logic;
 
 begin
+
+    assert v_scale_num < 2 ** V_NUM_BITS and v_scale_den < 2 ** V_DEN_BITS
+        report "video_regs: v_scale_num cabe em 4 bits e v_scale_den em 3 bits do registrador de formato"
+        severity failure;
 
     assert addr_width >= VIDEO_MIN_ADDR_WIDTH and addr_width > FB_ADDR_BITS
         report "video_regs: addr_width deve conter o espaço de registradores e o framebuffer"
@@ -178,6 +192,13 @@ begin
                     o_data_out(15 downto 8)  <= std_logic_vector(to_unsigned(scale, 8));
                     o_data_out(23 downto 16) <= std_logic_vector(to_unsigned(channel_bits, 8));
                     o_data_out(INDEXED_FLAG) <= to_sl(HAS_PALETTE);
+
+                    if v_scale_num /= 0 then
+                        o_data_out(INDEXED_FLAG + V_NUM_BITS downto INDEXED_FLAG + 1) <=
+                            std_logic_vector(to_unsigned(v_scale_num, V_NUM_BITS));
+                        o_data_out(INDEXED_FLAG + V_NUM_BITS + V_DEN_BITS downto INDEXED_FLAG + V_NUM_BITS + 1) <=
+                            std_logic_vector(to_unsigned(v_scale_den, V_DEN_BITS));
+                    end if;
                 when others =>
                     null;
             end case;
