@@ -4,7 +4,7 @@
 
 ## 1. What it is
 
-A bus peripheral that drives an SD or micro SD card in native mode, with one or four data lines, the mode in which the card reaches its maximum transfer rate. The software writes the argument and the command, the peripheral sends the 48-bit frame with its CRC7, receives and checks the response and, when the command carries a block, moves the 512 bytes between the card and a block buffer with one CRC16 per line. The SPI mode of the same card is described in [sd_spi.md](sd_spi.md).
+A bus peripheral that drives an SD or micro SD card in native mode, with one or four data lines, the mode in which the card reaches its maximum transfer rate. The software writes the argument and the command, the peripheral sends the 48-bit frame with its CRC7, receives and checks the response and, when the command carries a block, moves the 512 bytes between the card and a block buffer with one CRC16 per line. The SPI mode of the same card is described in [sd_spi.md](sd_spi.md). The use of the card in the SoC, raw or with a file system, is described in [sd_cartao.md](sd_cartao.md).
 
 The peripheral is made of seven blocks.
 

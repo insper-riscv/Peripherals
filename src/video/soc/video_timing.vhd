@@ -8,15 +8,24 @@
 -- V_TOTAL - 1), geram os sincronismos horizontal e vertical (o_hs e o_vs, em
 -- nível alto durante o pulso se a polaridade é positiva e em nível baixo se é
 -- negativa) e as marcas de apagamento. O framebuffer de fb_width por
--- fb_height pixels é ampliado scale vezes em x e em y e centrado na área
--- visível; fora desse retângulo a imagem é preta (o_image = '0'), e o_visible
--- marca a área visível inteira, com a imagem e as faixas pretas.
+-- fb_height pixels é ampliado scale vezes em x e v_scale_num / v_scale_den
+-- vezes em y e centrado na área visível; fora desse retângulo a imagem é preta
+-- (o_image = '0'), e o_visible marca a área visível inteira, com a imagem e as
+-- faixas pretas.
 --
 -- Dentro do retângulo, o_fb_x e o_fb_y valem as coordenadas do pixel do
--- framebuffer que cobre o pixel atual da tela. Os contadores de repetição
--- avançam as coordenadas a cada scale pixels (em x) e a cada scale linhas (em
--- y), e as coordenadas ficam retidas no último valor fora do retângulo, o que
--- mantém o endereço de leitura da memória sempre dentro da faixa.
+-- framebuffer que cobre o pixel atual da tela. O contador de repetição em x
+-- avança a coordenada a cada scale pixels. Em y a linha de origem da linha
+-- exibida n é floor(n * v_scale_den / v_scale_num), calculada de forma
+-- incremental por um acumulador de erro (sem divisão nem multiplicação): a cada
+-- linha exibida soma-se v_scale_den ao acumulador e, quando a soma alcança
+-- v_scale_num, subtrai-se v_scale_num e a linha de origem avança. Com
+-- v_scale_num = 0 (padrão) a razão é scale / 1, o acumulador conta 0 a
+-- scale - 1 e o comportamento é o de uma ampliação inteira. Com 12 / 5 as
+-- linhas de origem se repetem 3, 2, 3, 2, 2 vezes (média 2,4: 200 linhas de
+-- origem viram 480). A altura da imagem é ceil(fb_height * num / den) e as
+-- coordenadas ficam retidas no último valor fora do retângulo, o que mantém o
+-- endereço de leitura da memória sempre dentro da faixa.
 --
 -- Prioridade: i_rst = '1' (síncrono) leva os contadores ao canto superior
 -- esquerdo do quadro. As saídas de estado o_vsync e o_vblank são registradas
@@ -59,7 +68,11 @@ entity video_timing is
         -- Linhas do pórtico traseiro vertical, entre o pulso de sincronismo e a área visível.
         v_back_porch    : natural  := 33;
         -- Polaridade do sincronismo vertical: verdadeiro = nível alto durante o pulso.
-        v_sync_positive : boolean  := false
+        v_sync_positive : boolean  := false;
+        -- Numerador da ampliação vertical racional; 0 = igual a scale (ampliação inteira, denominador 1).
+        v_scale_num     : natural  := 0;
+        -- Denominador da ampliação vertical racional (ignorado com v_scale_num = 0; deve valer no máximo v_scale_num).
+        v_scale_den     : positive := 1
     );
     port (
         -- Clock de pixel.
@@ -94,8 +107,12 @@ architecture rtl of video_timing is
     constant V_TOTAL  : natural := v_visible + v_front_porch + v_sync + v_back_porch;
     -- Largura em pixels da imagem ampliada.
     constant IMAGE_W  : natural := fb_width * scale;
-    -- Altura em linhas da imagem ampliada.
-    constant IMAGE_H  : natural := fb_height * scale;
+    -- Numerador efetivo da ampliação vertical.
+    constant V_NUM    : positive := pick(v_scale_num = 0, scale, v_scale_num);
+    -- Denominador efetivo da ampliação vertical.
+    constant V_DEN    : positive := pick(v_scale_num = 0, 1, v_scale_den);
+    -- Altura em linhas da imagem ampliada: ceil(fb_height * V_NUM / V_DEN).
+    constant IMAGE_H  : natural := (fb_height * V_NUM + V_DEN - 1) / V_DEN;
     -- Primeira coluna da imagem, que a centra na área visível.
     constant X_OFF    : natural := (h_visible - IMAGE_W) / 2;
     -- Primeira linha da imagem, que a centra na área visível.
@@ -119,8 +136,8 @@ architecture rtl of video_timing is
     signal x_sub    : natural range 0 to scale - 1 := 0;
     -- Linha do framebuffer que cobre a linha atual.
     signal fb_y     : natural range 0 to fb_height - 1 := 0;
-    -- Linhas já emitidas da linha atual do framebuffer (0 a scale - 1).
-    signal y_sub    : natural range 0 to scale - 1 := 0;
+    -- Acumulador de erro vertical: (linha exibida * V_DEN) mod V_NUM, de 0 a V_NUM - 1.
+    signal y_acc    : natural range 0 to V_NUM - 1 := 0;
     -- A coluna atual está dentro do retângulo da imagem.
     signal in_x     : std_logic;
     -- A linha atual está dentro do retângulo da imagem.
@@ -144,6 +161,10 @@ begin
         report "video_timing: a imagem ampliada deve caber na área visível"
         severity failure;
 
+    assert V_DEN <= V_NUM
+        report "video_timing: v_scale_den deve ser no máximo v_scale_num (a ampliação vertical é de pelo menos 1x)"
+        severity failure;
+
     in_x     <= '1' when h_cnt >= X_OFF and h_cnt < X_OFF + IMAGE_W else '0';
     in_y     <= '1' when v_cnt >= Y_OFF and v_cnt < Y_OFF + IMAGE_H else '0';
     vis_x    <= '1' when h_cnt < h_visible else '0';
@@ -161,7 +182,7 @@ begin
     o_vblank  <= vblank_q;
 
     -- Os contadores de coluna e de linha avançam a cada pixel; as coordenadas do framebuffer reiniciam na
-    -- coluna (ou linha) anterior ao início da imagem e avançam uma unidade a cada scale pixels (ou linhas).
+    -- coluna (ou linha) anterior ao início da imagem; x avança uma unidade a cada scale pixels e y pelo acumulador de erro.
     p_count : process (i_clk) is
 
         -- Coluna que o contador assume na próxima borda.
@@ -178,7 +199,7 @@ begin
                 fb_x     <= 0;
                 x_sub    <= 0;
                 fb_y     <= 0;
-                y_sub    <= 0;
+                y_acc    <= 0;
                 vsync_q  <= '0';
                 vblank_q <= '0';
             else
@@ -212,15 +233,16 @@ begin
                 if h_cnt = H_TOTAL - 1 then
                     if next_v = Y_OFF then
                         fb_y  <= 0;
-                        y_sub <= 0;
+                        y_acc <= 0;
                     elsif in_y = '1' then
-                        if y_sub = scale - 1 then
-                            y_sub <= 0;
+                        -- Acumulador de erro: soma V_DEN; ao alcançar V_NUM, subtrai V_NUM e avança a linha de origem.
+                        if y_acc + V_DEN >= V_NUM then
+                            y_acc <= y_acc + V_DEN - V_NUM;
                             if fb_y < fb_height - 1 then
                                 fb_y <= fb_y + 1;
                             end if;
                         else
-                            y_sub <= y_sub + 1;
+                            y_acc <= y_acc + V_DEN;
                         end if;
                     end if;
                 end if;

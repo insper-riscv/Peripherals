@@ -35,6 +35,17 @@
 -- CRC7, 2 curta sem CRC7, 3 longa), 8 WAIT_BUSY (R1b), 9 DATA_EN, 10 DATA_WRITE.
 -- Os eventos novos têm prioridade sobre a limpeza W1C. A saída o_irq é de nível
 -- e soma três causas, cada uma com a sua habilitação (zero no reset).
+--
+-- Temporização: o barramento (escrita, endereço e dado) é registrado uma vez,
+-- e as escritas em CMD, em CONTROL.ABORT, em STATUS, em ERROR e em DATA agem um
+-- ciclo depois, só a partir dos registros, para a decodificação de endereço da
+-- interconexão não fechar no mesmo ciclo que as máquinas de comando e de dados.
+-- A leitura de STATUS, ERROR e CMD inclui o efeito pendente dessa escrita, e o
+-- software vê o mesmo que veria sem o registro. Só ARG, CONTROL, DIVIDER e
+-- TIMEOUT, o ponteiro e o endereço de leitura do buffer seguem a escrita no
+-- mesmo ciclo. Os eventos do cartão (fim de comando, de dados, erros) aparecem
+-- um ciclo depois, e uma escrita no buffer chega à memória um ciclo depois,
+-- com a leitura do mesmo endereço atendida por um desvio.
 -- ==========================================================================
 
 library ieee;
@@ -203,6 +214,38 @@ architecture rtl of sd_native is
     -- Palavra lida do buffer.
     signal buf_rdata         : std_logic_vector(31 downto 0);
 
+    -- Barramento registrado: escrita, endereço e dado do ciclo anterior.
+    signal wr_q              : std_logic;
+    -- Endereço do ciclo anterior.
+    signal addr_q            : std_logic_vector(3 downto 0);
+    -- Dado de escrita do ciclo anterior.
+    signal data_q            : word_t;
+    -- Valor do ponteiro no ciclo da escrita em DATA, que escreve no buffer um ciclo depois.
+    signal ptr_q             : unsigned(6 downto 0);
+    -- Escrita pendente em STATUS (limpeza W1C).
+    signal write_status      : std_logic;
+    -- Escrita pendente em ERROR (limpeza W1C).
+    signal write_error       : std_logic;
+    -- A leitura do buffer pede o endereço que a escrita registrada grava neste ciclo.
+    signal bypass_q          : std_logic;
+    -- Palavra gravada nesse ciclo, devolvida no lugar da leitura antiga do buffer.
+    signal bypass_data       : std_logic_vector(31 downto 0);
+    -- Estado visto pelo software, com o efeito da escrita pendente em CMD, ABORT, STATUS e ERROR.
+    signal cmd_busy_v        : std_logic;
+    -- Dados ocupados, visto pelo software.
+    signal data_busy_v       : std_logic;
+    -- Fim de comando, visto pelo software.
+    signal cmd_done_flag_v   : std_logic;
+    -- Fim de dados, visto pelo software.
+    signal data_done_flag_v  : std_logic;
+    -- Erros vistos pelo software, com a limpeza W1C e a recusa pendentes.
+    signal errors_v          : std_logic_vector(9 downto 0);
+    -- Bits de ERROR que a escrita pendente limpa.
+    signal error_clear       : std_logic_vector(9 downto 0);
+    -- Erro de comando recusado que a escrita pendente em CMD gera.
+    signal error_refused     : std_logic_vector(9 downto 0);
+    -- Palavra de CMD vista pelo software, com a escrita pendente.
+    signal cmd_word_v        : std_logic_vector(10 downto 0);
     -- Pedido do software de escrever em CMD.
     signal write_cmd         : std_logic;
     -- A escrita em CMD é recusada porque uma operação ainda está em andamento.
@@ -226,13 +269,15 @@ begin
         report "sd_native: default_timeout does not fit in the 24-bit timeout"
         severity failure;
 
-    write_cmd    <= '1' when i_write = '1' and i_address = CMD_ADDRESS else '0';
+    write_cmd    <= '1' when wr_q = '1' and addr_q = CMD_ADDRESS else '0';
+    write_status <= '1' when wr_q = '1' and addr_q = STATUS_ADDRESS else '0';
+    write_error  <= '1' when wr_q = '1' and addr_q = ERROR_ADDRESS else '0';
     cmd_refused  <= write_cmd and (cmd_busy or data_busy or data_pending);
     cmd_start    <= write_cmd and not (cmd_busy or data_busy or data_pending);
-    abort        <= '1' when i_write = '1' and i_address = CONTROL_ADDRESS and i_data_in(8) = '1' else '0';
+    abort        <= '1' when wr_q = '1' and addr_q = CONTROL_ADDRESS and data_q(8) = '1' else '0';
     run          <= clk_enable or cmd_busy or data_busy;
     data_start   <= cmd_resp_ok and data_pending;
-    write_data   <= '1' when i_write = '1' and i_address = DATA_ADDRESS else '0';
+    write_data   <= '1' when wr_q = '1' and addr_q = DATA_ADDRESS else '0';
     write_ptr    <= '1' when i_write = '1' and i_address = PTR_ADDRESS else '0';
     access_data  <= '1' when (i_write = '1' or i_read = '1') and i_address = DATA_ADDRESS else '0';
 
@@ -246,13 +291,13 @@ begin
     engine_writes_buf <= data_busy and not cmd_data_wr;
     engine_reads_buf  <= data_busy and cmd_data_wr;
     buf_we            <= engine_we when engine_writes_buf = '1' else write_data;
-    buf_waddr         <= engine_address when engine_writes_buf = '1' else std_logic_vector(ptr);
-    buf_wdata         <= engine_wdata when engine_writes_buf = '1' else i_data_in(31 downto 0);
+    buf_waddr         <= engine_address when engine_writes_buf = '1' else std_logic_vector(ptr_q);
+    buf_wdata         <= engine_wdata when engine_writes_buf = '1' else data_q(31 downto 0);
     buf_raddr         <= engine_address when engine_reads_buf = '1' else std_logic_vector(ptr_next);
 
-    any_error <= '0' when errors = "0000000000" else '1';
+    any_error <= '0' when errors_v = "0000000000" else '1';
 
-    o_irq <= (cmd_irq_en and cmd_done_flag) or (data_irq_en and data_done_flag) or (err_irq_en and any_error);
+    o_irq <= (cmd_irq_en and cmd_done_flag_v) or (data_irq_en and data_done_flag_v) or (err_irq_en and any_error);
 
     u_clock : entity work.sd_clock_gen
         generic map (
@@ -274,10 +319,10 @@ begin
             i_rst         => i_rst,
             i_abort       => abort,
             i_start       => cmd_start,
-            i_index       => i_data_in(5 downto 0),
+            i_index       => data_q(5 downto 0),
             i_argument    => arg_reg,
-            i_response    => i_data_in(7 downto 6),
-            i_wait_busy   => i_data_in(8),
+            i_response    => data_q(7 downto 6),
+            i_wait_busy   => data_q(8),
             i_timeout     => timeout,
             i_rise        => sclk_rise,
             i_fall        => sclk_fall,
@@ -332,6 +377,38 @@ begin
             i_read_address  => buf_raddr,
             o_read_data     => buf_rdata
         );
+
+    p_bus : process (i_clk) is
+    begin
+
+        if rising_edge(i_clk) then
+            wr_q   <= i_write and not i_rst;
+            addr_q <= i_address;
+            data_q <= i_data_in;
+            ptr_q  <= ptr;
+
+            -- Um acesso à janela DATA vindo do mesmo endereço que a escrita registrada grava agora.
+            if write_data = '1' and engine_writes_buf = '0' and engine_reads_buf = '0' and buf_raddr = buf_waddr then
+                bypass_q <= '1';
+            else
+                bypass_q <= '0';
+            end if;
+
+            bypass_data <= buf_wdata;
+        end if;
+
+    end process p_bus;
+
+    -- Efeito pendente da escrita registrada, que o software já deve ver neste ciclo.
+    cmd_busy_v      <= (cmd_busy or cmd_start) and not abort;
+    data_busy_v     <= (data_busy or data_pending or (cmd_start and data_q(9))) and not abort;
+    cmd_done_flag_v <= cmd_done_flag and not (cmd_start or (write_status and data_q(2)));
+    data_done_flag_v <= data_done_flag and not ((cmd_start and data_q(9)) or (write_status and data_q(3)));
+    error_clear     <= data_q(9 downto 0) when write_error = '1' else (others => '0');
+    error_refused   <= (9 => cmd_refused, others => '0');
+    errors_v        <= (errors and not error_clear) or error_refused;
+    cmd_word_v      <= data_q(10 downto 0) when cmd_start = '1'
+                       else cmd_data_wr & cmd_data_en & cmd_wait_busy & cmd_response & cmd_index;
 
     p_sync : process (i_clk) is
     begin
@@ -404,15 +481,15 @@ begin
                 end if;
 
                 -- Os eventos novos têm prioridade sobre uma limpeza simultânea.
-                if i_write = '1' and i_address = STATUS_ADDRESS then
-                    cmd_done_flag  <= cmd_done_flag and not i_data_in(2);
-                    data_done_flag <= data_done_flag and not i_data_in(3);
+                if write_status = '1' then
+                    cmd_done_flag  <= cmd_done_flag and not data_q(2);
+                    data_done_flag <= data_done_flag and not data_q(3);
                 end if;
 
                 next_errors := errors;
 
-                if i_write = '1' and i_address = ERROR_ADDRESS then
-                    next_errors := errors and not i_data_in(9 downto 0);
+                if write_error = '1' then
+                    next_errors := errors and not data_q(9 downto 0);
                 end if;
 
                 if cmd_done = '1' then
@@ -428,15 +505,15 @@ begin
                 end if;
 
                 if cmd_start = '1' then
-                    cmd_index     <= i_data_in(5 downto 0);
-                    cmd_response  <= i_data_in(7 downto 6);
-                    cmd_wait_busy <= i_data_in(8);
-                    cmd_data_en   <= i_data_in(9);
-                    cmd_data_wr   <= i_data_in(10);
-                    data_pending  <= i_data_in(9);
+                    cmd_index     <= data_q(5 downto 0);
+                    cmd_response  <= data_q(7 downto 6);
+                    cmd_wait_busy <= data_q(8);
+                    cmd_data_en   <= data_q(9);
+                    cmd_data_wr   <= data_q(10);
+                    data_pending  <= data_q(9);
                     cmd_done_flag <= '0';
 
-                    if i_data_in(9) = '1' then
+                    if data_q(9) = '1' then
                         data_done_flag <= '0';
                     end if;
                 end if;
@@ -474,10 +551,9 @@ begin
     end process p_registers;
 
     p_readback : process (
-                          i_address, response, errors, clk_enable, wide_bus, cmd_irq_en, data_irq_en, err_irq_en, divider,
-                          timeout, buf_rdata, ptr, arg_reg, cmd_data_wr, cmd_data_en, cmd_wait_busy, cmd_response,
-                          cmd_index, cmd_busy, data_busy, data_pending, cmd_done_flag, data_done_flag, dat_q, cmd_q,
-                          write_token
+                          i_address, response, errors_v, cmd_word_v, cmd_busy_v, data_busy_v, cmd_done_flag_v,
+                          data_done_flag_v, bypass_q, bypass_data, clk_enable, wide_bus, cmd_irq_en, data_irq_en, err_irq_en, divider,
+                          timeout, buf_rdata, ptr, arg_reg, dat_q, cmd_q, write_token
                          ) is
 
         -- Valor montado para o registrador selecionado.
@@ -495,7 +571,7 @@ begin
 
             when CMD_ADDRESS =>
 
-                value(10 downto 0) := cmd_data_wr & cmd_data_en & cmd_wait_busy & cmd_response & cmd_index;
+                value(10 downto 0) := cmd_word_v;
 
             when RESP0_ADDRESS =>
 
@@ -515,10 +591,10 @@ begin
 
             when STATUS_ADDRESS =>
 
-                value(0)            := cmd_busy;
-                value(1)            := data_busy or data_pending;
-                value(2)            := cmd_done_flag;
-                value(3)            := data_done_flag;
+                value(0)            := cmd_busy_v;
+                value(1)            := data_busy_v;
+                value(2)            := cmd_done_flag_v;
+                value(3)            := data_done_flag_v;
                 value(4)            := not dat_q(0);
                 value(5)            := cmd_q;
                 value(11 downto 8)  := dat_q;
@@ -526,7 +602,7 @@ begin
 
             when ERROR_ADDRESS =>
 
-                value(9 downto 0) := errors;
+                value(9 downto 0) := errors_v;
 
             when CONTROL_ADDRESS =>
 
@@ -546,7 +622,11 @@ begin
 
             when DATA_ADDRESS =>
 
-                value(31 downto 0) := buf_rdata;
+                if bypass_q = '1' then
+                    value(31 downto 0) := bypass_data;
+                else
+                    value(31 downto 0) := buf_rdata;
+                end if;
 
             when PTR_ADDRESS =>
 
