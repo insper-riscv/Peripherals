@@ -30,12 +30,12 @@ module props (input clk);
   wire [1:0] o_fb_x, o_fb_y;
   // Contadores internos do hardware, expostos pela netlist: a lógica é a mesma, e a indução enuncia o estado.
   wire [3:0] d_h_cnt, d_v_cnt;
-  wire [0:0] d_fb_x, d_x_sub, d_fb_y, d_y_sub;
+  wire [0:0] d_fb_x, d_x_sub, d_fb_y, d_y_acc;
 
   video_timing dut (.i_clk(clk), .i_rst(reset), .o_hs(o_hs), .o_vs(o_vs), .o_vsync(o_vsync), .o_vblank(o_vblank),
                     .o_visible(o_visible), .o_image(o_image), .o_fb_x(o_fb_x), .o_fb_y(o_fb_y),
                     .dbg_h_cnt(d_h_cnt), .dbg_v_cnt(d_v_cnt), .dbg_fb_x(d_fb_x), .dbg_x_sub(d_x_sub),
-                    .dbg_fb_y(d_fb_y), .dbg_y_sub(d_y_sub));
+                    .dbg_fb_y(d_fb_y), .dbg_y_acc(d_y_acc));
 
   // Os registradores não têm valor inicial: o primeiro clock é um reset, como na placa. O reset não volta depois.
   reg f_past = 0;
@@ -80,9 +80,9 @@ module props (input clk);
     assert (col < HT && line < VT);
     assert (d_h_cnt == col);
     assert (d_v_cnt == line);
-    assert (d_fb_x < FBW && d_fb_y < FBH && d_x_sub < SC && d_y_sub < SC);
+    assert (d_fb_x < FBW && d_fb_y < FBH && d_x_sub < SC && d_y_acc < SC);
     if (in_x) assert (d_fb_x == (col - XO) / SC && d_x_sub == (col - XO) % SC);
-    if (in_y) assert (d_fb_y == (line - YO) / SC && d_y_sub == (line - YO) % SC);
+    if (in_y) assert (d_fb_y == (line - YO) / SC && d_y_acc == (line - YO) % SC);
   end
 `endif
 

@@ -7,7 +7,7 @@ for n in hdmi_i2c_writer hdmi_init_seq; do path_of[$n]="$root/src/HDMI/adv7513/$
 
 echo "hdmi_timing"
 tim_srcs=(video_timing)
-tim_exp=(h_cnt:3 v_cnt:3 fb_x:0 x_sub:0 fb_y:0 y_sub:0)
+tim_exp=(h_cnt:3 v_cnt:3 fb_x:0 x_sub:0 fb_y:0 y_acc:0)
 tgen=(-gfb_width=2 -gfb_height=2 -gscale=2 -gh_visible=6 -gh_front_porch=2 -gh_sync=3 -gh_back_porch=4 -gv_visible=5 -gv_front_porch=1 -gv_sync=2 -gv_back_porch=3)
 tp="$f/hdmi_timing_props.sv"
 mut_expose=("${tim_exp[@]}")
