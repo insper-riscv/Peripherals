@@ -117,7 +117,7 @@ The ChaN [FatFs](http://elm-chan.org/fsw/ff/) runs over a thin disk layer (`port
 | `FF_MULTI_PARTITION` | 0 | One logical drive: the first MBR partition, or the volume with no MBR |
 | `FF_MIN_SS` and `FF_MAX_SS` | 512 | 512-byte sector |
 
-The disk layer hands the read straight to the destination when it is 4-byte aligned, and goes through a one-sector buffer when it is not, because the controller buffer is read in 32-bit words. The card capacity comes from CMD9, read once at initialization.
+The disk layer hands the read straight to the destination when it is 4-byte aligned, and goes through a one-sector buffer when it is not, because the controller buffer is read in 32-bit words. The card capacity comes from CMD9, which only the FatFs build runs, once at initialization.
 
 ## 5. Initialization sequence and reading a block
 
@@ -132,7 +132,7 @@ The driver follows the specification sequence for SDHC and SDXC.
 | 5 | Repeats CMD55 and ACMD41 with `0x40FF8000` (response without CRC) every 5 ms, for up to 1.2 s | Bit 31 of `RESP0` at 1 |
 | 6 | Checks bit 30 of `RESP0`, the CCS | At 0 it is an SDSC card, refused |
 | 7 | CMD2 (long response) and CMD3 | RCA in bits 31 to 16 of `RESP0` |
-| 8 | CMD9 with the RCA (long response) | If the CSD is version 2, the capacity is $(C\_SIZE + 1) \cdot 1024$ sectors; a failure here does not prevent use |
+| 8 | FatFs only: CMD9 with the RCA (long response); the raw form skips this step | If the CSD is version 2, the capacity is $(C\_SIZE + 1) \cdot 1024$ sectors; if it fails, the capacity stays 0 and initialization continues |
 | 9 | CMD7 with the RCA and `WAIT_BUSY` | Card in the transfer state |
 | 10 | CMD55 and ACMD6 with argument 2, then `WIDE_BUS` in `CONTROL` | Four data lines |
 | 11 | `DIVIDER` to 1 and `TIMEOUT` to 5000000 | 25 MHz, 0.2 s limit |
@@ -190,7 +190,7 @@ After editing the file, `riscv-tools generate-memory-map` regenerates the map an
 | :--- | :--- |
 | SDHC and SDXC only | The driver checks the CCS bit of the OCR and refuses SDSC cards, which address by byte |
 | Read only | The controller can write blocks (CMD24, tested in simulation), but the platform driver, FatFs and the disk layer only read |
-| Capacity (CMD9) | Read at initialization in both forms, but only FatFs uses it; a failure does not prevent block reads |
+| Capacity (CMD9) | Read only in the FatFs form, which uses it; the raw form initializes without CMD9. If CMD9 fails, the capacity stays 0 and initialization continues |
 | Long names | FatFs runs without long names; a FAT32 card mixing long and short names was not tested |
 | Interrupt | The driver polls; the controller interrupt path is not exercised by the platform |
 | Validation on a real card | FatFs was tested on the board with a 30 GB FAT32 card, formatted with a 32 KB cluster, and the 5 games (DOOM, DOOM II, Plutonia, TNT and Master Levels) |
