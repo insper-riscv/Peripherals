@@ -32,14 +32,14 @@ entity gpio is
         -- Total de índices de pino listados em group_members, a soma de group_sizes.
         member_count   : positive range 1 to 255                                    := 32;
         -- Pinos de cada grupo, um campo de 8 bits por grupo: o grupo g nos bits 8g+7 a 8g.
-        group_sizes    : std_logic_vector(8 * group_count - 1 downto 0)             := x"20";
+        group_sizes    : std_logic_vector             := x"20";
         -- Índices de pino de todos os grupos, em sequência e na ordem escrita, um campo de 8 bits por membro.
-        group_members  : std_logic_vector(8 * member_count - 1 downto 0)            :=
+        group_members  : std_logic_vector            :=
             x"1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100";
         -- Direção fixa de cada pino, 2 bits por pino (0 livre, 1 só entrada, 2 só saída): o pino p nos bits 2p+1 a 2p.
-        pin_dirs       : std_logic_vector(2 * pin_count - 1 downto 0)               := (others => '0');
+        pin_dirs       : std_logic_vector := (509 downto 0 => '0');
         -- Polaridade de cada pino: '1' é ativo em nível baixo e '0' é ativo em nível alto; o pino p no bit p.
-        pin_active_low : std_logic_vector(pin_count - 1 downto 0)                   := (others => '0')
+        pin_active_low : std_logic_vector := (254 downto 0 => '0')
     );
     port (
         -- Clock do módulo.

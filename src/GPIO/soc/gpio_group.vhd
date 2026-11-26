@@ -21,9 +21,9 @@ entity gpio_group is
         -- Pinos do grupo, de 1 a 32.
         width      : positive range 1 to 32 := 32;
         -- Direção de cada pino, 2 bits por pino (0 livre, 1 só entrada, 2 só saída); o pino k ocupa os bits 2k+1 a 2k.
-        dir_modes  : std_logic_vector(2 * width - 1 downto 0) := (others => '0');
+        dir_modes  : std_logic_vector := (63 downto 0 => '0');
         -- Polaridade de cada pino: '1' é ativo em nível baixo e '0' é ativo em nível alto.
-        active_low : std_logic_vector(width - 1 downto 0) := (others => '0')
+        active_low : std_logic_vector := (31 downto 0 => '0')
     );
     port (
         -- Clock do módulo.
