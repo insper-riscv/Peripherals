@@ -1,4 +1,6 @@
--- Regression for expansion connectors with unassigned physical pins.
+-- ============================================================================
+-- Verifica as fases do motor e os pinos livres de um conector GPIO.
+-- ============================================================================
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -12,19 +14,28 @@ end entity;
 architecture test of gpio_expansion_sequence_tb is
     -- Deliberately ascending: bit-string actuals need not be descending.
     constant DIRECTIONS : std_logic_vector(0 to 15) := x"8000";
+    -- Polaridade ativa baixa do pino de saída não utilizado.
     constant POLARITIES : std_logic_vector(0 to 7) := x"80";
+    -- Sequência de fases de meio passo.
     type sequence_t is array (0 to 7) of natural;
+    -- Padrões de acionamento das quatro bobinas.
     constant PHASES : sequence_t := (1, 3, 2, 6, 4, 12, 8, 9);
+    -- Relógio do barramento de teste.
     signal clk : std_logic := '0';
+    -- Reset inicial do periférico.
     signal rst : std_logic := '1';
+    -- Palavra escrita no registrador selecionado.
     signal data_in : word_t := (others => '0');
+    -- Índice do registrador GPIO.
     signal address : std_logic_vector(3 downto 0) := (others => '0');
+    -- Habilitação de escrita no barramento.
     signal wr : std_logic := '0';
+    -- Pinos físicos resolvidos do conector.
     signal pins : std_logic_vector(7 downto 0);
 begin
     clk <= not clk after 10 ns;
 
-    dut : entity work.gpio
+    u_dut : entity work.gpio
         generic map (
             pin_count => 8,
             group_count => 1,
@@ -59,6 +70,7 @@ begin
         end procedure;
 
         procedure check_phase(value : natural) is
+            -- Bits da fase lógica antes do mapeamento físico.
             variable bits : unsigned(3 downto 0);
         begin
             write_word(1, value);

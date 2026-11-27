@@ -58,6 +58,7 @@ architecture rtl of gpio_tb is
     -- Exercise legal ascending generic actuals as well as descending RTL
     -- register vectors. Unassigned-pin handling must normalize this range.
     function ascending_bits(value : std_logic_vector) return std_logic_vector is
+        -- Mantém os bits e altera apenas o sentido do intervalo.
         variable bits : std_logic_vector(0 to value'length - 1) := value;
     begin
         return bits;
