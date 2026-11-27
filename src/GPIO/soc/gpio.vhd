@@ -73,6 +73,11 @@ end entity gpio;
 
 architecture rtl of gpio is
 
+    -- Normalize unconstrained generic ranges before slicing. Quartus may
+    -- associate an ascending actual even when the caller used a bit string.
+    constant DIR_BITS : std_logic_vector(pin_dirs'length - 1 downto 0) := pin_dirs;
+    constant LOW_BITS : std_logic_vector(pin_active_low'length - 1 downto 0) := pin_active_low;
+
     -- Matriz das palavras de leitura, uma por grupo.
     type rdata_array_t is array (0 to group_count - 1) of word_t;
 
@@ -122,8 +127,8 @@ begin
         u_group : entity work.gpio_group
             generic map (
                 width      => SIZE,
-                dir_modes  => member_dirs(pin_dirs, group_members, FIRST, SIZE),
-                active_low => member_lows(pin_active_low, group_members, FIRST, SIZE)
+                dir_modes  => member_dirs(DIR_BITS, group_members, FIRST, SIZE),
+                active_low => member_lows(LOW_BITS, group_members, FIRST, SIZE)
             )
             port map (
                 i_clk      => i_clk,
@@ -202,11 +207,11 @@ begin
 
         gen_off_pin : if not is_member(group_members, member_count, p) generate
 
-            gen_hold : if to_mode(pin_dirs(2 * p + 1 downto 2 * p)) = DIR_OUTPUT generate
-                io_gpio_pins(p) <= pin_active_low(p);
+            gen_hold : if to_mode(DIR_BITS(2 * p + 1 downto 2 * p)) = DIR_OUTPUT generate
+                io_gpio_pins(p) <= LOW_BITS(p);
             end generate gen_hold;
 
-            gen_float : if to_mode(pin_dirs(2 * p + 1 downto 2 * p)) /= DIR_OUTPUT generate
+            gen_float : if to_mode(DIR_BITS(2 * p + 1 downto 2 * p)) /= DIR_OUTPUT generate
                 io_gpio_pins(p) <= 'Z';
             end generate gen_float;
 

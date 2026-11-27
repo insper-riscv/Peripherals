@@ -55,6 +55,14 @@ end entity gpio_tb;
 
 architecture rtl of gpio_tb is
 
+    -- Exercise legal ascending generic actuals as well as descending RTL
+    -- register vectors. Unassigned-pin handling must normalize this range.
+    function ascending_bits(value : std_logic_vector) return std_logic_vector is
+        variable bits : std_logic_vector(0 to value'length - 1) := value;
+    begin
+        return bits;
+    end function;
+
     -- Pinos do gpio, resolvidos entre o gpio e o mundo externo.
     signal gpio_pins : std_logic_vector(pins - 1 downto 0);
 
@@ -73,8 +81,8 @@ begin
             member_count   => count_members(partition),
             group_sizes    => encode_sizes(partition),
             group_members  => encode_members(partition),
-            pin_dirs       => encode_dirs(directions),
-            pin_active_low => encode_lows(polarity)
+            pin_dirs       => ascending_bits(encode_dirs(directions)),
+            pin_active_low => ascending_bits(encode_lows(polarity))
         )
         port map (
             i_clk        => i_clk,
