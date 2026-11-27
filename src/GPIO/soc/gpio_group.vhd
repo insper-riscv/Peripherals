@@ -21,8 +21,11 @@ entity gpio_group is
         -- Pinos do grupo, de 1 a 32.
         width      : positive range 1 to 32 := 32;
         -- Direção de cada pino, 2 bits por pino (0 livre, 1 só entrada, 2 só saída); o pino k ocupa os bits 2k+1 a 2k.
+        -- Sem restrição de faixa, porque o Quartus Lite recusa um generic cuja faixa depende de outro generic da lista
+        -- (erros 10552 e 10556); a largura, 2 * width, é conferida na elaboração.
         dir_modes  : std_logic_vector := (63 downto 0 => '0');
-        -- Polaridade de cada pino: '1' é ativo em nível baixo e '0' é ativo em nível alto.
+        -- Polaridade de cada pino: '1' é ativo em nível baixo e '0' é ativo em nível alto; largura width, conferida na
+        -- elaboração.
         active_low : std_logic_vector := (31 downto 0 => '0')
     );
     port (
@@ -62,6 +65,11 @@ entity gpio_group is
 end entity gpio_group;
 
 architecture rtl of gpio_group is
+
+    -- Direção de cada pino, com a faixa normalizada em 2 * width - 1 downto 0 qualquer que seja a faixa do generic.
+    constant MODES : std_logic_vector(dir_modes'length - 1 downto 0)  := dir_modes;
+    -- Polaridade de cada pino, com a faixa normalizada em width - 1 downto 0 qualquer que seja a faixa do generic.
+    constant LOWS : std_logic_vector(active_low'length - 1 downto 0) := active_low;
 
     -- Habilitações de escrita dos registradores.
     signal wr_en  : std_logic_vector(7 downto 0);
@@ -106,6 +114,16 @@ architecture rtl of gpio_group is
 
 begin
 
+    assert MODES'length = 2 * width
+        report "gpio_group: dir_modes tem " & integer'image(MODES'length) & " bits, e width pede " &
+               integer'image(2 * width)
+        severity failure;
+
+    assert LOWS'length = width
+        report "gpio_group: active_low tem " & integer'image(LOWS'length) & " bits, e width pede " &
+               integer'image(width)
+        severity failure;
+
     data_pins <= i_data_in(width - 1 downto 0);
 
     -----------------------------------------------------------------------------
@@ -131,8 +149,8 @@ begin
 
         u_gpio_cell : entity work.gpio_cell
             generic map (
-                dir_mode   => to_mode(dir_modes(2 * i + 1 downto 2 * i)),
-                active_low => active_low(i) = '1'
+                dir_mode   => to_mode(MODES(2 * i + 1 downto 2 * i)),
+                active_low => LOWS(i) = '1'
             )
             port map (
                 i_clk        => i_clk,

@@ -4659,5 +4659,198 @@
         "test_args": [
             "--std=08"
         ]
+    },
+    "VideoTimingVRatio": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_timing_vratio",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "h_visible": 16,
+            "h_front_porch": 4,
+            "h_sync": 6,
+            "h_back_porch": 8,
+            "h_sync_positive": true,
+            "v_visible": 12,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 5,
+            "v_sync_positive": true,
+            "fb_width": 8,
+            "fb_height": 5,
+            "scale": 2,
+            "v_scale_num": 12,
+            "v_scale_den": 5
+        }
+    },
+    "VideoTimingVRatioDoom": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_timing_vratio",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "fb_width": 320,
+            "fb_height": 200,
+            "scale": 2,
+            "v_scale_num": 12,
+            "v_scale_den": 5
+        }
+    },
+    "VideoTimingVRatioCentered": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_timing_vratio",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "h_visible": 16,
+            "h_front_porch": 4,
+            "h_sync": 6,
+            "h_back_porch": 8,
+            "h_sync_positive": true,
+            "v_visible": 20,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 5,
+            "v_sync_positive": true,
+            "fb_width": 8,
+            "fb_height": 6,
+            "scale": 2,
+            "v_scale_num": 12,
+            "v_scale_den": 5
+        }
+    },
+    "VideoTimingVRatio3Over2": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_timing_vratio",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "h_visible": 16,
+            "h_front_porch": 4,
+            "h_sync": 6,
+            "h_back_porch": 8,
+            "h_sync_positive": true,
+            "v_visible": 14,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 5,
+            "v_sync_positive": true,
+            "fb_width": 8,
+            "fb_height": 6,
+            "scale": 2,
+            "v_scale_num": 3,
+            "v_scale_den": 2
+        }
+    },
+    "VideoTimingVDefault": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_timing_vratio",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "h_visible": 16,
+            "h_front_porch": 4,
+            "h_sync": 6,
+            "h_back_porch": 8,
+            "h_sync_positive": true,
+            "v_visible": 10,
+            "v_front_porch": 3,
+            "v_sync": 3,
+            "v_back_porch": 5,
+            "v_sync_positive": true,
+            "fb_width": 8,
+            "fb_height": 5,
+            "scale": 2
+        }
+    },
+    "VideoTimingVDefaultDoom": {
+        "toplevel": "video_timing",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/video/soc/video_timing.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_timing_vratio",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "fb_width": 320,
+            "fb_height": 200,
+            "scale": 2
+        }
+    },
+    "VideoVRatio": {
+        "toplevel": "video",
+        "sources": [
+            "src/common/src/utils_pkg.vhd",
+            "src/common/src/config_pkg.vhd",
+            "src/common/src/synchronizer.vhd",
+            "src/video/soc/video_consts.vhd",
+            "src/video/soc/video_timing.vhd",
+            "src/video/soc/video_dpram.vhd",
+            "src/video/soc/video_scanout.vhd",
+            "src/video/soc/video_vga.vhd",
+            "src/video/soc/video_regs.vhd",
+            "src/video/soc/video.vhd"
+        ],
+        "test_module": "tests.python.unittests.video.video_vratio",
+        "build_args": [
+            "--std=08"
+        ],
+        "test_args": [
+            "--std=08"
+        ],
+        "parameters": {
+            "fb_width": 32,
+            "fb_height": 10,
+            "pixel_format": "direct",
+            "scale": 2,
+            "addr_width": 11,
+            "v_scale_num": 12,
+            "v_scale_den": 5
+        }
     }
 }

@@ -4,7 +4,7 @@
 
 ## 1. O que é
 
-Periférico de barramento que conduz um cartão SD ou micro SD pelo modo nativo, com uma ou quatro linhas de dados, o modo em que o cartão alcança a sua taxa máxima de transferência. O software escreve o argumento e o comando, o periférico envia o quadro de 48 bits com CRC7, recebe e confere a resposta e, quando o comando leva um bloco, transfere os 512 bytes entre o cartão e um buffer de bloco com o CRC16 de cada linha. O modo SPI do mesmo cartão está em [sd_spi.md](sd_spi.md).
+Periférico de barramento que conduz um cartão SD ou micro SD pelo modo nativo, com uma ou quatro linhas de dados, o modo em que o cartão alcança a sua taxa máxima de transferência. O software escreve o argumento e o comando, o periférico envia o quadro de 48 bits com CRC7, recebe e confere a resposta e, quando o comando leva um bloco, transfere os 512 bytes entre o cartão e um buffer de bloco com o CRC16 de cada linha. O modo SPI do mesmo cartão está em [sd_spi.md](sd_spi.md). O uso do cartão no SoC, cru ou com sistema de arquivos, está em [sd_cartao.md](sd_cartao.md).
 
 O periférico é composto por sete blocos.
 

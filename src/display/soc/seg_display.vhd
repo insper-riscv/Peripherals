@@ -59,10 +59,12 @@ entity seg_display is
         group_count   : positive range 1 to 8 := 1;
         -- Total de índices de dígito listados em group_members, a soma de group_sizes.
         member_count  : positive range 1 to 8 := 6;
-        -- Dígitos de cada grupo, um campo de 8 bits por grupo: o grupo g nos bits 8g+7 a 8g.
-        group_sizes   : std_logic_vector  := x"06";
+        -- Dígitos de cada grupo, um campo de 8 bits por grupo: o grupo g nos bits 8g+7 a 8g. Os dois vetores não têm
+        -- faixa declarada, porque o Quartus Lite recusa um generic cuja faixa depende de outro generic da lista
+        -- (erros 10552 e 10556); a largura de cada um, 8 * group_count e 8 * member_count, é conferida na elaboração.
+        group_sizes   : std_logic_vector                                := x"06";
         -- Índices de dígito de todos os grupos, em sequência e na ordem escrita, um campo de 8 bits por membro.
-        group_members : std_logic_vector := x"050403020100";
+        group_members : std_logic_vector                                := x"050403020100";
         -- Dígitos de oito segmentos (com o ponto decimal) quando verdadeiro; falso, sete segmentos.
         has_dp        : boolean                                         := false
     );
@@ -140,6 +142,16 @@ architecture rtl of seg_display is
     signal host_tog  : std_logic                                 := '0';
 
 begin
+
+    assert group_sizes'length = 8 * group_count
+        report "seg_display: group_sizes tem " & integer'image(group_sizes'length) & " bits, e group_count pede " &
+               integer'image(8 * group_count)
+        severity failure;
+
+    assert group_members'length = 8 * member_count
+        report "seg_display: group_members tem " & integer'image(group_members'length) &
+               " bits, e member_count pede " & integer'image(8 * member_count)
+        severity failure;
 
     -- Leva o toggle de gravação do domínio de tck ao de i_clk.
     u_sync_tog : entity work.synchronizer

@@ -29,13 +29,14 @@ use ieee.std_logic_1164.all;
 
 library work;
 use work.config_pkg.all;
+use work.gpio_pkg.all;
 
 entity gpio_input is
     generic (
         -- Número de pinos do bloco, de 1 a 32.
         width      : positive range 1 to 32            := 32;
         -- Bit em '1' marca o pino ativo em nível baixo: o programa lê o nível invertido.
-        active_low : std_logic_vector(width - 1 downto 0) := (others => '0')
+        active_low : std_logic_vector := NO_PIN_LOWS
     );
     port (
         -- Clock do módulo.
@@ -75,13 +76,16 @@ architecture rtl of gpio_input is
 
     end function all_inputs;
 
+    -- Polaridade com a faixa normalizada em active_low'length - 1 downto 0, de onde saem os width primeiros bits.
+    constant LOWS : std_logic_vector(active_low'length - 1 downto 0) := active_low;
+
 begin
 
     u_group : entity work.gpio_group
         generic map (
             width      => width,
             dir_modes  => all_inputs,
-            active_low => active_low
+            active_low => LOWS(width - 1 downto 0)
         )
         port map (
             i_clk      => i_clk,
